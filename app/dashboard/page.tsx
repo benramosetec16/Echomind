@@ -1,8 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import TopBar from '../../components/TopBar';
-import PageTransition from '../../components/PageTransition';
+import TopBar from '../components/TopBar';
+import PageTransition from '../components/PageTransition';
 import Image from 'next/image';
 
 export default function DashboardPage() {
