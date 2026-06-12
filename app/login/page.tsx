@@ -191,6 +191,7 @@ export default function LoginPage() {
                   name="password"
                   type="password"
                   required
+                  minLength={6}
                   placeholder="••••••••••••"
                   className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
                 />
@@ -217,9 +218,13 @@ export default function LoginPage() {
               <button 
                 type="button" 
                 onClick={toggleMode}
-                className="text-xs text-on-surface-variant hover:text-secondary transition-colors"
+                className="text-xs text-on-surface-variant hover:text-secondary transition-colors underline underline-offset-4"
               >
+<<<<<<< HEAD
                 {mode === 'login' ? 'Solicitar Nova Designação (Cadastrar)' : 'Retornar ao Portal de Acesso (Entrar)'}
+=======
+                {mode === 'login' ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça Login'}
+>>>>>>> 7c674dd8fe0c5be43c71f82ad7b6834d09f637ca
               </button>
 
               <button type="button" className="flex items-center gap-3 text-on-surface-variant hover:text-secondary transition-colors group mt-2">

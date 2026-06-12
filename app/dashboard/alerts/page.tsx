@@ -41,18 +41,18 @@ export default function AlertsPage() {
 
   useEffect(() => {
     fetchLogs();
-  }, [supabase]);
+  }, []);
 
   // Insert mock log for testing
   const insertMockLog = async (type: 'info' | 'normal' | 'warning' | 'critical') => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return alert("Must be logged in to simulate logs.");
+    if (!user) return alert("Você deve estar conectado para simular os registros.");
 
     const mocks = {
-      critical: { title: 'Elevated Cortisol Peak', desc: 'System detected a sudden 34% spike in stress markers during focus session.', bpm: 84 },
-      warning: { title: 'REM Cycle Disruption', desc: 'Minor interruptions detected in deep sleep pattern.', bpm: 68 },
-      normal: { title: 'Metabolic Calibration', desc: 'Routine background check completed. All systems nominal.', bpm: 62 },
-      info: { title: 'Serotonin Uptake Spike', desc: 'Positive response to external stimulus. Mood stabilized.', bpm: 65 }
+      critical: { title: 'Pico de Cortisol Elevado', desc: 'O sistema detectou um aumento repentino de 34% nos marcadores de estresse durante a sessão de foco.', bpm: 84 },
+      warning: { title: 'Interrupção do Ciclo REM', desc: 'Pequenas interrupções detectadas no padrão de sono profundo.', bpm: 68 },
+      normal: { title: 'Calibração Metabólica', desc: 'Verificação de rotina concluída. Todos os sistemas normais.', bpm: 62 },
+      info: { title: 'Pico de Captação de Serotonina', desc: 'Resposta positiva a estímulo externo. Humor estabilizado.', bpm: 65 }
     };
 
     const mock = mocks[type];
@@ -78,7 +78,7 @@ export default function AlertsPage() {
 
   return (
     <>
-      <TopBar title="Harmony" />
+      <TopBar title="Harmonia" />
       <main className="pt-32 px-16 pb-24 relative min-h-screen flex flex-col">
         <PageTransition>
           {/* Header Section */}
@@ -90,7 +90,7 @@ export default function AlertsPage() {
             >
               <div className={`w-2 h-2 rounded-full animate-pulse shadow-[0_0_10px_rgba(159,207,213,0.8)] ${activeAlert ? 'bg-error shadow-error' : 'bg-[#9fcfd5]'}`}></div>
               <span className={`text-xs uppercase tracking-[0.2em] font-semibold ${activeAlert ? 'text-error' : 'text-secondary'}`}>
-                Bio-Sync Status: {activeAlert ? 'Action Required' : 'Optimal'}
+                Status Bio-Sync: {activeAlert ? 'Ação Necessária' : 'Otimizado'}
               </span>
             </motion.div>
             <motion.h1 
@@ -99,7 +99,7 @@ export default function AlertsPage() {
               transition={{ delay: 0.1 }}
               className="text-5xl font-extralight tracking-tighter text-on-surface mb-4"
             >
-              System Diagnostics
+              Diagnóstico do Sistema
             </motion.h1>
             <motion.p 
               initial={{ opacity: 0, y: 10 }}
@@ -107,8 +107,8 @@ export default function AlertsPage() {
               transition={{ delay: 0.2 }}
               className="text-on-surface-variant max-w-2xl"
             >
-              Real-time monitoring of neural interface stability. 
-              Any significant deviations from baseline resonance will be logged here.
+              Monitoramento em tempo real da estabilidade da interface neural. 
+              Qualquer desvio significativo da ressonância base será registrado aqui.
             </motion.p>
           </header>
 
@@ -129,7 +129,7 @@ export default function AlertsPage() {
                     <div className="flex items-center gap-3 mb-6">
                       <span className={`material-symbols-outlined ${activeAlert.type === 'critical' ? 'text-error' : 'text-tertiary'}`} style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
                       <span className={`text-xs font-semibold uppercase tracking-[0.2em] ${activeAlert.type === 'critical' ? 'text-error' : 'text-tertiary'}`}>
-                        {activeAlert.type === 'critical' ? 'Critical Delta Detected' : 'Warning System Log'}
+                        {activeAlert.type === 'critical' ? 'Delta Crítico Detectado' : 'Aviso no Sistema'}
                       </span>
                     </div>
                     
@@ -140,7 +140,7 @@ export default function AlertsPage() {
                     
                     <div className="flex gap-4">
                       <button className="px-6 py-3 rounded-full border border-secondary text-secondary text-sm font-semibold uppercase tracking-[0.1em] hover:bg-secondary/10 transition-colors">
-                        Initiate Calm
+                        Iniciar Protocolo Calma
                       </button>
                       <button 
                         onClick={async () => {
@@ -149,7 +149,7 @@ export default function AlertsPage() {
                         }}
                         className="px-6 py-3 rounded-full border border-white/10 text-on-surface-variant text-sm font-semibold uppercase tracking-[0.1em] hover:bg-white/5 hover:text-on-surface transition-colors"
                       >
-                        Dismiss
+                        Dispensar
                       </button>
                     </div>
                   </div>
@@ -160,7 +160,7 @@ export default function AlertsPage() {
                       <div className="relative z-10 text-center">
                         <div className={`text-5xl font-extralight mb-1 ${activeAlert.type === 'critical' ? 'text-error' : 'text-tertiary'}`}>{activeAlert.bpm}<span className="text-xl">bp</span></div>
                         <div className={`text-[10px] uppercase tracking-widest font-semibold border px-3 py-1 rounded-full ${activeAlert.type === 'critical' ? 'text-error/60 border-error/20' : 'text-tertiary/60 border-tertiary/20'}`}>
-                          {activeAlert.type === 'critical' ? 'Stress Peak' : 'Elevated'}
+                          {activeAlert.type === 'critical' ? 'Pico de Estresse' : 'Elevado'}
                         </div>
                       </div>
                     </div>
@@ -169,7 +169,7 @@ export default function AlertsPage() {
               ) : (
                 <div className="flex flex-col items-center justify-center h-full opacity-50 py-12">
                   <span className="material-symbols-outlined text-4xl mb-4 text-on-surface-variant">check_circle</span>
-                  <p className="text-lg text-on-surface-variant">No active alerts. System is stable.</p>
+                  <p className="text-lg text-on-surface-variant">Nenhum alerta ativo. O sistema está estável.</p>
                 </div>
               )}
             </motion.div>
@@ -181,12 +181,12 @@ export default function AlertsPage() {
               transition={{ delay: 0.4 }}
               className="lg:col-span-4 aetheric-glass rounded-3xl p-8 flex flex-col"
             >
-              <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface-variant mb-8">Daily Summary</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface-variant mb-8">Resumo Diário</h3>
               
               <div className="flex flex-col gap-6 flex-1 justify-center divide-y divide-white/5">
                 <div className="flex justify-between items-center pb-6">
                   <div>
-                    <div className="text-sm text-on-surface-variant mb-1">Avg. Pulse</div>
+                    <div className="text-sm text-on-surface-variant mb-1">Pulso Médio</div>
                     <div className="text-2xl font-light text-on-surface">62 BPM</div>
                   </div>
                   <span className="material-symbols-outlined text-secondary">trending_flat</span>
@@ -194,7 +194,7 @@ export default function AlertsPage() {
                 
                 <div className="flex justify-between items-center py-6">
                   <div>
-                    <div className="text-sm text-on-surface-variant mb-1">Aetheric Harmony</div>
+                    <div className="text-sm text-on-surface-variant mb-1">Harmonia Etérica</div>
                     <div className="text-2xl font-light text-on-surface">92%</div>
                   </div>
                   <span className="material-symbols-outlined text-secondary">trending_up</span>
@@ -202,7 +202,7 @@ export default function AlertsPage() {
                 
                 <div className="flex justify-between items-center pt-6">
                   <div>
-                    <div className="text-sm text-on-surface-variant mb-1">REM Cycle</div>
+                    <div className="text-sm text-on-surface-variant mb-1">Ciclo REM</div>
                     <div className="text-2xl font-light text-on-surface">2h 14m</div>
                   </div>
                   <span className="material-symbols-outlined text-error">trending_down</span>
@@ -218,17 +218,17 @@ export default function AlertsPage() {
               className="lg:col-span-12 mt-8 aetheric-glass rounded-3xl overflow-hidden mb-12"
             >
               <div className="p-8 flex justify-between items-center border-b border-white/5">
-                <h3 className="text-lg font-medium text-on-surface uppercase tracking-[0.1em]">Biometric Log (24H)</h3>
+                <h3 className="text-lg font-medium text-on-surface uppercase tracking-[0.1em]">Registro Biométrico (24H)</h3>
                 <button className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-secondary hover:text-secondary/80 transition-colors">
-                  <span className="material-symbols-outlined text-sm">download</span> Export Protocol
+                  <span className="material-symbols-outlined text-sm">download</span> Exportar Protocolo
                 </button>
               </div>
 
               <div className="divide-y divide-white/5">
                 {loading ? (
-                  <div className="p-8 text-center text-sm uppercase tracking-widest text-on-surface-variant animate-pulse">Syncing logs...</div>
+                  <div className="p-8 text-center text-sm uppercase tracking-widest text-on-surface-variant animate-pulse">Sincronizando registros...</div>
                 ) : logs.length === 0 ? (
-                  <div className="p-8 text-center text-sm text-on-surface-variant">No logs recorded in the last 24 hours.</div>
+                  <div className="p-8 text-center text-sm text-on-surface-variant">Nenhum registro nas últimas 24 horas.</div>
                 ) : (
                   logs.map((log) => {
                     const isError = log.type === 'critical';
@@ -267,10 +267,10 @@ export default function AlertsPage() {
 
         {/* Temporary Simulation Controls */}
         <div className="mt-auto pb-8 pt-8 flex justify-center gap-4 opacity-50 hover:opacity-100 transition-opacity">
-          <span className="text-xs text-on-surface-variant uppercase tracking-widest flex items-center mr-4">DEV SIMULATOR:</span>
-          <button onClick={() => insertMockLog('critical')} className="text-[10px] uppercase px-3 py-1 bg-error/20 text-error rounded hover:bg-error/30">Trigger Critical</button>
-          <button onClick={() => insertMockLog('info')} className="text-[10px] uppercase px-3 py-1 bg-secondary/20 text-secondary rounded hover:bg-secondary/30">Trigger Info</button>
-          <button onClick={() => insertMockLog('normal')} className="text-[10px] uppercase px-3 py-1 bg-white/10 text-white rounded hover:bg-white/20">Trigger Normal</button>
+          <span className="text-xs text-on-surface-variant uppercase tracking-widest flex items-center mr-4">SIMULADOR DEV:</span>
+          <button onClick={() => insertMockLog('critical')} className="text-[10px] uppercase px-3 py-1 bg-error/20 text-error rounded hover:bg-error/30">Acionar Crítico</button>
+          <button onClick={() => insertMockLog('info')} className="text-[10px] uppercase px-3 py-1 bg-secondary/20 text-secondary rounded hover:bg-secondary/30">Acionar Info</button>
+          <button onClick={() => insertMockLog('normal')} className="text-[10px] uppercase px-3 py-1 bg-white/10 text-white rounded hover:bg-white/20">Acionar Normal</button>
         </div>
 
       </main>

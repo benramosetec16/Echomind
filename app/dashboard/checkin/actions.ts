@@ -57,7 +57,7 @@ export async function transmitAura(payload: { valenceValue: number; texture: str
         { role: 'system', content: 'You only reply in valid JSON.' },
         { role: 'user', content: prompt }
       ],
-      model: 'llama3-8b-8192',
+      model: 'llama-3.3-70b-versatile',
       temperature: 0.7,
       response_format: { type: 'json_object' }
     });
@@ -97,6 +97,7 @@ export async function transmitAura(payload: { valenceValue: number; texture: str
 
   } catch (error: any) {
     console.error('Groq / DB Error:', error);
-    return { error: 'Failed to process aetheric signal. Please check your Groq API limits or configuration.' };
+    // Retornar a mensagem de erro exata do Groq para que possamos entender o que houve
+    return { error: 'Groq Error: ' + (error.message || 'Falha ao processar o sinal.') };
   }
 }

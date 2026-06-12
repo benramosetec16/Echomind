@@ -15,34 +15,47 @@ interface JournalEntry {
   created_at: string;
 }
 
+interface Checkin {
+  valence_value: number;
+  created_at: string;
+}
+
 export default function HistoryPage() {
   const [timeRange, setTimeRange] = useState<'7D' | '30D'>('30D');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [checkins, setCheckins] = useState<Checkin[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
-    const fetchJournal = async () => {
+    const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from('aetheric_journal')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const [journalRes, checkinsRes] = await Promise.all([
+        supabase
+          .from('aetheric_journal')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('emotional_checkins')
+          .select('valence_value, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true })
+      ]);
 
-      if (data) {
-        setEntries(data as JournalEntry[]);
-      }
-      if (error) {
-        console.error('Error fetching journal:', error);
-      }
+      if (journalRes.data) setEntries(journalRes.data as JournalEntry[]);
+      if (checkinsRes.data) setCheckins(checkinsRes.data as Checkin[]);
+      
+      if (journalRes.error) console.error('Error fetching journal:', journalRes.error);
+      if (checkinsRes.error) console.error('Error fetching checkins:', checkinsRes.error);
+      
       setLoading(false);
     };
 
-    fetchJournal();
-  }, [supabase]);
+    fetchData();
+  }, []);
 
   // Format date helper
   const formatDate = (dateString: string) => {
@@ -51,32 +64,65 @@ export default function HistoryPage() {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeString = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
     if (date.toDateString() === today.toDateString()) {
-      return `Today, ${timeString}`;
+      return `Hoje, ${timeString}`;
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return `Yesterday, ${timeString}`;
+      return `Ontem, ${timeString}`;
     } else {
-      return `${date.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}, ${timeString}`;
+      return `${date.toLocaleDateString('pt-BR', { month: 'short', day: '2-digit' })}, ${timeString}`;
     }
   };
 
   // Tag styling helper
   const getTagColor = (tag: string) => {
     const t = tag.toLowerCase();
-    if (t.includes('seren') || t.includes('calm') || t.includes('peace')) {
+    if (t.includes('seren') || t.includes('calm') || t.includes('peace') || t.includes('paz') || t.includes('tranquil')) {
       return 'text-secondary bg-secondary/10 border-secondary/20';
     }
-    if (t.includes('turbul') || t.includes('anx') || t.includes('stress')) {
+    if (t.includes('turbul') || t.includes('anx') || t.includes('stress') || t.includes('ansie') || t.includes('tenso')) {
       return 'text-error bg-error/10 border-error/20';
     }
     return 'text-primary bg-surface-variant border-white/10';
   };
 
+  // Calculate dynamic path based on checkins
+  const calculatePath = () => {
+    if (checkins.length < 2) {
+      return "M 0,100 C 100,150 200,80 300,200 C 400,280 500,200 600,180 C 700,160 800,90 800,90";
+    }
+    
+    // We have 800 width, 300 height.
+    const width = 800;
+    const height = 300;
+    const paddingY = 50;
+    const stepX = width / (checkins.length - 1);
+
+    let path = `M 0,${height - paddingY - (checkins[0].valence_value / 100) * (height - 2 * paddingY)}`;
+    
+    for (let i = 1; i < checkins.length; i++) {
+      const prevX = (i - 1) * stepX;
+      const prevY = height - paddingY - (checkins[i - 1].valence_value / 100) * (height - 2 * paddingY);
+      const currX = i * stepX;
+      const currY = height - paddingY - (checkins[i].valence_value / 100) * (height - 2 * paddingY);
+      
+      const cp1x = prevX + (currX - prevX) / 2;
+      const cp1y = prevY;
+      const cp2x = prevX + (currX - prevX) / 2;
+      const cp2y = currY;
+      
+      path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${currX},${currY}`;
+    }
+    
+    return path;
+  };
+
+  const dynamicPath = calculatePath();
+
   return (
     <>
-      <TopBar title="Pulse" />
+      <TopBar title="Pulso" />
       <main className="pt-32 px-16 pb-24 relative min-h-screen">
         <PageTransition>
           {/* Header */}
@@ -86,7 +132,7 @@ export default function HistoryPage() {
               animate={{ opacity: 1, y: 0 }}
               className="text-5xl font-extralight tracking-tighter text-on-background mb-2"
             >
-              Emotional History
+              Histórico Emocional
             </motion.h1>
             <motion.p 
               initial={{ opacity: 0, y: 10 }}
@@ -94,7 +140,7 @@ export default function HistoryPage() {
               transition={{ delay: 0.1 }}
               className="text-on-surface-variant max-w-xl"
             >
-              Temporal analysis of your cognitive resonance and aetheric stability over time.
+              Análise temporal da sua ressonância cognitiva e estabilidade ao longo do tempo.
             </motion.p>
           </header>
 
@@ -108,10 +154,10 @@ export default function HistoryPage() {
             >
               <div className="flex justify-between items-start mb-12">
                 <div>
-                  <h3 className="text-xl font-medium text-on-surface mb-1">Temporal Analysis</h3>
+                  <h3 className="text-xl font-medium text-on-surface mb-1">Análise Temporal</h3>
                   <div className="flex items-center gap-4 text-xs">
-                    <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-secondary"></div> Stability</span>
-                    <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full border border-surface-variant"></div> Turbulence</span>
+                    <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-secondary"></div> Estabilidade</span>
+                    <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full border border-surface-variant"></div> Turbulência</span>
                   </div>
                 </div>
                 <div className="flex gap-2 bg-surface-container-low rounded-full p-1 border border-white/5">
@@ -160,7 +206,8 @@ export default function HistoryPage() {
                     opacity="0.4"
                   />
                   <path 
-                    d="M 0,100 C 100,150 200,80 300,200 C 400,280 500,200 600,180 C 700,160 800,90 800,90" 
+                    key={dynamicPath}
+                    d={dynamicPath} 
                     fill="none" 
                     stroke="url(#stability-gradient)" 
                     strokeWidth="3" 
@@ -169,13 +216,13 @@ export default function HistoryPage() {
                 </svg>
 
                 {/* Tooltip Point */}
-                <div className="absolute left-[60%] top-[40%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+                <div className="absolute left-[60%] top-[40%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
                   <div className="w-4 h-4 bg-background rounded-full border-2 border-tertiary flex items-center justify-center shadow-[0_0_15px_rgba(206,189,255,0.4)]">
                     <div className="w-1.5 h-1.5 bg-tertiary rounded-full animate-pulse"></div>
                   </div>
                   <div className="mt-4 aetheric-glass px-4 py-2 rounded-lg text-center whitespace-nowrap">
-                    <div className="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-1">Latest Pulse</div>
-                    <div className="text-sm font-medium text-tertiary">Optimal Core</div>
+                    <div className="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-1">Último Pulso</div>
+                    <div className="text-sm font-medium text-tertiary">Núcleo Estável</div>
                   </div>
                 </div>
               </div>
@@ -190,12 +237,12 @@ export default function HistoryPage() {
                 transition={{ delay: 0.3 }}
                 className="aetheric-glass rounded-[32px] p-8"
               >
-                <h3 className="text-xl font-medium text-tertiary mb-8">Cognitive Load</h3>
+                <h3 className="text-xl font-medium text-tertiary mb-8">Carga Cognitiva</h3>
                 
                 <div className="mb-6">
                   <div className="flex justify-between text-xs font-semibold mb-2">
-                    <span className="text-on-surface-variant uppercase tracking-widest">Information Density</span>
-                    <span className="text-secondary">High</span>
+                    <span className="text-on-surface-variant uppercase tracking-widest">Densidade de Informação</span>
+                    <span className="text-secondary">Alta</span>
                   </div>
                   <div className="h-1 bg-white/5 rounded-full overflow-hidden">
                     <div className="h-full w-[85%] bg-secondary rounded-full shadow-[0_0_10px_rgba(159,207,213,0.5)]"></div>
@@ -204,8 +251,8 @@ export default function HistoryPage() {
 
                 <div>
                   <div className="flex justify-between text-xs font-semibold mb-2">
-                    <span className="text-on-surface-variant uppercase tracking-widest">Emotional Resonance</span>
-                    <span className="text-tertiary">Stable</span>
+                    <span className="text-on-surface-variant uppercase tracking-widest">Ressonância Emocional</span>
+                    <span className="text-tertiary">Estável</span>
                   </div>
                   <div className="h-1 bg-white/5 rounded-full overflow-hidden">
                     <div className="h-full w-[62%] bg-tertiary rounded-full shadow-[0_0_10px_rgba(206,189,255,0.5)]"></div>
@@ -221,9 +268,9 @@ export default function HistoryPage() {
                 className="aetheric-glass rounded-[32px] p-8 flex-1 relative overflow-hidden flex flex-col justify-center group"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 via-transparent to-tertiary/5 opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <h3 className="text-2xl font-light text-primary mb-3 relative z-10">Aetheric Sync</h3>
+                <h3 className="text-2xl font-light text-primary mb-3 relative z-10">Sincronia do Sistema</h3>
                 <p className="text-sm text-on-surface-variant leading-relaxed relative z-10">
-                  Your circadian flow is perfectly aligned with your active cognitive windows. Consider initiating deep work protocols.
+                  Seu fluxo atual está perfeitamente alinhado com suas janelas cognitivas ativas. Considere iniciar protocolos de trabalho profundo.
                 </p>
               </motion.div>
             </div>
@@ -236,17 +283,17 @@ export default function HistoryPage() {
               className="lg:col-span-12 mt-8"
             >
               <div className="flex justify-between items-center mb-8">
-                <h3 className="text-2xl font-light text-on-surface">Aetheric Journal</h3>
+                <h3 className="text-2xl font-light text-on-surface">Diário de Registros</h3>
               </div>
 
               <div className="flex flex-col gap-4">
                 {loading ? (
                   <div className="text-center py-12 text-on-surface-variant opacity-50 text-sm tracking-widest uppercase animate-pulse">
-                    Synching with Aether...
+                    Sincronizando registros...
                   </div>
                 ) : entries.length === 0 ? (
                   <div className="text-center py-12 aetheric-glass rounded-2xl">
-                    <p className="text-on-surface-variant">No journal entries yet. Make a check-in to generate your first AI Insight.</p>
+                    <p className="text-on-surface-variant">Nenhum registro encontrado. Faça um check-in para gerar sua primeira análise da IA.</p>
                   </div>
                 ) : (
                   entries.map((entry) => (
