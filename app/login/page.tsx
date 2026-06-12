@@ -3,12 +3,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Fingerprint } from 'lucide-react';
+import { Fingerprint, AlertCircle } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
   const router = useRouter();
   const [status, setStatus] = useState<'idle' | 'validating' | 'granted'>('idle');
   const [isLoading, setIsLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isSignUp, setIsSignUp] = useState(false);
+  
   const glowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,10 +39,32 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('validating');
-    await new Promise(resolve => setTimeout(resolve, 1800));
-    setStatus('granted');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    router.push('/dashboard');
+    setErrorMsg(null);
+    
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (error) throw error;
+        // Se der certo, loga direto
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+      }
+
+      setStatus('granted');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error(err);
+      setStatus('idle');
+      setErrorMsg(err.message || 'Falha na autenticação.');
+    }
   };
 
   return (
@@ -98,7 +126,7 @@ export default function LoginPage() {
             transition={{ delay: 2.4, duration: 0.8 }}
             className="text-xs uppercase tracking-[0.2em] text-on-surface-variant opacity-60 font-semibold"
           >
-            Secure Authentication Required
+            {isSignUp ? 'New User Registration' : 'Secure Authentication Required'}
           </motion.p>
         </header>
 
@@ -109,14 +137,23 @@ export default function LoginPage() {
           className="glass-panel w-full rounded-[24px] p-10"
         >
           <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+            {errorMsg && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg flex items-center gap-2 text-sm">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <p>{errorMsg}</p>
+              </div>
+            )}
+            
             <div className="group relative">
               <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-                Identity
+                Identity (Email)
               </label>
               <div className="input-underline py-2">
                 <input
-                  type="text"
+                  type="email"
                   required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="Universal Identifier"
                   className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
                 />
@@ -131,6 +168,8 @@ export default function LoginPage() {
                 <input
                   type="password"
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
                   className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
                 />
@@ -146,14 +185,23 @@ export default function LoginPage() {
                 'bg-secondary/10 text-secondary'
               }`}
             >
-              {status === 'idle' && 'INITIATE ACCESS'}
+              {status === 'idle' && (isSignUp ? 'REGISTER' : 'INITIATE ACCESS')}
               {status === 'validating' && 'VALIDATING...'}
               {status === 'granted' && 'ACCESS GRANTED'}
             </button>
 
             <div className="flex flex-col items-center gap-4 mt-2">
               <div className="w-px h-8 bg-gradient-to-b from-outline-variant/30 to-transparent"></div>
-              <button type="button" className="flex items-center gap-3 text-on-surface-variant hover:text-secondary transition-colors group">
+              
+              <button 
+                type="button" 
+                onClick={() => { setIsSignUp(!isSignUp); setErrorMsg(null); }}
+                className="text-[10px] uppercase tracking-[0.15em] text-on-surface-variant hover:text-secondary transition-colors"
+              >
+                {isSignUp ? 'Already have an account? Login' : 'Need access? Sign up'}
+              </button>
+
+              <button type="button" className="flex items-center gap-3 text-on-surface-variant hover:text-secondary transition-colors group mt-2">
                 <Fingerprint className="w-5 h-5 text-secondary pulse-effect" />
                 <span className="text-xs uppercase tracking-[0.15em] font-semibold">Biometric Link</span>
               </button>
