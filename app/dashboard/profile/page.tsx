@@ -1,13 +1,125 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import TopBar from '../../components/TopBar';
 import PageTransition from '../../components/PageTransition';
+import { createClient } from '../../../utils/supabase/client';
 
 export default function ProfilePage() {
+  const supabase = createClient();
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Form State
   const [hapticIntensity, setHapticIntensity] = useState(75);
   const [syncFrequency, setSyncFrequency] = useState<'instant' | 'hourly' | 'manual'>('instant');
+  const [ghostMode, setGhostMode] = useState(false);
+  const [ephemeralHistory, setEphemeralHistory] = useState(true);
+  const [aethericProxy, setAethericProxy] = useState(true);
+  const [localArchiving, setLocalArchiving] = useState(false);
+
+  // Mock metrics for display
+  const [metrics, setMetrics] = useState({ focusLatency: 0.14, syncIntegrity: 99.8, aethericYield: 8.2 });
+
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          setUserId(session.user.id);
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (data) {
+            setHapticIntensity(data.haptic_intensity ?? 75);
+            setSyncFrequency(data.sync_frequency ?? 'instant');
+            setGhostMode(data.ghost_mode ?? false);
+            setEphemeralHistory(data.ephemeral_history ?? true);
+            setAethericProxy(data.aetheric_proxy ?? true);
+            setLocalArchiving(data.local_archiving ?? false);
+            
+            setMetrics({
+               focusLatency: data.focus_latency ?? 0.14,
+               syncIntegrity: data.sync_integrity ?? 99.8,
+               aethericYield: data.aetheric_yield ?? 8.2,
+            });
+          } else if (error && error.code !== 'PGRST116') {
+            console.error("Error loading profile:", error.message);
+          }
+        } else {
+          console.warn("No active session found. Changes will only be local.");
+        }
+      } catch (err) {
+        console.error("Unexpected error loading profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadProfile();
+  }, []);
+
+  const updateProfile = async (updates: any) => {
+    if (!userId) {
+      console.log("Local state updated. Log in to sync with Supabase:", updates);
+      return;
+    }
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId);
+      
+    if (error) {
+      console.error("Error updating profile:", error.message);
+    }
+  };
+
+  const handleHapticChange = (val: number) => {
+    setHapticIntensity(val);
+    updateProfile({ haptic_intensity: val });
+  };
+
+  const handleSyncChange = (val: 'instant' | 'hourly' | 'manual') => {
+    setSyncFrequency(val);
+    updateProfile({ sync_frequency: val });
+  };
+
+  const toggleGhostMode = () => {
+    const val = !ghostMode;
+    setGhostMode(val);
+    updateProfile({ ghost_mode: val });
+  };
+
+  const toggleEphemeralHistory = () => {
+    const val = !ephemeralHistory;
+    setEphemeralHistory(val);
+    updateProfile({ ephemeral_history: val });
+  };
+
+  const toggleAethericProxy = () => {
+    const val = !aethericProxy;
+    setAethericProxy(val);
+    updateProfile({ aetheric_proxy: val });
+  };
+
+  const toggleLocalArchiving = () => {
+    const val = !localArchiving;
+    setLocalArchiving(val);
+    updateProfile({ local_archiving: val });
+  };
+
+  if (loading) {
+     return (
+       <div className="min-h-screen flex items-center justify-center bg-background text-secondary">
+         <span className="material-symbols-outlined animate-spin text-4xl">sync</span>
+       </div>
+     );
+  }
 
   return (
     <>
@@ -15,6 +127,17 @@ export default function ProfilePage() {
       <main className="pt-32 px-16 pb-24 relative min-h-screen">
         <PageTransition>
           <div className="max-w-[1200px] mx-auto">
+            {/* Auth Warning */}
+            {!userId && (
+              <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-3">
+                 <span className="material-symbols-outlined text-red-400">warning</span>
+                 <div>
+                    <h4 className="text-red-400 font-medium text-sm">Authentication Required</h4>
+                    <p className="text-red-400/80 text-xs mt-1">You are not logged in. Options are fully functional in the interface, but changes won't be saved to your Supabase database. Please implement the login flow to enable real-time storage.</p>
+                 </div>
+              </div>
+            )}
+
             {/* Profile Hero Section */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
@@ -59,17 +182,17 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-3 gap-8 mt-4 flex-1">
                   <div className="border-l border-white/5 pl-6 flex flex-col justify-center">
                     <span className="text-xs uppercase tracking-[0.1em] text-on-surface-variant opacity-60 mb-2 font-semibold">Focus Latency</span>
-                    <div className="text-4xl font-extralight text-primary">0.14 <span className="text-base text-on-surface-variant">ms</span></div>
+                    <div className="text-4xl font-extralight text-primary">{metrics.focusLatency} <span className="text-base text-on-surface-variant">ms</span></div>
                   </div>
                   
                   <div className="border-l border-white/5 pl-6 flex flex-col justify-center">
                     <span className="text-xs uppercase tracking-[0.1em] text-on-surface-variant opacity-60 mb-2 font-semibold">Sync Integrity</span>
-                    <div className="text-4xl font-extralight text-on-surface">99.8 <span className="text-base text-on-surface-variant">%</span></div>
+                    <div className="text-4xl font-extralight text-on-surface">{metrics.syncIntegrity} <span className="text-base text-on-surface-variant">%</span></div>
                   </div>
                   
                   <div className="border-l border-white/5 pl-6 flex flex-col justify-center">
                     <span className="text-xs uppercase tracking-[0.1em] text-on-surface-variant opacity-60 mb-2 font-semibold">Aetheric Yield</span>
-                    <div className="text-4xl font-extralight text-on-surface">8.2 <span className="text-base text-on-surface-variant">k</span></div>
+                    <div className="text-4xl font-extralight text-on-surface">{metrics.aethericYield} <span className="text-base text-on-surface-variant">k</span></div>
                   </div>
                 </div>
 
@@ -104,6 +227,8 @@ export default function ProfilePage() {
                     max="100" 
                     value={hapticIntensity}
                     onChange={(e) => setHapticIntensity(parseInt(e.target.value))}
+                    onMouseUp={(e) => handleHapticChange(parseInt((e.target as HTMLInputElement).value))}
+                    onTouchEnd={(e) => handleHapticChange(parseInt((e.target as HTMLInputElement).value))}
                     className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-secondary"
                   />
                 </div>
@@ -112,19 +237,19 @@ export default function ProfilePage() {
                   <span className="text-sm text-on-surface-variant block mb-4">Sync Frequency</span>
                   <div className="flex flex-col gap-2">
                     <button 
-                      onClick={() => setSyncFrequency('instant')}
+                      onClick={() => handleSyncChange('instant')}
                       className={`py-3 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all ${syncFrequency === 'instant' ? 'bg-secondary/10 text-secondary border border-secondary/30 shadow-[inset_0_0_10px_rgba(159,207,213,0.1)]' : 'bg-white/5 text-on-surface-variant border border-transparent hover:bg-white/10'}`}
                     >
                       Instant
                     </button>
                     <button 
-                      onClick={() => setSyncFrequency('hourly')}
+                      onClick={() => handleSyncChange('hourly')}
                       className={`py-3 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all ${syncFrequency === 'hourly' ? 'bg-secondary/10 text-secondary border border-secondary/30 shadow-[inset_0_0_10px_rgba(159,207,213,0.1)]' : 'bg-white/5 text-on-surface-variant border border-transparent hover:bg-white/10'}`}
                     >
                       Hourly
                     </button>
                     <button 
-                      onClick={() => setSyncFrequency('manual')}
+                      onClick={() => handleSyncChange('manual')}
                       className={`py-3 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all ${syncFrequency === 'manual' ? 'bg-secondary/10 text-secondary border border-secondary/30 shadow-[inset_0_0_10px_rgba(159,207,213,0.1)]' : 'bg-white/5 text-on-surface-variant border border-transparent hover:bg-white/10'}`}
                     >
                       Manual
@@ -151,53 +276,63 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {/* Protocol 1 */}
-                  <div className="bg-white/5 rounded-xl border border-white/5 p-6 flex flex-col relative overflow-hidden group hover:border-white/10 transition-colors">
-                    <span className="material-symbols-outlined text-on-surface-variant mb-4">visibility_off</span>
+                  {/* Ghost Mode */}
+                  <div 
+                    onClick={toggleGhostMode}
+                    className={`cursor-pointer rounded-xl border p-6 flex flex-col relative overflow-hidden group transition-all duration-300 ${ghostMode ? 'bg-secondary/10 border-secondary/30' : 'bg-white/5 border-white/5 hover:border-white/10'}`}
+                  >
+                    <span className={`material-symbols-outlined mb-4 ${ghostMode ? 'text-secondary' : 'text-on-surface-variant'}`}>visibility_off</span>
                     <h4 className="text-base font-medium text-on-surface mb-2">Ghost Mode</h4>
                     <p className="text-xs text-on-surface-variant opacity-60 mb-6 flex-1">
                       Conceal emotional resonance from all connected peers.
                     </p>
-                    <div className="w-10 h-5 rounded-full bg-surface-variant relative cursor-pointer border border-white/5">
-                      <div className="absolute left-1 top-[2px] w-4 h-4 rounded-full bg-white/40 transition-all"></div>
+                    <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${ghostMode ? 'bg-secondary shadow-[0_0_10px_rgba(159,207,213,0.3)]' : 'bg-surface-variant border border-white/5'}`}>
+                      <div className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-300 ${ghostMode ? 'right-1' : 'left-1 opacity-40'}`}></div>
                     </div>
                   </div>
 
-                  {/* Protocol 2 */}
-                  <div className="bg-white/5 rounded-xl border border-white/5 p-6 flex flex-col relative overflow-hidden group hover:border-secondary/20 transition-colors">
-                    <div className="absolute inset-0 bg-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <span className="material-symbols-outlined text-secondary mb-4 relative z-10">history_edu</span>
-                    <h4 className="text-base font-medium text-on-surface mb-2 relative z-10">Ephemeral History</h4>
-                    <p className="text-xs text-on-surface-variant opacity-60 mb-6 flex-1 relative z-10">
+                  {/* Ephemeral History */}
+                  <div 
+                    onClick={toggleEphemeralHistory}
+                    className={`cursor-pointer rounded-xl border p-6 flex flex-col relative overflow-hidden group transition-all duration-300 ${ephemeralHistory ? 'bg-secondary/10 border-secondary/30' : 'bg-white/5 border-white/5 hover:border-white/10'}`}
+                  >
+                    <span className={`material-symbols-outlined mb-4 ${ephemeralHistory ? 'text-secondary' : 'text-on-surface-variant'}`}>history_edu</span>
+                    <h4 className="text-base font-medium text-on-surface mb-2">Ephemeral History</h4>
+                    <p className="text-xs text-on-surface-variant opacity-60 mb-6 flex-1">
                       Auto-purge all neural logs after 24 hours of generation.
                     </p>
-                    <div className="w-10 h-5 rounded-full bg-secondary relative cursor-pointer shadow-[0_0_10px_rgba(159,207,213,0.3)]">
-                      <div className="absolute right-1 top-[2px] w-4 h-4 rounded-full bg-white transition-all"></div>
+                    <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${ephemeralHistory ? 'bg-secondary shadow-[0_0_10px_rgba(159,207,213,0.3)]' : 'bg-surface-variant border border-white/5'}`}>
+                      <div className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-300 ${ephemeralHistory ? 'right-1' : 'left-1 opacity-40'}`}></div>
                     </div>
                   </div>
 
-                  {/* Protocol 3 */}
-                  <div className="bg-white/5 rounded-xl border border-white/5 p-6 flex flex-col relative overflow-hidden group hover:border-secondary/20 transition-colors">
-                    <div className="absolute inset-0 bg-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <span className="material-symbols-outlined text-secondary mb-4 relative z-10">security</span>
-                    <h4 className="text-base font-medium text-on-surface mb-2 relative z-10">Aetheric Proxy</h4>
-                    <p className="text-xs text-on-surface-variant opacity-60 mb-6 flex-1 relative z-10">
+                  {/* Aetheric Proxy */}
+                  <div 
+                    onClick={toggleAethericProxy}
+                    className={`cursor-pointer rounded-xl border p-6 flex flex-col relative overflow-hidden group transition-all duration-300 ${aethericProxy ? 'bg-secondary/10 border-secondary/30' : 'bg-white/5 border-white/5 hover:border-white/10'}`}
+                  >
+                    <span className={`material-symbols-outlined mb-4 ${aethericProxy ? 'text-secondary' : 'text-on-surface-variant'}`}>security</span>
+                    <h4 className="text-base font-medium text-on-surface mb-2">Aetheric Proxy</h4>
+                    <p className="text-xs text-on-surface-variant opacity-60 mb-6 flex-1">
                       Reroute biometric data through decentralized nodes.
                     </p>
-                    <div className="w-10 h-5 rounded-full bg-secondary relative cursor-pointer shadow-[0_0_10px_rgba(159,207,213,0.3)]">
-                      <div className="absolute right-1 top-[2px] w-4 h-4 rounded-full bg-white transition-all"></div>
+                    <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${aethericProxy ? 'bg-secondary shadow-[0_0_10px_rgba(159,207,213,0.3)]' : 'bg-surface-variant border border-white/5'}`}>
+                      <div className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-300 ${aethericProxy ? 'right-1' : 'left-1 opacity-40'}`}></div>
                     </div>
                   </div>
 
-                  {/* Protocol 4 */}
-                  <div className="bg-white/5 rounded-xl border border-white/5 p-6 flex flex-col relative overflow-hidden group hover:border-white/10 transition-colors">
-                    <span className="material-symbols-outlined text-on-surface-variant mb-4">cloud_off</span>
+                  {/* Local Archiving */}
+                  <div 
+                    onClick={toggleLocalArchiving}
+                    className={`cursor-pointer rounded-xl border p-6 flex flex-col relative overflow-hidden group transition-all duration-300 ${localArchiving ? 'bg-secondary/10 border-secondary/30' : 'bg-white/5 border-white/5 hover:border-white/10'}`}
+                  >
+                    <span className={`material-symbols-outlined mb-4 ${localArchiving ? 'text-secondary' : 'text-on-surface-variant'}`}>cloud_off</span>
                     <h4 className="text-base font-medium text-on-surface mb-2">Local Archiving</h4>
                     <p className="text-xs text-on-surface-variant opacity-60 mb-6 flex-1">
                       Store all cognitive logs exclusively on hardware.
                     </p>
-                    <div className="w-10 h-5 rounded-full bg-surface-variant relative cursor-pointer border border-white/5">
-                      <div className="absolute left-1 top-[2px] w-4 h-4 rounded-full bg-white/40 transition-all"></div>
+                    <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${localArchiving ? 'bg-secondary shadow-[0_0_10px_rgba(159,207,213,0.3)]' : 'bg-surface-variant border border-white/5'}`}>
+                      <div className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-300 ${localArchiving ? 'right-1' : 'left-1 opacity-40'}`}></div>
                     </div>
                   </div>
                 </div>

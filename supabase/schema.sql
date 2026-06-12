@@ -1,4 +1,15 @@
 -- Supabase Schema for EchoMind
+-- Clean up existing tables and triggers if they exist to avoid conflict errors
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists public.handle_new_user() cascade;
+drop trigger if exists set_profiles_updated_at on public.profiles;
+drop function if exists public.handle_updated_at() cascade;
+
+drop table if exists public.biometric_logs cascade;
+drop table if exists public.aetheric_journal cascade;
+drop table if exists public.emotional_checkins cascade;
+drop table if exists public.profiles cascade;
+
 
 -- 1. Profiles Table (extends Supabase Auth)
 -- Stores user preferences and specific configurations from the Sanctuary page.
