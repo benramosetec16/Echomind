@@ -50,7 +50,7 @@ export default function LoginPage() {
         setStatus('granted');
       }
     } catch (err) {
-      setErrorMsg('A neural disruption occurred. Try again.');
+      setErrorMsg('Ocorreu uma disrupção neural. Tente novamente.');
       setStatus('idle');
     }
   };
@@ -120,7 +120,7 @@ export default function LoginPage() {
             transition={{ delay: 2.4, duration: 0.8 }}
             className="text-xs uppercase tracking-[0.2em] text-on-surface-variant opacity-60 font-semibold"
           >
-            {mode === 'login' ? 'Secure Authentication Required' : 'Establish Neural Bridge'}
+            {mode === 'login' ? 'Autenticação Segura Necessária' : 'Estabelecer Ponte Neural'}
           </motion.p>
         </header>
 
@@ -152,14 +152,14 @@ export default function LoginPage() {
                   className="group relative overflow-hidden"
                 >
                   <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-                    Designation (Full Name)
+                    Designação (Nome Completo)
                   </label>
                   <div className="input-underline py-2">
                     <input
                       name="fullName"
                       type="text"
                       required={mode === 'signup'}
-                      placeholder="Alex X."
+                      placeholder="João Silva"
                       className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
                     />
                   </div>
@@ -169,14 +169,14 @@ export default function LoginPage() {
 
             <div className="group relative">
               <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-                Identity (Email)
+                Identidade (Email)
               </label>
               <div className="input-underline py-2">
                 <input
                   name="email"
                   type="email"
                   required
-                  placeholder="Universal Identifier"
+                  placeholder="Identificador Universal"
                   className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
                 />
               </div>
@@ -184,7 +184,7 @@ export default function LoginPage() {
 
             <div className="group relative">
               <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-                Keyphrase (Password)
+                Frase-chave (Senha)
               </label>
               <div className="input-underline py-2">
                 <input
@@ -206,9 +206,9 @@ export default function LoginPage() {
                 'bg-secondary/10 text-secondary border-secondary/30 shadow-[0_0_20px_rgba(159,207,213,0.2)]'
               }`}
             >
-              {status === 'idle' && (mode === 'login' ? 'INITIATE ACCESS' : 'INITIALIZE PROTOCOL')}
-              {status === 'validating' && 'VALIDATING...'}
-              {status === 'granted' && 'ACCESS GRANTED'}
+              {status === 'idle' && (mode === 'login' ? 'INICIAR ACESSO' : 'INICIALIZAR PROTOCOLO')}
+              {status === 'validating' && 'VALIDANDO...'}
+              {status === 'granted' && 'ACESSO CONCEDIDO'}
             </button>
 
             <div className="flex flex-col items-center gap-4 mt-2">
@@ -219,12 +219,12 @@ export default function LoginPage() {
                 onClick={toggleMode}
                 className="text-xs text-on-surface-variant hover:text-secondary transition-colors"
               >
-                {mode === 'login' ? 'Request New Designation (Sign Up)' : 'Return to Access Portal (Login)'}
+                {mode === 'login' ? 'Solicitar Nova Designação (Cadastrar)' : 'Retornar ao Portal de Acesso (Entrar)'}
               </button>
 
               <button type="button" className="flex items-center gap-3 text-on-surface-variant hover:text-secondary transition-colors group mt-2">
                 <Fingerprint className="w-5 h-5 text-secondary pulse-effect" />
-                <span className="text-xs uppercase tracking-[0.15em] font-semibold">Biometric Link</span>
+                <span className="text-xs uppercase tracking-[0.15em] font-semibold">Conexão Biométrica</span>
               </button>
             </div>
           </form>
@@ -237,7 +237,7 @@ export default function LoginPage() {
           className="mt-8 text-center opacity-30"
         >
           <p className="text-[10px] uppercase tracking-[0.2em] font-semibold text-on-surface-variant">
-            © ECHOMIND NEURAL PROTOCOL
+            © PROTOCOLO NEURAL ECHOMIND
           </p>
         </motion.footer>
       </motion.main>

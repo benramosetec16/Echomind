@@ -10,6 +10,8 @@ export default function ProfilePage() {
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>('Alex X.');
+  const [userInitials, setUserInitials] = useState<string>('AX');
 
   // Form State
   const [hapticIntensity, setHapticIntensity] = useState(75);
@@ -29,6 +31,10 @@ export default function ProfilePage() {
         
         if (session?.user) {
           setUserId(session.user.id);
+          const name = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Líder';
+          setUserName(name);
+          setUserInitials(name.substring(0, 2).toUpperCase());
+
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
@@ -123,7 +129,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <TopBar title="Sanctuary" />
+      <TopBar title="Santuário" />
       <main className="pt-32 px-16 pb-24 relative min-h-screen">
         <PageTransition>
           <div className="max-w-[1200px] mx-auto">
@@ -132,8 +138,8 @@ export default function ProfilePage() {
               <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-3">
                  <span className="material-symbols-outlined text-red-400">warning</span>
                  <div>
-                    <h4 className="text-red-400 font-medium text-sm">Authentication Required</h4>
-                    <p className="text-red-400/80 text-xs mt-1">You are not logged in. Options are fully functional in the interface, but changes won't be saved to your Supabase database. Please implement the login flow to enable real-time storage.</p>
+                    <h4 className="text-red-400 font-medium text-sm">Autenticação Obrigatória</h4>
+                    <p className="text-red-400/80 text-xs mt-1">Você não está conectado. As opções são funcionais na interface, mas as alterações não serão salvas no banco de dados.</p>
                  </div>
               </div>
             )}
@@ -147,15 +153,15 @@ export default function ProfilePage() {
               <div className="relative">
                 <div className="absolute inset-0 bg-secondary/5 rounded-full blur-3xl"></div>
                 <div className="w-48 h-48 rounded-full border border-white/10 grayscale hover:grayscale-0 transition-all duration-700 relative z-10 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container-lowest flex items-center justify-center">
-                  <span className="text-5xl text-on-surface-variant font-extralight tracking-tighter">AX</span>
+                  <span className="text-5xl text-on-surface-variant font-extralight tracking-tighter">{userInitials}</span>
                 </div>
               </div>
               
               <div className="pb-4">
-                <span className="text-xs font-semibold text-secondary uppercase tracking-[0.2em] mb-2 block">Protocol Lead</span>
-                <h1 className="text-5xl font-light text-on-surface mb-2">Alex X.</h1>
+                <span className="text-xs font-semibold text-secondary uppercase tracking-[0.2em] mb-2 block">Líder de Protocolo</span>
+                <h1 className="text-5xl font-light text-on-surface mb-2">{userName}</h1>
                 <p className="text-on-surface-variant max-w-md">
-                  Neural bridge established 48 days ago. Current resonance patterns suggest high adaptability to complex environments.
+                  Ponte neural estabelecida. Padrões de ressonância atuais sugerem alta adaptabilidade em ambientes complexos.
                 </p>
               </div>
             </motion.div>
@@ -172,26 +178,26 @@ export default function ProfilePage() {
                 <div className="flex justify-between items-center mb-12">
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-secondary">lock</span>
-                    <h3 className="text-xl font-medium text-on-surface">Personal Records</h3>
+                    <h3 className="text-xl font-medium text-on-surface">Registros Pessoais</h3>
                   </div>
                   <button className="px-5 py-2 rounded-full border border-secondary/20 text-secondary text-xs uppercase tracking-[0.15em] font-semibold hover:bg-secondary/5 hover:border-secondary/40 transition-all">
-                    Decrypt Session
+                    Descriptografar Sessão
                   </button>
                 </div>
 
                 <div className="grid grid-cols-3 gap-8 mt-4 flex-1">
                   <div className="border-l border-white/5 pl-6 flex flex-col justify-center">
-                    <span className="text-xs uppercase tracking-[0.1em] text-on-surface-variant opacity-60 mb-2 font-semibold">Focus Latency</span>
+                    <span className="text-xs uppercase tracking-[0.1em] text-on-surface-variant opacity-60 mb-2 font-semibold">Latência de Foco</span>
                     <div className="text-4xl font-extralight text-primary">{metrics.focusLatency} <span className="text-base text-on-surface-variant">ms</span></div>
                   </div>
                   
                   <div className="border-l border-white/5 pl-6 flex flex-col justify-center">
-                    <span className="text-xs uppercase tracking-[0.1em] text-on-surface-variant opacity-60 mb-2 font-semibold">Sync Integrity</span>
+                    <span className="text-xs uppercase tracking-[0.1em] text-on-surface-variant opacity-60 mb-2 font-semibold">Integridade de Sincronia</span>
                     <div className="text-4xl font-extralight text-on-surface">{metrics.syncIntegrity} <span className="text-base text-on-surface-variant">%</span></div>
                   </div>
                   
                   <div className="border-l border-white/5 pl-6 flex flex-col justify-center">
-                    <span className="text-xs uppercase tracking-[0.1em] text-on-surface-variant opacity-60 mb-2 font-semibold">Aetheric Yield</span>
+                    <span className="text-xs uppercase tracking-[0.1em] text-on-surface-variant opacity-60 mb-2 font-semibold">Rendimento Etérico</span>
                     <div className="text-4xl font-extralight text-on-surface">{metrics.aethericYield} <span className="text-base text-on-surface-variant">k</span></div>
                   </div>
                 </div>
@@ -201,7 +207,7 @@ export default function ProfilePage() {
                   <div className="relative z-10 flex items-center gap-4">
                     <span className="material-symbols-outlined text-secondary">query_stats</span>
                     <p className="text-sm text-on-surface-variant italic">
-                      "Your cognitive recovery rate is currently in the top 4% of active users."
+                      "Sua taxa de recuperação cognitiva está atualmente entre os 4% melhores dos usuários ativos."
                     </p>
                   </div>
                 </div>
@@ -214,11 +220,11 @@ export default function ProfilePage() {
                 transition={{ delay: 0.2 }}
                 className="lg:col-span-4 glass-panel rounded-3xl p-8 flex flex-col"
               >
-                <h3 className="text-lg font-medium text-on-surface mb-8">Interface Feedback</h3>
+                <h3 className="text-lg font-medium text-on-surface mb-8">Feedback da Interface</h3>
                 
                 <div className="mb-8">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-sm text-on-surface-variant">Haptic Intensity</span>
+                    <span className="text-sm text-on-surface-variant">Intensidade Háptica</span>
                     <span className="text-xs font-mono text-secondary">{hapticIntensity}%</span>
                   </div>
                   <input 
@@ -234,19 +240,19 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mb-8 flex-1">
-                  <span className="text-sm text-on-surface-variant block mb-4">Sync Frequency</span>
+                  <span className="text-sm text-on-surface-variant block mb-4">Frequência de Sincronia</span>
                   <div className="flex flex-col gap-2">
                     <button 
                       onClick={() => handleSyncChange('instant')}
                       className={`py-3 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all ${syncFrequency === 'instant' ? 'bg-secondary/10 text-secondary border border-secondary/30 shadow-[inset_0_0_10px_rgba(159,207,213,0.1)]' : 'bg-white/5 text-on-surface-variant border border-transparent hover:bg-white/10'}`}
                     >
-                      Instant
+                      Instantânea
                     </button>
                     <button 
                       onClick={() => handleSyncChange('hourly')}
                       className={`py-3 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all ${syncFrequency === 'hourly' ? 'bg-secondary/10 text-secondary border border-secondary/30 shadow-[inset_0_0_10px_rgba(159,207,213,0.1)]' : 'bg-white/5 text-on-surface-variant border border-transparent hover:bg-white/10'}`}
                     >
-                      Hourly
+                      Por Hora
                     </button>
                     <button 
                       onClick={() => handleSyncChange('manual')}
@@ -259,7 +265,7 @@ export default function ProfilePage() {
 
                 <div className="flex items-center gap-3 pt-6 border-t border-white/5">
                   <span className="material-symbols-outlined text-secondary animate-pulse" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
-                  <span className="text-xs uppercase tracking-[0.1em] font-semibold text-secondary">Optimal Performance</span>
+                  <span className="text-xs uppercase tracking-[0.1em] font-semibold text-secondary">Desempenho Otimizado</span>
                 </div>
               </motion.div>
 
@@ -272,7 +278,7 @@ export default function ProfilePage() {
               >
                 <div className="flex items-center gap-3 mb-8">
                   <span className="material-symbols-outlined text-on-surface-variant">fingerprint</span>
-                  <h3 className="text-xl font-medium text-on-surface">Privacy Protocols</h3>
+                  <h3 className="text-xl font-medium text-on-surface">Protocolos de Privacidade</h3>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -282,9 +288,9 @@ export default function ProfilePage() {
                     className={`cursor-pointer rounded-xl border p-6 flex flex-col relative overflow-hidden group transition-all duration-300 ${ghostMode ? 'bg-secondary/10 border-secondary/30' : 'bg-white/5 border-white/5 hover:border-white/10'}`}
                   >
                     <span className={`material-symbols-outlined mb-4 ${ghostMode ? 'text-secondary' : 'text-on-surface-variant'}`}>visibility_off</span>
-                    <h4 className="text-base font-medium text-on-surface mb-2">Ghost Mode</h4>
+                    <h4 className="text-base font-medium text-on-surface mb-2">Modo Fantasma</h4>
                     <p className="text-xs text-on-surface-variant opacity-60 mb-6 flex-1">
-                      Conceal emotional resonance from all connected peers.
+                      Ocultar ressonância emocional de todos os pares conectados.
                     </p>
                     <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${ghostMode ? 'bg-secondary shadow-[0_0_10px_rgba(159,207,213,0.3)]' : 'bg-surface-variant border border-white/5'}`}>
                       <div className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-300 ${ghostMode ? 'right-1' : 'left-1 opacity-40'}`}></div>
@@ -297,9 +303,9 @@ export default function ProfilePage() {
                     className={`cursor-pointer rounded-xl border p-6 flex flex-col relative overflow-hidden group transition-all duration-300 ${ephemeralHistory ? 'bg-secondary/10 border-secondary/30' : 'bg-white/5 border-white/5 hover:border-white/10'}`}
                   >
                     <span className={`material-symbols-outlined mb-4 ${ephemeralHistory ? 'text-secondary' : 'text-on-surface-variant'}`}>history_edu</span>
-                    <h4 className="text-base font-medium text-on-surface mb-2">Ephemeral History</h4>
+                    <h4 className="text-base font-medium text-on-surface mb-2">Histórico Efêmero</h4>
                     <p className="text-xs text-on-surface-variant opacity-60 mb-6 flex-1">
-                      Auto-purge all neural logs after 24 hours of generation.
+                      Exclusão automática de registros neurais após 24 horas.
                     </p>
                     <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${ephemeralHistory ? 'bg-secondary shadow-[0_0_10px_rgba(159,207,213,0.3)]' : 'bg-surface-variant border border-white/5'}`}>
                       <div className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-300 ${ephemeralHistory ? 'right-1' : 'left-1 opacity-40'}`}></div>
@@ -312,9 +318,9 @@ export default function ProfilePage() {
                     className={`cursor-pointer rounded-xl border p-6 flex flex-col relative overflow-hidden group transition-all duration-300 ${aethericProxy ? 'bg-secondary/10 border-secondary/30' : 'bg-white/5 border-white/5 hover:border-white/10'}`}
                   >
                     <span className={`material-symbols-outlined mb-4 ${aethericProxy ? 'text-secondary' : 'text-on-surface-variant'}`}>security</span>
-                    <h4 className="text-base font-medium text-on-surface mb-2">Aetheric Proxy</h4>
+                    <h4 className="text-base font-medium text-on-surface mb-2">Proxy Etérico</h4>
                     <p className="text-xs text-on-surface-variant opacity-60 mb-6 flex-1">
-                      Reroute biometric data through decentralized nodes.
+                      Redirecionar dados biométricos através de nós descentralizados.
                     </p>
                     <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${aethericProxy ? 'bg-secondary shadow-[0_0_10px_rgba(159,207,213,0.3)]' : 'bg-surface-variant border border-white/5'}`}>
                       <div className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-300 ${aethericProxy ? 'right-1' : 'left-1 opacity-40'}`}></div>
@@ -327,9 +333,9 @@ export default function ProfilePage() {
                     className={`cursor-pointer rounded-xl border p-6 flex flex-col relative overflow-hidden group transition-all duration-300 ${localArchiving ? 'bg-secondary/10 border-secondary/30' : 'bg-white/5 border-white/5 hover:border-white/10'}`}
                   >
                     <span className={`material-symbols-outlined mb-4 ${localArchiving ? 'text-secondary' : 'text-on-surface-variant'}`}>cloud_off</span>
-                    <h4 className="text-base font-medium text-on-surface mb-2">Local Archiving</h4>
+                    <h4 className="text-base font-medium text-on-surface mb-2">Arquivamento Local</h4>
                     <p className="text-xs text-on-surface-variant opacity-60 mb-6 flex-1">
-                      Store all cognitive logs exclusively on hardware.
+                      Armazenar todos os registros cognitivos exclusivamente no hardware local.
                     </p>
                     <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${localArchiving ? 'bg-secondary shadow-[0_0_10px_rgba(159,207,213,0.3)]' : 'bg-surface-variant border border-white/5'}`}>
                       <div className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-300 ${localArchiving ? 'right-1' : 'left-1 opacity-40'}`}></div>

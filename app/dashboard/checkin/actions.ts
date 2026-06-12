@@ -35,20 +35,20 @@ export async function transmitAura(payload: { valenceValue: number; texture: str
   try {
     // 1. Call Groq AI for an Aetheric Insight
     const prompt = `
-      You are the Aetheric Intelligence of Echomind, a futuristic emotional tracking system.
+      You are the Analytical Intelligence of Echomind, a pragmatic emotional tracking system.
       The user just checked in with the following aura:
       - Valence (0 to 100): ${payload.valenceValue}
       - Texture: ${payload.texture}
       - Thoughts: "${payload.thoughts || 'Silent transmission'}"
       
-      Generate a poetic, brief (2 sentences max) insight reflecting their state.
-      Also, generate a short poetic title (max 4 words) and a single-word sentiment tag.
+      Gere uma análise objetiva, direta e analítica (máximo de 2 frases) refletindo o estado atual do usuário. Não seja poético. Seja prático. Em português do Brasil.
+      Também gere um título curto e objetivo (máximo 4 palavras) e uma tag de sentimento de uma única palavra. Em português do Brasil.
       
-      Respond ONLY with a valid JSON object in this format:
+      Responda APENAS com um objeto JSON válido neste formato:
       {
-        "insight": "Your poetic reflection here.",
-        "journalTitle": "Title here",
-        "journalTag": "TagHere"
+        "insight": "Sua reflexão objetiva aqui.",
+        "journalTitle": "Título aqui",
+        "journalTag": "TagAqui"
       }
     `;
 

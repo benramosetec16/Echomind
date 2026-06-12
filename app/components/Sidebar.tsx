@@ -2,17 +2,34 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { createClient } from '../../utils/supabase/client';
 
 const navItems = [
-  { icon: 'waves', label: 'Atmosphere', href: '/dashboard' },
-  { icon: 'auto_awesome', label: 'Reflect', href: '/dashboard/checkin' },
-  { icon: 'favorite', label: 'Pulse', href: '/dashboard/history' },
-  { icon: 'spa', label: 'Harmony', href: '/dashboard/alerts' },
-  { icon: 'nightlight', label: 'Sanctuary', href: '/dashboard/profile' },
+  { icon: 'waves', label: 'Atmosfera', href: '/dashboard' },
+  { icon: 'auto_awesome', label: 'Refletir', href: '/dashboard/checkin' },
+  { icon: 'favorite', label: 'Pulso', href: '/dashboard/history' },
+  { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
+  { icon: 'nightlight', label: 'Santuário', href: '/dashboard/profile' },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userInitials, setUserInitials] = useState<string>('UU');
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Viajante';
+        setUserName(name);
+        setUserInitials(name.substring(0, 2).toUpperCase());
+      }
+    };
+    fetchUser();
+  }, [supabase]);
 
   return (
     <nav className="fixed left-0 top-0 h-full w-20 hover:w-64 transition-all duration-500 ease-in-out z-50 bg-background/80 backdrop-blur-xl border-r border-white/5 flex flex-col items-center py-8 gap-6 overflow-hidden group">
@@ -53,11 +70,11 @@ export default function Sidebar() {
       <div className="mt-auto mb-8 w-full px-4 flex justify-center group-hover:justify-start group-hover:px-6 transition-all">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden flex-shrink-0 bg-surface-container flex items-center justify-center">
-             <span className="font-sans text-sm font-medium text-on-surface-variant">AX</span>
+             <span className="font-sans text-sm font-medium text-on-surface-variant">{userInitials}</span>
           </div>
           <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-            <span className="font-sans text-sm text-on-surface font-semibold">Alex X.</span>
-            <span className="text-[10px] text-on-surface-variant uppercase tracking-widest">Resonance: 98%</span>
+            <span className="font-sans text-sm text-on-surface font-semibold">{userName || '...'}</span>
+            <span className="text-[10px] text-on-surface-variant uppercase tracking-widest">Ressonância: 98%</span>
           </div>
         </div>
       </div>

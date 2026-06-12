@@ -8,18 +8,18 @@ import { transmitAura } from './actions';
 import { AlertCircle, Sparkles } from 'lucide-react';
 
 const states = [
-  { threshold: 0, text: 'Vortex of Discord', color: '#ffb4ab' },
-  { threshold: 25, text: 'Melancholic Drift', color: '#cebdff' },
-  { threshold: 45, text: 'Equilibrium', color: '#9fcfd5' },
-  { threshold: 75, text: 'Luminous Clarity', color: '#e5e2e1' },
-  { threshold: 90, text: 'Infinite Serenity', color: '#ffffff' },
+  { threshold: 0, text: 'Vórtice de Discórdia', color: '#ffb4ab' },
+  { threshold: 25, text: 'Deriva Melancólica', color: '#cebdff' },
+  { threshold: 45, text: 'Equilíbrio', color: '#9fcfd5' },
+  { threshold: 75, text: 'Clareza Luminosa', color: '#e5e2e1' },
+  { threshold: 90, text: 'Serenidade Infinita', color: '#ffffff' },
 ];
 
 const textures = [
-  { id: 'focus', icon: 'target', name: 'Focus', desc: 'Sharp, linear, quiet.' },
-  { id: 'calm', icon: 'air', name: 'Calm', desc: 'Still, expansive, cool.' },
-  { id: 'anxiety', icon: 'bolt', name: 'Anxiety', desc: 'Tight, rapid, electric.' },
-  { id: 'bloom', icon: 'filter_vintage', name: 'Bloom', desc: 'Warm, growing, soft.' },
+  { id: 'focus', icon: 'target', name: 'Foco', desc: 'Afiado, linear, silencioso.' },
+  { id: 'calm', icon: 'air', name: 'Calma', desc: 'Imóvel, expansivo, fresco.' },
+  { id: 'anxiety', icon: 'bolt', name: 'Ansiedade', desc: 'Apertado, rápido, elétrico.' },
+  { id: 'bloom', icon: 'filter_vintage', name: 'Florescer', desc: 'Quente, crescente, macio.' },
 ];
 
 export default function CheckinPage() {
@@ -79,7 +79,7 @@ export default function CheckinPage() {
 
   return (
     <>
-      <TopBar title="Reflect" />
+      <TopBar title="Refletir" />
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
         <div ref={glow1Ref} className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] rounded-full bg-secondary opacity-[0.08] blur-[64px] transition-transform duration-300" />
         <div ref={glow2Ref} className="absolute bottom-[0%] -right-[5%] w-[50%] h-[50%] rounded-full bg-tertiary opacity-[0.08] blur-[64px] transition-transform duration-300" />
@@ -103,7 +103,7 @@ export default function CheckinPage() {
                 transition={{ delay: 0.1 }}
                 className="text-xl font-medium text-on-surface-variant opacity-40 mt-1"
               >
-                Aetheric Pulse #492
+                Pulso Etérico #492
               </motion.p>
             </div>
           </header>
@@ -128,7 +128,7 @@ export default function CheckinPage() {
                   <Sparkles className="w-8 h-8 text-secondary" />
                 </motion.div>
                 
-                <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-secondary mb-6">Aetheric Insight</h2>
+                <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-secondary mb-6">Análise da IA</h2>
                 
                 <motion.p 
                   initial={{ y: 20, opacity: 0 }}
@@ -146,7 +146,7 @@ export default function CheckinPage() {
                   onClick={resetForm}
                   className="text-xs uppercase tracking-[0.2em] font-semibold text-on-surface-variant hover:text-secondary transition-colors"
                 >
-                  Return to Sanctuary
+                  Retornar ao Santuário
                 </motion.button>
               </motion.div>
             ) : (
@@ -166,7 +166,7 @@ export default function CheckinPage() {
                     transition={{ delay: 0.2 }}
                     className="text-3xl font-light text-primary mb-12 tracking-tighter"
                   >
-                    How are you, really?
+                    Como você está, de verdade?
                   </motion.h2>
 
                   <motion.div 
@@ -176,8 +176,8 @@ export default function CheckinPage() {
                     className="w-full glass-panel rounded-full p-8 mb-4 relative"
                   >
                     <div className="flex justify-between items-center mb-6 px-2">
-                      <span className="text-xs font-semibold text-on-surface-variant opacity-50 uppercase tracking-[0.15em]">UNHAPPY</span>
-                      <span className="text-xs font-semibold text-on-surface-variant opacity-50 uppercase tracking-[0.15em]">SERENE</span>
+                      <span className="text-xs font-semibold text-on-surface-variant opacity-50 uppercase tracking-[0.15em]">INFELIZ</span>
+                      <span className="text-xs font-semibold text-on-surface-variant opacity-50 uppercase tracking-[0.15em]">SERENO</span>
                     </div>
                     <input 
                       type="range" 
@@ -207,7 +207,7 @@ export default function CheckinPage() {
                     transition={{ delay: 0.5 }}
                     className="flex flex-col mb-8"
                   >
-                    <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant mb-2">SENSORY TEXTURE</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant mb-2">TEXTURA SENSORIAL</h3>
                     <div className="w-12 h-[1px] bg-secondary opacity-30"></div>
                   </motion.div>
 
@@ -249,7 +249,7 @@ export default function CheckinPage() {
                     transition={{ delay: 1 }}
                     className="flex flex-col mb-8 items-center"
                   >
-                    <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant mb-2">THOUGHTS INTO ETHER</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant mb-2">PENSAMENTOS NO ÉTER</h3>
                     <div className="w-12 h-[1px] bg-tertiary opacity-30"></div>
                   </motion.div>
                   
@@ -263,10 +263,10 @@ export default function CheckinPage() {
                       value={thoughts}
                       onChange={(e) => setThoughts(e.target.value)}
                       className="w-full bg-surface-container-lowest/40 backdrop-blur-md border-b border-white/10 p-6 text-base text-on-surface focus:outline-none focus:border-secondary/50 transition-colors resize-none min-h-[160px] placeholder:opacity-20 text-center"
-                      placeholder="Describe the unseen..."
+                      placeholder="Descreva o que sente..."
                     />
                     <div className="absolute bottom-4 right-4 flex items-center gap-2 opacity-30">
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.15em]">SIGNAL STRENGTH</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.15em]">FORÇA DO SINAL</span>
                       <div className="flex gap-1">
                         <div className={`w-1 h-3 ${thoughts.length > 5 ? 'bg-secondary' : 'bg-white/20'}`}></div>
                         <div className={`w-1 h-3 ${thoughts.length > 20 ? 'bg-secondary' : 'bg-white/20'}`}></div>
@@ -300,11 +300,11 @@ export default function CheckinPage() {
                     className="group relative px-12 py-4 border border-secondary/30 rounded-full overflow-hidden transition-all hover:border-secondary hover:shadow-[0_0_30px_rgba(159,207,213,0.2)] disabled:opacity-50 disabled:hover:border-secondary/30 disabled:hover:shadow-none"
                   >
                     <span className="relative z-10 text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
-                      {isSubmitting ? 'TRANSMITTING TO AETHER...' : 'TRANSMIT AURA'}
+                      {isSubmitting ? 'TRANSMITINDO...' : 'TRANSMITIR AURA'}
                     </span>
                     <div className="absolute inset-0 bg-secondary opacity-0 group-hover:opacity-5 transition-opacity"></div>
                   </button>
-                  <p className="text-sm text-on-surface-variant opacity-30 italic">Session expires upon closure.</p>
+                  <p className="text-sm text-on-surface-variant opacity-30 italic">Sessão expira ao fechar.</p>
                 </motion.div>
               </motion.div>
             )}
