@@ -217,9 +217,9 @@ export default function LoginPage() {
               <button 
                 type="button" 
                 onClick={toggleMode}
-                className="text-xs text-on-surface-variant hover:text-secondary transition-colors"
+                className="text-xs text-on-surface-variant hover:text-secondary transition-colors underline underline-offset-4"
               >
-                {mode === 'login' ? 'Request New Designation (Sign Up)' : 'Return to Access Portal (Login)'}
+                {mode === 'login' ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça Login'}
               </button>
 
               <button type="button" className="flex items-center gap-3 text-on-surface-variant hover:text-secondary transition-colors group mt-2">
