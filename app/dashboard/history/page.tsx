@@ -1,12 +1,78 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import TopBar from '../../components/TopBar';
 import PageTransition from '../../components/PageTransition';
+import { createClient } from '../../../utils/supabase/client';
+
+interface JournalEntry {
+  id: string;
+  title: string;
+  sentiment_tag: string;
+  sentiment_dots: number;
+  icon: string;
+  created_at: string;
+}
 
 export default function HistoryPage() {
   const [timeRange, setTimeRange] = useState<'7D' | '30D'>('30D');
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchJournal = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('aetheric_journal')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (data) {
+        setEntries(data as JournalEntry[]);
+      }
+      if (error) {
+        console.error('Error fetching journal:', error);
+      }
+      setLoading(false);
+    };
+
+    fetchJournal();
+  }, [supabase]);
+
+  // Format date helper
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (date.toDateString() === today.toDateString()) {
+      return `Today, ${timeString}`;
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return `Yesterday, ${timeString}`;
+    } else {
+      return `${date.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}, ${timeString}`;
+    }
+  };
+
+  // Tag styling helper
+  const getTagColor = (tag: string) => {
+    const t = tag.toLowerCase();
+    if (t.includes('seren') || t.includes('calm') || t.includes('peace')) {
+      return 'text-secondary bg-secondary/10 border-secondary/20';
+    }
+    if (t.includes('turbul') || t.includes('anx') || t.includes('stress')) {
+      return 'text-error bg-error/10 border-error/20';
+    }
+    return 'text-primary bg-surface-variant border-white/10';
+  };
 
   return (
     <>
@@ -108,19 +174,10 @@ export default function HistoryPage() {
                     <div className="w-1.5 h-1.5 bg-tertiary rounded-full animate-pulse"></div>
                   </div>
                   <div className="mt-4 aetheric-glass px-4 py-2 rounded-lg text-center whitespace-nowrap">
-                    <div className="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-1">Oct 14</div>
-                    <div className="text-sm font-medium text-tertiary">94% Core Calm</div>
+                    <div className="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-1">Latest Pulse</div>
+                    <div className="text-sm font-medium text-tertiary">Optimal Core</div>
                   </div>
                 </div>
-              </div>
-
-              {/* X-Axis */}
-              <div className="flex justify-between mt-8 text-xs text-on-surface-variant uppercase tracking-[0.1em] font-semibold px-4">
-                <span>Oct 01</span>
-                <span>Oct 08</span>
-                <span>Oct 15</span>
-                <span>Oct 22</span>
-                <span>Oct 29</span>
               </div>
             </motion.div>
 
@@ -180,40 +237,44 @@ export default function HistoryPage() {
             >
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-light text-on-surface">Aetheric Journal</h3>
-                <button className="px-5 py-2 rounded-full border border-secondary/20 text-secondary text-xs uppercase tracking-[0.15em] font-semibold hover:bg-secondary/5 hover:border-secondary/40 transition-all">
-                  New Entry
-                </button>
               </div>
 
               <div className="flex flex-col gap-4">
-                {[
-                  { icon: 'spa', time: 'Today, 08:42 AM', tag: 'Serenity', color: 'text-secondary bg-secondary/10 border-secondary/20', title: 'Dawn Reflection in the Glass Atrium', dots: 3 },
-                  { icon: 'bolt', time: 'Yesterday, 11:15 PM', tag: 'Turbulence', color: 'text-tertiary bg-tertiary/10 border-tertiary/20', title: 'Post-Synthesis Cognitive Friction', dots: 2 },
-                  { icon: 'auto_awesome', time: 'Oct 26, 04:30 PM', tag: 'Equilibrium', color: 'text-primary bg-surface-variant border-outline-variant', title: 'Standard Bio-Protocol Alignment', dots: 4 },
-                ].map((entry, i) => (
-                  <div key={i} className="aetheric-glass p-6 rounded-2xl flex items-center gap-6 group hover:bg-white/[0.02] cursor-pointer transition-all">
-                    <div className="w-16 h-16 rounded-xl bg-surface-container flex items-center justify-center border border-white/5 flex-shrink-0">
-                      <span className="material-symbols-outlined text-2xl text-on-surface-variant group-hover:text-on-surface transition-colors">{entry.icon}</span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-xs text-on-surface-variant opacity-60 uppercase tracking-widest">{entry.time}</span>
-                        <span className={`px-2.5 py-0.5 rounded text-[10px] uppercase tracking-widest border font-semibold ${entry.color}`}>
-                          {entry.tag}
-                        </span>
-                      </div>
-                      <h4 className="text-lg font-medium text-on-surface">{entry.title}</h4>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <div className="flex gap-1.5">
-                        {[1, 2, 3, 4, 5].map(dot => (
-                          <div key={dot} className={`w-1.5 h-1.5 rounded-full ${dot <= entry.dots ? 'bg-primary' : 'bg-white/10'}`}></div>
-                        ))}
-                      </div>
-                      <span className="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 transform duration-300">chevron_right</span>
-                    </div>
+                {loading ? (
+                  <div className="text-center py-12 text-on-surface-variant opacity-50 text-sm tracking-widest uppercase animate-pulse">
+                    Synching with Aether...
                   </div>
-                ))}
+                ) : entries.length === 0 ? (
+                  <div className="text-center py-12 aetheric-glass rounded-2xl">
+                    <p className="text-on-surface-variant">No journal entries yet. Make a check-in to generate your first AI Insight.</p>
+                  </div>
+                ) : (
+                  entries.map((entry) => (
+                    <div key={entry.id} className="aetheric-glass p-6 rounded-2xl flex items-center gap-6 group hover:bg-white/[0.04] cursor-pointer transition-all border border-transparent hover:border-white/10">
+                      <div className="w-16 h-16 rounded-xl bg-surface-container flex items-center justify-center border border-white/5 flex-shrink-0 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <span className="material-symbols-outlined text-2xl text-on-surface-variant group-hover:text-primary transition-colors relative z-10">{entry.icon}</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-xs text-on-surface-variant opacity-60 uppercase tracking-widest">{formatDate(entry.created_at)}</span>
+                          <span className={`px-2.5 py-0.5 rounded text-[10px] uppercase tracking-widest border font-semibold ${getTagColor(entry.sentiment_tag)}`}>
+                            {entry.sentiment_tag}
+                          </span>
+                        </div>
+                        <h4 className="text-lg font-medium text-on-surface group-hover:text-primary transition-colors">{entry.title}</h4>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="flex gap-1.5">
+                          {[1, 2, 3, 4, 5].map(dot => (
+                            <div key={dot} className={`w-1.5 h-1.5 rounded-full transition-colors ${dot <= entry.sentiment_dots ? 'bg-primary' : 'bg-white/10 group-hover:bg-white/20'}`}></div>
+                          ))}
+                        </div>
+                        <span className="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 transform duration-300">chevron_right</span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </motion.div>
           </div>
