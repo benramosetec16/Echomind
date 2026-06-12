@@ -2,27 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-<<<<<<< HEAD
-import { useRouter } from 'next/navigation';
-import { Fingerprint, AlertCircle } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-=======
 import { Fingerprint, AlertCircle } from 'lucide-react';
 import { login, signup } from './actions';
->>>>>>> 93bae99a57419c7d2e29e08484420a55e9a236d1
 
 export default function LoginPage() {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [status, setStatus] = useState<'idle' | 'validating' | 'granted'>('idle');
   const [isLoading, setIsLoading] = useState(true);
-<<<<<<< HEAD
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [isSignUp, setIsSignUp] = useState(false);
-=======
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
->>>>>>> 93bae99a57419c7d2e29e08484420a55e9a236d1
   
   const glowRef = useRef<HTMLDivElement>(null);
 
@@ -50,32 +37,6 @@ export default function LoginPage() {
     setStatus('validating');
     setErrorMsg(null);
     
-<<<<<<< HEAD
-    try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (error) throw error;
-        // Se der certo, loga direto
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-      }
-
-      setStatus('granted');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      router.push('/dashboard');
-    } catch (err: any) {
-      console.error(err);
-      setStatus('idle');
-      setErrorMsg(err.message || 'Falha na autenticação.');
-    }
-=======
     const formData = new FormData(e.currentTarget);
     
     try {
@@ -98,7 +59,6 @@ export default function LoginPage() {
     setMode(prev => prev === 'login' ? 'signup' : 'login');
     setErrorMsg(null);
     setStatus('idle');
->>>>>>> 93bae99a57419c7d2e29e08484420a55e9a236d1
   };
 
   return (
@@ -160,11 +120,7 @@ export default function LoginPage() {
             transition={{ delay: 2.4, duration: 0.8 }}
             className="text-xs uppercase tracking-[0.2em] text-on-surface-variant opacity-60 font-semibold"
           >
-<<<<<<< HEAD
-            {isSignUp ? 'New User Registration' : 'Secure Authentication Required'}
-=======
             {mode === 'login' ? 'Secure Authentication Required' : 'Establish Neural Bridge'}
->>>>>>> 93bae99a57419c7d2e29e08484420a55e9a236d1
           </motion.p>
         </header>
 
@@ -174,16 +130,6 @@ export default function LoginPage() {
           transition={{ delay: 2.6, duration: 0.8 }}
           className="glass-panel w-full rounded-[24px] p-10 relative overflow-hidden"
         >
-<<<<<<< HEAD
-          <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-            {errorMsg && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg flex items-center gap-2 text-sm">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <p>{errorMsg}</p>
-              </div>
-            )}
-            
-=======
           {errorMsg && (
             <motion.div 
               initial={{ opacity: 0, y: -10 }}
@@ -221,21 +167,15 @@ export default function LoginPage() {
               )}
             </AnimatePresence>
 
->>>>>>> 93bae99a57419c7d2e29e08484420a55e9a236d1
             <div className="group relative">
               <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
                 Identity (Email)
               </label>
               <div className="input-underline py-2">
                 <input
-<<<<<<< HEAD
-=======
                   name="email"
->>>>>>> 93bae99a57419c7d2e29e08484420a55e9a236d1
                   type="email"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="Universal Identifier"
                   className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
                 />
@@ -251,8 +191,6 @@ export default function LoginPage() {
                   name="password"
                   type="password"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
                   className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
                 />
@@ -268,11 +206,7 @@ export default function LoginPage() {
                 'bg-secondary/10 text-secondary border-secondary/30 shadow-[0_0_20px_rgba(159,207,213,0.2)]'
               }`}
             >
-<<<<<<< HEAD
-              {status === 'idle' && (isSignUp ? 'REGISTER' : 'INITIATE ACCESS')}
-=======
               {status === 'idle' && (mode === 'login' ? 'INITIATE ACCESS' : 'INITIALIZE PROTOCOL')}
->>>>>>> 93bae99a57419c7d2e29e08484420a55e9a236d1
               {status === 'validating' && 'VALIDATING...'}
               {status === 'granted' && 'ACCESS GRANTED'}
             </button>
@@ -282,17 +216,10 @@ export default function LoginPage() {
               
               <button 
                 type="button" 
-<<<<<<< HEAD
-                onClick={() => { setIsSignUp(!isSignUp); setErrorMsg(null); }}
-                className="text-[10px] uppercase tracking-[0.15em] text-on-surface-variant hover:text-secondary transition-colors"
-              >
-                {isSignUp ? 'Already have an account? Login' : 'Need access? Sign up'}
-=======
                 onClick={toggleMode}
                 className="text-xs text-on-surface-variant hover:text-secondary transition-colors"
               >
                 {mode === 'login' ? 'Request New Designation (Sign Up)' : 'Return to Access Portal (Login)'}
->>>>>>> 93bae99a57419c7d2e29e08484420a55e9a236d1
               </button>
 
               <button type="button" className="flex items-center gap-3 text-on-surface-variant hover:text-secondary transition-colors group mt-2">
