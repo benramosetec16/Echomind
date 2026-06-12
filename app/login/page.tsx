@@ -191,6 +191,7 @@ export default function LoginPage() {
                   name="password"
                   type="password"
                   required
+                  minLength={6}
                   placeholder="••••••••••••"
                   className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
                 />
