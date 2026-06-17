@@ -1,0 +1,13 @@
+{
+  "Hero": {
+    "title": "Boost your mind with EchoMind",
+    "subtitle": "The ultimate platform connecting artificial intelligence to your learning.",
+    "button": "Get Started"
+  },
+  "Navbar": {
+    "home": "Home",
+    "features": "Features",
+    "about": "About",
+    "login": "Login"
+  }
+}

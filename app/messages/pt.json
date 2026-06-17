@@ -1,0 +1,13 @@
+{
+  "Hero": {
+    "title": "Potencialize sua mente com o EchoMind",
+    "subtitle": "A plataforma definitiva que conecta inteligência artificial ao seu aprendizado.",
+    "button": "Começar Agora"
+  },
+  "Navbar": {
+    "home": "Início",
+    "features": "Funcionalidades",
+    "about": "Sobre",
+    "login": "Entrar"
+  }
+}
