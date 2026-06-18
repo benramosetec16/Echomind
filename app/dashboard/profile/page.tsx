@@ -5,13 +5,20 @@ import { motion } from 'framer-motion';
 import TopBar from '../../components/TopBar';
 import PageTransition from '../../components/PageTransition';
 import { createClient } from '../../../utils/supabase/client';
+import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
   const supabase = createClient();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string>('Alex X.');
-  const [userInitials, setUserInitials] = useState<string>('AX');
+
+  // User data from auth
+  const [userName, setUserName] = useState<string>('...');
+  const [userInitials, setUserInitials] = useState<string>('...');
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [userCreatedAt, setUserCreatedAt] = useState<string>('');
+  const [lastSignIn, setLastSignIn] = useState<string>('');
 
   // Form State
   const [hapticIntensity, setHapticIntensity] = useState(75);
@@ -21,8 +28,12 @@ export default function ProfilePage() {
   const [aethericProxy, setAethericProxy] = useState(true);
   const [localArchiving, setLocalArchiving] = useState(false);
 
-  // Mock metrics for display
+  // Metrics
   const [metrics, setMetrics] = useState({ focusLatency: 0.14, syncIntegrity: 99.8, aethericYield: 8.2 });
+
+  // Stats
+  const [totalCheckins, setTotalCheckins] = useState(0);
+  const [totalJournalEntries, setTotalJournalEntries] = useState(0);
 
   useEffect(() => {
     async function loadProfile() {
@@ -31,10 +42,24 @@ export default function ProfilePage() {
         
         if (session?.user) {
           setUserId(session.user.id);
-          const name = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Líder';
+          const name = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Usuário';
           setUserName(name);
           setUserInitials(name.substring(0, 2).toUpperCase());
+          setUserEmail(session.user.email || '');
+          
+          // Format dates
+          if (session.user.created_at) {
+            setUserCreatedAt(new Date(session.user.created_at).toLocaleDateString('pt-BR', {
+              day: '2-digit', month: 'long', year: 'numeric'
+            }));
+          }
+          if (session.user.last_sign_in_at) {
+            setLastSignIn(new Date(session.user.last_sign_in_at).toLocaleDateString('pt-BR', {
+              day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            }));
+          }
 
+          // Load profile settings
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
@@ -55,13 +80,23 @@ export default function ProfilePage() {
                aethericYield: data.aetheric_yield ?? 8.2,
             });
           } else if (error && error.code !== 'PGRST116') {
-            console.error("Error loading profile:", error.message);
+            console.error("Erro ao carregar perfil:", error.message);
           }
+
+          // Load stats
+          const [checkinsRes, journalRes] = await Promise.all([
+            supabase.from('emotional_checkins').select('id', { count: 'exact', head: true }).eq('user_id', session.user.id),
+            supabase.from('aetheric_journal').select('id', { count: 'exact', head: true }).eq('user_id', session.user.id),
+          ]);
+
+          setTotalCheckins(checkinsRes.count ?? 0);
+          setTotalJournalEntries(journalRes.count ?? 0);
+
         } else {
-          console.warn("No active session found. Changes will only be local.");
+          console.warn("Nenhuma sessão ativa encontrada.");
         }
       } catch (err) {
-        console.error("Unexpected error loading profile:", err);
+        console.error("Erro inesperado ao carregar perfil:", err);
       } finally {
         setLoading(false);
       }
@@ -70,10 +105,7 @@ export default function ProfilePage() {
   }, []);
 
   const updateProfile = async (updates: any) => {
-    if (!userId) {
-      console.log("Local state updated. Log in to sync with Supabase:", updates);
-      return;
-    }
+    if (!userId) return;
     
     const { error } = await supabase
       .from('profiles')
@@ -81,7 +113,7 @@ export default function ProfilePage() {
       .eq('id', userId);
       
     if (error) {
-      console.error("Error updating profile:", error.message);
+      console.error("Erro ao atualizar perfil:", error.message);
     }
   };
 
@@ -117,6 +149,16 @@ export default function ProfilePage() {
     const val = !localArchiving;
     setLocalArchiving(val);
     updateProfile({ local_archiving: val });
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
+  const handleSwitchProfile = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
   };
 
   if (loading) {
@@ -157,23 +199,83 @@ export default function ProfilePage() {
                 </div>
               </div>
               
-              <div className="pb-4">
-                <span className="text-xs font-semibold text-secondary uppercase tracking-[0.2em] mb-2 block">Líder de Protocolo</span>
+              <div className="pb-4 flex-1">
+                <span className="text-xs font-semibold text-secondary uppercase tracking-[0.2em] mb-2 block">Meu Perfil</span>
                 <h1 className="text-5xl font-light text-on-surface mb-2">{userName}</h1>
-                <p className="text-on-surface-variant max-w-md">
-                  Ponte neural estabelecida. Padrões de ressonância atuais sugerem alta adaptabilidade em ambientes complexos.
+                <p className="text-on-surface-variant max-w-md mb-6">
+                  Gerencie suas configurações pessoais, visualize o status da sua conta e ajuste suas preferências.
                 </p>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={handleSwitchProfile}
+                    className="px-5 py-2.5 rounded-full border border-white/10 text-on-surface-variant text-xs uppercase tracking-[0.15em] font-semibold hover:bg-white/5 hover:border-white/20 transition-all flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-sm">swap_horiz</span>
+                    Trocar Perfil
+                  </button>
+                  <button 
+                    onClick={handleLogout}
+                    className="px-5 py-2.5 rounded-full border border-error/20 text-error text-xs uppercase tracking-[0.15em] font-semibold hover:bg-error/10 hover:border-error/40 transition-all flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-sm">logout</span>
+                    Sair da Conta
+                  </button>
+                </div>
               </div>
             </motion.div>
 
             {/* Bento Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+              {/* Account Status Card */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="lg:col-span-5 aetheric-glass rounded-3xl p-8"
+              >
+                <div className="flex items-center gap-3 mb-8">
+                  <span className="material-symbols-outlined text-secondary">account_circle</span>
+                  <h3 className="text-xl font-medium text-on-surface">Status da Conta</h3>
+                </div>
+
+                <div className="flex flex-col gap-5">
+                  <div className="flex justify-between items-center py-3 border-b border-white/5">
+                    <span className="text-sm text-on-surface-variant">Email</span>
+                    <span className="text-sm text-on-surface font-medium">{userEmail || 'Não disponível'}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-white/5">
+                    <span className="text-sm text-on-surface-variant">Membro desde</span>
+                    <span className="text-sm text-on-surface font-medium">{userCreatedAt || '—'}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-white/5">
+                    <span className="text-sm text-on-surface-variant">Último acesso</span>
+                    <span className="text-sm text-on-surface font-medium">{lastSignIn || '—'}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-white/5">
+                    <span className="text-sm text-on-surface-variant">Status</span>
+                    <span className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]"></div>
+                      <span className="text-sm text-green-400 font-semibold">Ativo</span>
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-white/5">
+                    <span className="text-sm text-on-surface-variant">Total de check-ins</span>
+                    <span className="text-sm text-on-surface font-medium">{totalCheckins}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3">
+                    <span className="text-sm text-on-surface-variant">Entradas no diário</span>
+                    <span className="text-sm text-on-surface font-medium">{totalJournalEntries}</span>
+                  </div>
+                </div>
+              </motion.div>
+
               {/* Personal Records */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="lg:col-span-8 aetheric-glass rounded-3xl p-10 flex flex-col min-h-[400px]"
+                className="lg:col-span-7 aetheric-glass rounded-3xl p-10 flex flex-col min-h-[400px]"
               >
                 <div className="flex justify-between items-center mb-12">
                   <div className="flex items-center gap-3">
@@ -197,7 +299,7 @@ export default function ProfilePage() {
                   </div>
                   
                   <div className="border-l border-white/5 pl-6 flex flex-col justify-center">
-                    <span className="text-xs uppercase tracking-[0.1em] text-on-surface-variant opacity-60 mb-2 font-semibold">Rendimento Etérico</span>
+                    <span className="text-xs uppercase tracking-[0.1em] text-on-surface-variant opacity-60 mb-2 font-semibold">Rendimento</span>
                     <div className="text-4xl font-extralight text-on-surface">{metrics.aethericYield} <span className="text-base text-on-surface-variant">k</span></div>
                   </div>
                 </div>
@@ -274,14 +376,14 @@ export default function ProfilePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="lg:col-span-12 glass-panel rounded-3xl p-8"
+                className="lg:col-span-8 glass-panel rounded-3xl p-8"
               >
                 <div className="flex items-center gap-3 mb-8">
                   <span className="material-symbols-outlined text-on-surface-variant">fingerprint</span>
                   <h3 className="text-xl font-medium text-on-surface">Protocolos de Privacidade</h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Ghost Mode */}
                   <div 
                     onClick={toggleGhostMode}

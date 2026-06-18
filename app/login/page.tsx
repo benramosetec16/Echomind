@@ -220,11 +220,7 @@ export default function LoginPage() {
                 onClick={toggleMode}
                 className="text-xs text-on-surface-variant hover:text-secondary transition-colors underline underline-offset-4"
               >
-<<<<<<< HEAD
-                {mode === 'login' ? 'Solicitar Nova Designação (Cadastrar)' : 'Retornar ao Portal de Acesso (Entrar)'}
-=======
                 {mode === 'login' ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça Login'}
->>>>>>> 7c674dd8fe0c5be43c71f82ad7b6834d09f637ca
               </button>
 
               <button type="button" className="flex items-center gap-3 text-on-surface-variant hover:text-secondary transition-colors group mt-2">

@@ -35,19 +35,27 @@ export async function transmitAura(payload: { valenceValue: number; texture: str
   try {
     // 1. Call Groq AI for an Aetheric Insight
     const prompt = `
-      You are the Analytical Intelligence of Echomind, a pragmatic emotional tracking system.
-      The user just checked in with the following aura:
-      - Valence (0 to 100): ${payload.valenceValue}
-      - Texture: ${payload.texture}
-      - Thoughts: "${payload.thoughts || 'Silent transmission'}"
+      Você é a Inteligência Analítica do Echomind, um sistema prático de monitoramento emocional.
+      O usuário acabou de fazer um check-in com os seguintes dados:
+      - Valência emocional (0 a 100): ${payload.valenceValue}
+      - Textura sensorial: ${payload.texture}
+      - Pensamentos: "${payload.thoughts || 'Nenhum texto fornecido'}"
       
-      Gere uma análise objetiva, direta e analítica (máximo de 2 frases) refletindo o estado atual do usuário. Não seja poético. Seja prático. Em português do Brasil.
-      Também gere um título curto e objetivo (máximo 4 palavras) e uma tag de sentimento de uma única palavra. Em português do Brasil.
+      REGRAS OBRIGATÓRIAS:
+      - Responda SEMPRE em português do Brasil
+      - Seja OBJETIVO, DIRETO e ANALÍTICO (máximo 2 frases)
+      - NÃO use linguagem poética, metáforas, frases abstratas ou filosóficas
+      - NÃO use termos como "etérico", "ressonância", "aura", "cósmico", "universo"
+      - Seja PRÁTICO: descreva o estado emocional real e dê uma orientação útil
+      - Exemplo bom: "Seu nível de estresse está moderado, com tendência à ansiedade. Considere uma pausa de 10 minutos para respiração controlada."
+      - Exemplo ruim: "As ondas do seu ser ressoam em frequências de transformação interior..."
+      
+      Gere também um título curto e objetivo (máximo 4 palavras) e uma tag de sentimento de uma única palavra.
       
       Responda APENAS com um objeto JSON válido neste formato:
       {
-        "insight": "Sua reflexão objetiva aqui.",
-        "journalTitle": "Título aqui",
+        "insight": "Sua análise objetiva aqui.",
+        "journalTitle": "Título Objetivo",
         "journalTag": "TagAqui"
       }
     `;

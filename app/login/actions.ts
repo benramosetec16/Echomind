@@ -11,7 +11,7 @@ export async function login(formData: FormData) {
   const password = formData.get('password') as string
 
   if (!email || !password) {
-    return { error: 'Identity and Keyphrase are required' }
+    return { error: 'Email e senha são obrigatórios' }
   }
 
   const { error } = await supabase.auth.signInWithPassword({
@@ -35,7 +35,7 @@ export async function signup(formData: FormData) {
   const fullName = (formData.get('fullName') as string)?.trim()
 
   if (!email || !password || !fullName) {
-    return { error: 'Identity, Keyphrase and Name are required' }
+    return { error: 'Email, senha e nome completo são obrigatórios' }
   }
 
   const { error } = await supabase.auth.signUp({
