@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import TopBar from '../../components/TopBar';
 import PageTransition from '../../components/PageTransition';
 import { createClient } from '../../../utils/supabase/client';
+import { generateTemporalAnalysis } from './actions';
 
 interface JournalEntry {
   id: string;
@@ -16,46 +17,89 @@ interface JournalEntry {
 }
 
 interface Checkin {
+  id?: string;
   valence_value: number;
   created_at: string;
 }
 
 export default function HistoryPage() {
-  const [timeRange, setTimeRange] = useState<'7D' | '30D'>('30D');
+  const [timeRange, setTimeRange] = useState<'7D' | '30D'>('7D');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [checkins, setCheckins] = useState<Checkin[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
   const supabase = createClient();
 
+  // Load initial data and set up realtime subscription
   useEffect(() => {
+    let checkinChannel: any;
+    let journalChannel: any;
+
     const fetchData = async () => {
+      setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      const dateLimit = new Date();
+      if (timeRange === '7D') {
+        dateLimit.setDate(dateLimit.getDate() - 7);
+      } else {
+        dateLimit.setDate(dateLimit.getDate() - 30);
+      }
+      const isoLimit = dateLimit.toISOString();
 
       const [journalRes, checkinsRes] = await Promise.all([
         supabase
           .from('aetheric_journal')
           .select('*')
           .eq('user_id', user.id)
+          .gte('created_at', isoLimit)
           .order('created_at', { ascending: false }),
         supabase
           .from('emotional_checkins')
           .select('valence_value, created_at')
           .eq('user_id', user.id)
+          .gte('created_at', isoLimit)
           .order('created_at', { ascending: true })
       ]);
 
       if (journalRes.data) setEntries(journalRes.data as JournalEntry[]);
       if (checkinsRes.data) setCheckins(checkinsRes.data as Checkin[]);
       
-      if (journalRes.error) console.error('Error fetching journal:', journalRes.error);
-      if (checkinsRes.error) console.error('Error fetching checkins:', checkinsRes.error);
-      
       setLoading(false);
+
+      // Realtime Subscriptions
+      checkinChannel = supabase.channel('realtime:checkins')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'emotional_checkins', filter: \`user_id=eq.\${user.id}\` }, (payload) => {
+          setCheckins((prev) => [...prev, payload.new as Checkin]);
+        })
+        .subscribe();
+
+      journalChannel = supabase.channel('realtime:journal')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'aetheric_journal', filter: \`user_id=eq.\${user.id}\` }, (payload) => {
+          setEntries((prev) => [payload.new as JournalEntry, ...prev]);
+        })
+        .subscribe();
     };
 
     fetchData();
-  }, []);
+
+    return () => {
+      if (checkinChannel) supabase.removeChannel(checkinChannel);
+      if (journalChannel) supabase.removeChannel(journalChannel);
+    };
+  }, [timeRange, supabase]);
+
+  const handleGenerateAnalysis = async () => {
+    setIsGenerating(true);
+    const res = await generateTemporalAnalysis(timeRange);
+    setIsGenerating(false);
+    if (res.error) {
+      alert(res.error);
+    } else {
+      alert('Análise final gerada com sucesso! Verifique seu diário de registros.');
+    }
+  };
 
   // Format date helper
   const formatDate = (dateString: string) => {
@@ -67,15 +111,14 @@ export default function HistoryPage() {
     const timeString = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
     if (date.toDateString() === today.toDateString()) {
-      return `Hoje, ${timeString}`;
+      return \`Hoje, \${timeString}\`;
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return `Ontem, ${timeString}`;
+      return \`Ontem, \${timeString}\`;
     } else {
-      return `${date.toLocaleDateString('pt-BR', { month: 'short', day: '2-digit' })}, ${timeString}`;
+      return \`\${date.toLocaleDateString('pt-BR', { month: 'short', day: '2-digit' })}, \${timeString}\`;
     }
   };
 
-  // Tag styling helper
   const getTagColor = (tag: string) => {
     const t = tag.toLowerCase();
     if (t.includes('seren') || t.includes('calm') || t.includes('peace') || t.includes('paz') || t.includes('tranquil')) {
@@ -87,19 +130,17 @@ export default function HistoryPage() {
     return 'text-primary bg-surface-variant border-white/10';
   };
 
-  // Calculate dynamic path based on checkins
   const calculatePath = () => {
     if (checkins.length < 2) {
       return "M 0,100 C 100,150 200,80 300,200 C 400,280 500,200 600,180 C 700,160 800,90 800,90";
     }
     
-    // We have 800 width, 300 height.
     const width = 800;
     const height = 300;
     const paddingY = 50;
     const stepX = width / (checkins.length - 1);
 
-    let path = `M 0,${height - paddingY - (checkins[0].valence_value / 100) * (height - 2 * paddingY)}`;
+    let path = \`M 0,\${height - paddingY - (checkins[0].valence_value / 100) * (height - 2 * paddingY)}\`;
     
     for (let i = 1; i < checkins.length; i++) {
       const prevX = (i - 1) * stepX;
@@ -112,7 +153,7 @@ export default function HistoryPage() {
       const cp2x = prevX + (currX - prevX) / 2;
       const cp2y = currY;
       
-      path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${currX},${currY}`;
+      path += \` C \${cp1x},\${cp1y} \${cp2x},\${cp2y} \${currX},\${currY}\`;
     }
     
     return path;
@@ -120,28 +161,48 @@ export default function HistoryPage() {
 
   const dynamicPath = calculatePath();
 
+  // Calc metrics dynamically based on checkins
+  const avgValence = checkins.length > 0 ? checkins.reduce((sum, c) => sum + c.valence_value, 0) / checkins.length : 0;
+  // Variance
+  const variance = checkins.length > 0 ? checkins.reduce((sum, c) => sum + Math.pow(c.valence_value - avgValence, 2), 0) / checkins.length : 0;
+  
+  const isStable = variance < 400; // Arbitrary stability threshold
+  const loadDensity = checkins.length > 5 ? 'Alta' : checkins.length > 2 ? 'Média' : 'Baixa';
+  const densityPercent = checkins.length > 5 ? '85%' : checkins.length > 2 ? '50%' : '15%';
+
   return (
     <>
       <TopBar title="Pulso" />
       <main className="pt-32 px-16 pb-24 relative min-h-screen">
         <PageTransition>
           {/* Header */}
-          <header className="max-w-[1200px] mx-auto mb-16">
-            <motion.h1 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-5xl font-extralight tracking-tighter text-on-background mb-2"
-            >
-              Histórico Emocional
-            </motion.h1>
-            <motion.p 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-on-surface-variant max-w-xl"
-            >
-              Análise temporal da sua ressonância cognitiva e estabilidade ao longo do tempo.
-            </motion.p>
+          <header className="max-w-[1200px] mx-auto mb-16 flex justify-between items-end">
+            <div>
+              <motion.h1 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-5xl font-extralight tracking-tighter text-on-background mb-2"
+              >
+                Histórico Emocional
+              </motion.h1>
+              <motion.p 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-on-surface-variant max-w-xl"
+              >
+                Análise temporal da sua ressonância cognitiva e estabilidade ao longo do tempo.
+              </motion.p>
+            </div>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+               <button 
+                  onClick={handleGenerateAnalysis}
+                  disabled={isGenerating || checkins.length === 0}
+                  className="px-6 py-3 rounded-full border border-secondary/50 text-secondary text-xs uppercase tracking-[0.1em] font-semibold hover:bg-secondary/10 transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
+               >
+                 {isGenerating ? 'Analisando...' : 'Gerar Análise Final'}
+               </button>
+            </motion.div>
           </header>
 
           <div className="max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -163,13 +224,13 @@ export default function HistoryPage() {
                 <div className="flex gap-2 bg-surface-container-low rounded-full p-1 border border-white/5">
                   <button 
                     onClick={() => setTimeRange('7D')}
-                    className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.15em] transition-all ${timeRange === '7D' ? 'bg-secondary/10 text-secondary' : 'text-on-surface-variant hover:text-on-surface'}`}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.15em] transition-all \${timeRange === '7D' ? 'bg-secondary/10 text-secondary' : 'text-on-surface-variant hover:text-on-surface'}`}
                   >
                     7D
                   </button>
                   <button 
                     onClick={() => setTimeRange('30D')}
-                    className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.15em] transition-all ${timeRange === '30D' ? 'bg-secondary/10 text-secondary' : 'text-on-surface-variant hover:text-on-surface'}`}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.15em] transition-all \${timeRange === '30D' ? 'bg-secondary/10 text-secondary' : 'text-on-surface-variant hover:text-on-surface'}`}
                   >
                     30D
                   </button>
@@ -215,16 +276,18 @@ export default function HistoryPage() {
                   />
                 </svg>
 
-                {/* Tooltip Point */}
-                <div className="absolute left-[60%] top-[40%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
-                  <div className="w-4 h-4 bg-background rounded-full border-2 border-tertiary flex items-center justify-center shadow-[0_0_15px_rgba(206,189,255,0.4)]">
-                    <div className="w-1.5 h-1.5 bg-tertiary rounded-full animate-pulse"></div>
+                {/* Tooltip Point - Display real latest value */}
+                {checkins.length > 0 && (
+                  <div className="absolute right-[0%] top-[10%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none" style={{ left: '100%', top: \`\${100 - checkins[checkins.length - 1].valence_value}%\`}}>
+                    <div className="w-4 h-4 bg-background rounded-full border-2 border-tertiary flex items-center justify-center shadow-[0_0_15px_rgba(206,189,255,0.4)]">
+                      <div className="w-1.5 h-1.5 bg-tertiary rounded-full animate-pulse"></div>
+                    </div>
+                    <div className="mt-4 aetheric-glass px-4 py-2 rounded-lg text-center whitespace-nowrap">
+                      <div className="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-1">Último Pulso</div>
+                      <div className="text-sm font-medium text-tertiary">{checkins[checkins.length - 1].valence_value}/100</div>
+                    </div>
                   </div>
-                  <div className="mt-4 aetheric-glass px-4 py-2 rounded-lg text-center whitespace-nowrap">
-                    <div className="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-1">Último Pulso</div>
-                    <div className="text-sm font-medium text-tertiary">Núcleo Estável</div>
-                  </div>
-                </div>
+                )}
               </div>
             </motion.div>
 
@@ -242,20 +305,20 @@ export default function HistoryPage() {
                 <div className="mb-6">
                   <div className="flex justify-between text-xs font-semibold mb-2">
                     <span className="text-on-surface-variant uppercase tracking-widest">Densidade de Informação</span>
-                    <span className="text-secondary">Alta</span>
+                    <span className="text-secondary">{loadDensity}</span>
                   </div>
                   <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full w-[85%] bg-secondary rounded-full shadow-[0_0_10px_rgba(159,207,213,0.5)]"></div>
+                    <div className="h-full bg-secondary rounded-full shadow-[0_0_10px_rgba(159,207,213,0.5)] transition-all" style={{ width: densityPercent }}></div>
                   </div>
                 </div>
 
                 <div>
                   <div className="flex justify-between text-xs font-semibold mb-2">
                     <span className="text-on-surface-variant uppercase tracking-widest">Ressonância Emocional</span>
-                    <span className="text-tertiary">Estável</span>
+                    <span className="text-tertiary">{isStable ? 'Estável' : 'Turbulenta'}</span>
                   </div>
                   <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full w-[62%] bg-tertiary rounded-full shadow-[0_0_10px_rgba(206,189,255,0.5)]"></div>
+                    <div className="h-full bg-tertiary rounded-full shadow-[0_0_10px_rgba(206,189,255,0.5)] transition-all" style={{ width: isStable ? '75%' : '35%' }}></div>
                   </div>
                 </div>
               </motion.div>
@@ -270,7 +333,11 @@ export default function HistoryPage() {
                 <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 via-transparent to-tertiary/5 opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <h3 className="text-2xl font-light text-primary mb-3 relative z-10">Sincronia do Sistema</h3>
                 <p className="text-sm text-on-surface-variant leading-relaxed relative z-10">
-                  Seu fluxo atual está perfeitamente alinhado com suas janelas cognitivas ativas. Considere iniciar protocolos de trabalho profundo.
+                  {checkins.length === 0 
+                    ? "Faça check-ins regulares para que a sincronia do sistema seja calculada." 
+                    : isStable 
+                      ? "Seu fluxo atual está alinhado com suas janelas cognitivas. Considere iniciar protocolos de trabalho profundo." 
+                      : "Sistema detecta flutuações de valência. Recomendado evitar sobrecarga cognitiva neste momento."}
                 </p>
               </motion.div>
             </div>
@@ -293,7 +360,7 @@ export default function HistoryPage() {
                   </div>
                 ) : entries.length === 0 ? (
                   <div className="text-center py-12 aetheric-glass rounded-2xl">
-                    <p className="text-on-surface-variant">Nenhum registro encontrado. Faça um check-in para gerar sua primeira análise da IA.</p>
+                    <p className="text-on-surface-variant">Nenhum registro encontrado. Faça um check-in para gerar sua primeira análise.</p>
                   </div>
                 ) : (
                   entries.map((entry) => (
@@ -305,7 +372,7 @@ export default function HistoryPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <span className="text-xs text-on-surface-variant opacity-60 uppercase tracking-widest">{formatDate(entry.created_at)}</span>
-                          <span className={`px-2.5 py-0.5 rounded text-[10px] uppercase tracking-widest border font-semibold ${getTagColor(entry.sentiment_tag)}`}>
+                          <span className={`px-2.5 py-0.5 rounded text-[10px] uppercase tracking-widest border font-semibold \${getTagColor(entry.sentiment_tag)}\`}>
                             {entry.sentiment_tag}
                           </span>
                         </div>
@@ -314,7 +381,7 @@ export default function HistoryPage() {
                       <div className="flex items-center gap-6">
                         <div className="flex gap-1.5">
                           {[1, 2, 3, 4, 5].map(dot => (
-                            <div key={dot} className={`w-1.5 h-1.5 rounded-full transition-colors ${dot <= entry.sentiment_dots ? 'bg-primary' : 'bg-white/10 group-hover:bg-white/20'}`}></div>
+                            <div key={dot} className={`w-1.5 h-1.5 rounded-full transition-colors \${dot <= entry.sentiment_dots ? 'bg-primary' : 'bg-white/10 group-hover:bg-white/20'}\`}></div>
                           ))}
                         </div>
                         <span className="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 transform duration-300">chevron_right</span>
@@ -328,7 +395,7 @@ export default function HistoryPage() {
         </PageTransition>
       </main>
 
-      <style jsx global>{`
+      <style jsx global>{\`
         .path-draw {
           stroke-dasharray: 2000;
           stroke-dashoffset: 2000;
@@ -337,7 +404,7 @@ export default function HistoryPage() {
         @keyframes draw {
           to { stroke-dashoffset: 0; }
         }
-      `}</style>
+      \`}</style>
     </>
   );
 }
