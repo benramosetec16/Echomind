@@ -77,7 +77,7 @@ export default function Hero() {
           transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
         >
           <div className="relative w-full max-w-[500px] lg:max-w-[700px] aspect-square">
-            <Brain3D status="neutral" />
+            <Brain3D initialStatus="neutral" />
           </div>
         </motion.div>
 
