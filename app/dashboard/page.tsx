@@ -70,7 +70,7 @@ export default function DashboardPage() {
                 if (!user) return;
                 const { data } = await supabase.from('emotional_checkins').select('valence_value').eq('user_id', user.id);
                 if (data && data.length > 0) {
-                  const avg = Math.round(data.reduce((acc, curr) => acc + curr.valence_value, 0) / data.length);
+                  const avg = Math.round(data.reduce((acc, curr: any) => acc + curr.valence_value, 0) / data.length);
                   setVibePulse(avg);
                 } else setVibePulse(0);
               }}
