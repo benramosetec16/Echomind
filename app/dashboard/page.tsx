@@ -8,6 +8,9 @@ import { createClient } from '../../utils/supabase/client';
 
 export default function DashboardPage() {
   const [userName, setUserName] = useState<string | null>(null);
+  const [vibePulse, setVibePulse] = useState<number | null>(null);
+  const [focusMinutes, setFocusMinutes] = useState<number | null>(null);
+  const [restHours, setRestHours] = useState<number | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -62,7 +65,16 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="md:col-span-4 aetheric-glass rounded-[32px] p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
+              onClick={async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+                const { data } = await supabase.from('emotional_checkins').select('valence_value').eq('user_id', user.id);
+                if (data && data.length > 0) {
+                  const avg = Math.round(data.reduce((acc, curr) => acc + curr.valence_value, 0) / data.length);
+                  setVibePulse(avg);
+                } else setVibePulse(0);
+              }}
+              className="md:col-span-4 aetheric-glass rounded-[32px] p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700 cursor-pointer"
             >
               <div>
                 <div className="flex justify-between items-start mb-6">
@@ -70,11 +82,17 @@ export default function DashboardPage() {
                   <span className="material-symbols-outlined text-secondary opacity-50 group-hover:opacity-100 transition-opacity">vital_signs</span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extralight text-on-surface">92</span>
-                  <span className="text-sm text-on-surface-variant opacity-40">/100</span>
+                  {vibePulse === null ? (
+                    <span className="text-xl font-light text-on-surface-variant opacity-60">Clique para Sincronizar</span>
+                  ) : (
+                    <>
+                      <span className="text-5xl font-extralight text-on-surface">{vibePulse}</span>
+                      <span className="text-sm text-on-surface-variant opacity-40">/100</span>
+                    </>
+                  )}
                 </div>
               </div>
-              <div className="mt-8 h-20 flex items-end gap-1">
+              <div className={`mt-8 h-20 flex items-end gap-1 ${vibePulse === null ? 'opacity-20' : 'opacity-100'}`}>
                 <div className="flex-1 bg-secondary/10 h-1/2 rounded-t-sm group-hover:h-3/4 transition-all duration-1000 ease-in-out"></div>
                 <div className="flex-1 bg-secondary/10 h-2/3 rounded-t-sm group-hover:h-1/2 transition-all duration-1000 ease-in-out delay-100"></div>
                 <div className="flex-1 bg-secondary/20 h-3/4 rounded-t-sm group-hover:h-full transition-all duration-1000 ease-in-out delay-200"></div>
@@ -88,7 +106,14 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="md:col-span-4 aetheric-glass rounded-[32px] p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
+              onClick={async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+                const { data } = await supabase.from('emotional_checkins').select('id').eq('user_id', user.id).eq('texture', 'focus');
+                if (data) setFocusMinutes(data.length * 25);
+                else setFocusMinutes(0);
+              }}
+              className="md:col-span-4 aetheric-glass rounded-[32px] p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700 cursor-pointer"
             >
               <div>
                 <div className="flex justify-between items-start mb-6">
@@ -96,11 +121,17 @@ export default function DashboardPage() {
                   <span className="material-symbols-outlined text-secondary opacity-50 group-hover:opacity-100 transition-opacity">timer</span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extralight text-on-surface">42</span>
-                  <span className="text-sm text-on-surface-variant opacity-40">Hoje</span>
+                  {focusMinutes === null ? (
+                    <span className="text-xl font-light text-on-surface-variant opacity-60">Clique para Sincronizar</span>
+                  ) : (
+                    <>
+                      <span className="text-5xl font-extralight text-on-surface">{focusMinutes}</span>
+                      <span className="text-sm text-on-surface-variant opacity-40">Min</span>
+                    </>
+                  )}
                 </div>
               </div>
-              <div className="mt-8 relative h-20 flex items-center justify-center">
+              <div className={`mt-8 relative h-20 flex items-center justify-center ${focusMinutes === null ? 'opacity-20' : 'opacity-100'}`}>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-16 h-16 border-2 border-dashed border-secondary/20 rounded-full animate-[spin_20s_linear_infinite]"></div>
                 </div>
@@ -115,7 +146,14 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="md:col-span-4 aetheric-glass rounded-[32px] p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
+              onClick={async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+                const { data } = await supabase.from('emotional_checkins').select('id').eq('user_id', user.id).eq('texture', 'calm');
+                if (data) setRestHours(data.length * 1.5);
+                else setRestHours(0);
+              }}
+              className="md:col-span-4 aetheric-glass rounded-[32px] p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700 cursor-pointer"
             >
               <div>
                 <div className="flex justify-between items-start mb-6">
@@ -123,17 +161,23 @@ export default function DashboardPage() {
                   <span className="material-symbols-outlined text-secondary opacity-50 group-hover:opacity-100 transition-opacity">bedtime</span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extralight text-on-surface">Profundo</span>
-                  <span className="text-sm text-on-surface-variant opacity-40">8.2h</span>
+                  {restHours === null ? (
+                    <span className="text-xl font-light text-on-surface-variant opacity-60">Clique para Sincronizar</span>
+                  ) : (
+                    <>
+                      <span className="text-5xl font-extralight text-on-surface">{restHours.toFixed(1)}</span>
+                      <span className="text-sm text-on-surface-variant opacity-40">Horas</span>
+                    </>
+                  )}
                 </div>
               </div>
-              <div className="mt-8">
+              <div className={`mt-8 ${restHours === null ? 'opacity-20' : 'opacity-100'}`}>
                 <div className="w-full h-[1px] bg-white/10 relative">
-                  <div className="absolute top-0 left-0 h-full w-4/5 bg-secondary aether-glow"></div>
+                  <div className="absolute top-0 left-0 h-full w-4/5 bg-secondary aether-glow" style={{ width: restHours !== null ? `${Math.min(restHours * 10, 100)}%` : '0%' }}></div>
                 </div>
                 <div className="flex justify-between mt-2 text-[10px] font-semibold uppercase tracking-widest opacity-30">
                   <span>Recuperação</span>
-                  <span>80%</span>
+                  <span>{restHours !== null ? `${Math.min(Math.round(restHours * 10), 100)}%` : '0%'}</span>
                 </div>
               </div>
             </motion.div>
