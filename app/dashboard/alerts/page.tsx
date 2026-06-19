@@ -41,32 +41,25 @@ export default function AlertsPage() {
 
   useEffect(() => {
     fetchLogs();
-  }, []);
 
-  // Insert mock log for testing
-  const insertMockLog = async (type: 'info' | 'normal' | 'warning' | 'critical') => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return alert("Você deve estar conectado para simular os registros.");
+    let channel: any;
+    const subscribeToLogs = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const mocks = {
-      critical: { title: 'Pico de Cortisol Elevado', desc: 'O sistema detectou um aumento repentino de 34% nos marcadores de estresse durante a sessão de foco.', bpm: 84 },
-      warning: { title: 'Interrupção do Ciclo REM', desc: 'Pequenas interrupções detectadas no padrão de sono profundo.', bpm: 68 },
-      normal: { title: 'Calibração Metabólica', desc: 'Verificação de rotina concluída. Todos os sistemas normais.', bpm: 62 },
-      info: { title: 'Pico de Captação de Serotonina', desc: 'Resposta positiva a estímulo externo. Humor estabilizado.', bpm: 65 }
+      channel = supabase.channel('realtime:biometric')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'biometric_logs', filter: `user_id=eq.${user.id}` }, (payload) => {
+          setLogs((prev) => [payload.new as BiometricLog, ...prev]);
+        })
+        .subscribe();
     };
 
-    const mock = mocks[type];
+    subscribeToLogs();
 
-    await supabase.from('biometric_logs').insert({
-      user_id: user.id,
-      title: mock.title,
-      description: mock.desc,
-      type: type,
-      bpm: mock.bpm
-    });
-
-    fetchLogs(); // refresh the list
-  };
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Format time (e.g. 14:02)
   const formatTime = (dateStr: string) => {
@@ -75,6 +68,16 @@ export default function AlertsPage() {
 
   // Find the most recent critical or warning log for the spotlight card
   const activeAlert = logs.find(log => !log.is_dismissed && (log.type === 'critical' || log.type === 'warning'));
+
+  // Calculate dynamic stats
+  const avgBpm = logs.length > 0 
+    ? Math.round(logs.reduce((acc, l) => acc + (l.bpm || 60), 0) / logs.length)
+    : 62;
+  
+  const criticalCount = logs.filter(l => l.type === 'critical').length;
+  const harmonyPercent = logs.length > 0 
+    ? Math.max(0, 100 - (criticalCount * 15) - (logs.filter(l => l.type === 'warning').length * 5))
+    : 92;
 
   return (
     <>
@@ -187,7 +190,7 @@ export default function AlertsPage() {
                 <div className="flex justify-between items-center pb-6">
                   <div>
                     <div className="text-sm text-on-surface-variant mb-1">Pulso Médio</div>
-                    <div className="text-2xl font-light text-on-surface">62 BPM</div>
+                    <div className="text-2xl font-light text-on-surface">{avgBpm} BPM</div>
                   </div>
                   <span className="material-symbols-outlined text-secondary">trending_flat</span>
                 </div>
@@ -195,7 +198,7 @@ export default function AlertsPage() {
                 <div className="flex justify-between items-center py-6">
                   <div>
                     <div className="text-sm text-on-surface-variant mb-1">Harmonia Etérica</div>
-                    <div className="text-2xl font-light text-on-surface">92%</div>
+                    <div className="text-2xl font-light text-on-surface">{harmonyPercent}%</div>
                   </div>
                   <span className="material-symbols-outlined text-secondary">trending_up</span>
                 </div>
@@ -264,15 +267,6 @@ export default function AlertsPage() {
 
           </div>
         </PageTransition>
-
-        {/* Temporary Simulation Controls */}
-        <div className="mt-auto pb-8 pt-8 flex justify-center gap-4 opacity-50 hover:opacity-100 transition-opacity">
-          <span className="text-xs text-on-surface-variant uppercase tracking-widest flex items-center mr-4">SIMULADOR DEV:</span>
-          <button onClick={() => insertMockLog('critical')} className="text-[10px] uppercase px-3 py-1 bg-error/20 text-error rounded hover:bg-error/30">Acionar Crítico</button>
-          <button onClick={() => insertMockLog('info')} className="text-[10px] uppercase px-3 py-1 bg-secondary/20 text-secondary rounded hover:bg-secondary/30">Acionar Info</button>
-          <button onClick={() => insertMockLog('normal')} className="text-[10px] uppercase px-3 py-1 bg-white/10 text-white rounded hover:bg-white/20">Acionar Normal</button>
-        </div>
-
       </main>
     </>
   );
