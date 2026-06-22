@@ -34,10 +34,10 @@ export default function NeuralBackground() {
           key={p.id}
           className="absolute rounded-full bg-white/30 shadow-[0_0_8px_rgba(255,255,255,0.8)]"
           style={{
-            left: \`\${p.x}%\`,
-            top: \`\${p.y}%\`,
-            width: \`\${p.size}px\`,
-            height: \`\${p.size}px\`,
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            width: `${p.size}px`,
+            height: `${p.size}px`,
           }}
           animate={{
             y: [0, -100, 0],
