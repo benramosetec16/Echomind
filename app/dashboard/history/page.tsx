@@ -70,13 +70,13 @@ export default function HistoryPage() {
 
       // Realtime Subscriptions
       checkinChannel = supabase.channel('realtime:checkins')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'emotional_checkins', filter: \`user_id=eq.\${user.id}\` }, (payload) => {
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'emotional_checkins', filter: `user_id=eq.${user.id}` }, (payload) => {
           setCheckins((prev) => [...prev, payload.new as Checkin]);
         })
         .subscribe();
 
       journalChannel = supabase.channel('realtime:journal')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'aetheric_journal', filter: \`user_id=eq.\${user.id}\` }, (payload) => {
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'aetheric_journal', filter: `user_id=eq.${user.id}` }, (payload) => {
           setEntries((prev) => [payload.new as JournalEntry, ...prev]);
         })
         .subscribe();
