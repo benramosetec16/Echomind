@@ -30,22 +30,31 @@ export default function Brain3D({ initialStatus = 'neutral', className = '' }: B
   useEffect(() => {
     // Diagnóstico de Sistema: Conecta com a análise real-time do usuário
     const fetchUserStatus = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
 
-      const { data: checkins } = await supabase
-        .from('emotional_checkins')
-        .select('valence_value')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        const { data: checkins, error } = await supabase
+          .from('emotional_checkins')
+          .select('valence_value')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-      if (checkins && checkins.length > 0) {
-        const valence = checkins[0].valence_value;
-        if (valence >= 70) setStatus('positive');
-        else if (valence >= 40) setStatus('neutral');
-        else if (valence >= 20) setStatus('attention');
-        else setStatus('alert');
+        if (error) {
+          console.error('Error fetching checkins:', error);
+          return;
+        }
+
+        if (checkins && checkins.length > 0) {
+          const valence = checkins[0].valence_value;
+          if (valence >= 70) setStatus('positive');
+          else if (valence >= 40) setStatus('neutral');
+          else if (valence >= 20) setStatus('attention');
+          else setStatus('alert');
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching user status:', err);
       }
     };
     fetchUserStatus();
