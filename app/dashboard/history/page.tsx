@@ -404,7 +404,7 @@ export default function HistoryPage() {
         @keyframes draw {
           to { stroke-dashoffset: 0; }
         }
-      \`}</style>
+      `}</style>
     </>
   );
 }
