@@ -111,11 +111,11 @@ export default function HistoryPage() {
     const timeString = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
     if (date.toDateString() === today.toDateString()) {
-      return \`Hoje, \${timeString}\`;
+      return `Hoje, ${timeString}`;
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return \`Ontem, \${timeString}\`;
+      return `Ontem, ${timeString}`;
     } else {
-      return \`\${date.toLocaleDateString('pt-BR', { month: 'short', day: '2-digit' })}, \${timeString}\`;
+      return `${date.toLocaleDateString('pt-BR', { month: 'short', day: '2-digit' })}, ${timeString}`;
     }
   };
 
@@ -140,7 +140,7 @@ export default function HistoryPage() {
     const paddingY = 50;
     const stepX = width / (checkins.length - 1);
 
-    let path = \`M 0,\${height - paddingY - (checkins[0].valence_value / 100) * (height - 2 * paddingY)}\`;
+    let path = `M 0,${height - paddingY - (checkins[0].valence_value / 100) * (height - 2 * paddingY)}`;
     
     for (let i = 1; i < checkins.length; i++) {
       const prevX = (i - 1) * stepX;
@@ -153,7 +153,7 @@ export default function HistoryPage() {
       const cp2x = prevX + (currX - prevX) / 2;
       const cp2y = currY;
       
-      path += \` C \${cp1x},\${cp1y} \${cp2x},\${cp2y} \${currX},\${currY}\`;
+      path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${currX},${currY}`;
     }
     
     return path;
@@ -224,13 +224,13 @@ export default function HistoryPage() {
                 <div className="flex gap-2 bg-surface-container-low rounded-full p-1 border border-white/5">
                   <button 
                     onClick={() => setTimeRange('7D')}
-                    className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.15em] transition-all \${timeRange === '7D' ? 'bg-secondary/10 text-secondary' : 'text-on-surface-variant hover:text-on-surface'}`}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.15em] transition-all ${timeRange === '7D' ? 'bg-secondary/10 text-secondary' : 'text-on-surface-variant hover:text-on-surface'}`}
                   >
                     7D
                   </button>
                   <button 
                     onClick={() => setTimeRange('30D')}
-                    className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.15em] transition-all \${timeRange === '30D' ? 'bg-secondary/10 text-secondary' : 'text-on-surface-variant hover:text-on-surface'}`}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.15em] transition-all ${timeRange === '30D' ? 'bg-secondary/10 text-secondary' : 'text-on-surface-variant hover:text-on-surface'}`}
                   >
                     30D
                   </button>
@@ -278,7 +278,7 @@ export default function HistoryPage() {
 
                 {/* Tooltip Point - Display real latest value */}
                 {checkins.length > 0 && (
-                  <div className="absolute right-[0%] top-[10%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none" style={{ left: '100%', top: \`\${100 - checkins[checkins.length - 1].valence_value}%\`}}>
+                  <div className="absolute right-[0%] top-[10%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none" style={{ left: '100%', top: `${100 - checkins[checkins.length - 1].valence_value}%`}}>
                     <div className="w-4 h-4 bg-background rounded-full border-2 border-tertiary flex items-center justify-center shadow-[0_0_15px_rgba(206,189,255,0.4)]">
                       <div className="w-1.5 h-1.5 bg-tertiary rounded-full animate-pulse"></div>
                     </div>
@@ -372,7 +372,7 @@ export default function HistoryPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <span className="text-xs text-on-surface-variant opacity-60 uppercase tracking-widest">{formatDate(entry.created_at)}</span>
-                          <span className={`px-2.5 py-0.5 rounded text-[10px] uppercase tracking-widest border font-semibold \${getTagColor(entry.sentiment_tag)}\`}>
+                          <span className={`px-2.5 py-0.5 rounded text-[10px] uppercase tracking-widest border font-semibold ${getTagColor(entry.sentiment_tag)}`}>
                             {entry.sentiment_tag}
                           </span>
                         </div>
@@ -381,7 +381,7 @@ export default function HistoryPage() {
                       <div className="flex items-center gap-6">
                         <div className="flex gap-1.5">
                           {[1, 2, 3, 4, 5].map(dot => (
-                            <div key={dot} className={`w-1.5 h-1.5 rounded-full transition-colors \${dot <= entry.sentiment_dots ? 'bg-primary' : 'bg-white/10 group-hover:bg-white/20'}\`}></div>
+                            <div key={dot} className={`w-1.5 h-1.5 rounded-full transition-colors ${dot <= entry.sentiment_dots ? 'bg-primary' : 'bg-white/10 group-hover:bg-white/20'}`}></div>
                           ))}
                         </div>
                         <span className="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 transform duration-300">chevron_right</span>
@@ -395,7 +395,7 @@ export default function HistoryPage() {
         </PageTransition>
       </main>
 
-      <style jsx global>{\`
+      <style jsx global>{`
         .path-draw {
           stroke-dasharray: 2000;
           stroke-dashoffset: 2000;
