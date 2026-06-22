@@ -149,7 +149,7 @@ export default function BiometricsCharts({ data }: BiometricsChartsProps) {
               <Tooltip 
                 contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
                 labelStyle={{ color: 'white' }}
-                formatter={(value: number, name: string, props: any) => [props.payload.mood, 'Humor']}
+                formatter={(value: any, name: any, props: any) => [props.payload.mood, 'Humor']}
               />
               <Line type="monotone" dataKey="moodValue" name="Humor" stroke="#ec4899" strokeWidth={3} dot={{ fill: '#ec4899', r: 4 }} activeDot={{ r: 6, fill: '#fff', stroke: '#ec4899', strokeWidth: 2 }} />
             </LineChart>
