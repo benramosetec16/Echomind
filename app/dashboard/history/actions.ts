@@ -109,7 +109,7 @@ export async function generateTemporalAnalysis(period: '7D' | '30D') {
     // Save as a journal entry too
     const { error: journalError } = await supabase.from('aetheric_journal').insert({
       user_id: user.id,
-      title: \`Análise Final: \${period}\`,
+      title: `Análise Final: ${period}`,
       sentiment_tag: result.dominant_sentiment || 'Consolidado',
       sentiment_dots: avgValence >= 80 ? 5 : avgValence >= 60 ? 4 : avgValence >= 40 ? 3 : avgValence >= 20 ? 2 : 1,
       icon: 'analytics'
