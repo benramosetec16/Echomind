@@ -19,11 +19,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${hankenGrotesk.variable} dark antialiased`}>
+    <html lang="pt-BR" className={`${hankenGrotesk.variable} dark antialiased`} suppressHydrationWarning>
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
-      <body className="min-h-screen bg-background text-on-surface font-sans selection:bg-secondary/30">
+      <body className="min-h-screen bg-background text-on-surface font-sans selection:bg-secondary/30" suppressHydrationWarning>
         {children}
       </body>
     </html>

@@ -2,7 +2,9 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import Brain3D from './Brain3D';
+import dynamic from 'next/dynamic';
+
+const Brain3D = dynamic(() => import('./Brain3D'), { ssr: false });
 
 export default function Hero() {
   return (
