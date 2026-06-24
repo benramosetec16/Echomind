@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createBrowserClient } from "@supabase/ssr";
+import { biometricsService } from "@/services/biometrics";
 
 export default function BiometricsForm() {
   const [heartRate, setHeartRate] = useState("");
@@ -13,31 +13,18 @@ export default function BiometricsForm() {
   const [message, setMessage] = useState("");
   const router = useRouter();
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
 
     try {
-      const { data: userData, error: authError } = await supabase.auth.getUser();
-      if (authError || !userData?.user) {
-        throw new Error("Usuário não autenticado");
-      }
-
-      const { error } = await supabase.from("biometrics").insert({
-        user_id: userData.user.id,
-        heart_rate: parseInt(heartRate),
-        sleep_hours: parseFloat(sleepHours),
+      await biometricsService.saveEntry({
+        heart_rate: parseInt(heartRate) || null,
+        sleep_hours: parseFloat(sleepHours) || null,
         energy_level: energyLevel,
         mood: mood,
       });
-
-      if (error) throw error;
 
       setMessage("Registro salvo com sucesso!");
       setHeartRate("");

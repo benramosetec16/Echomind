@@ -45,9 +45,13 @@ export default function BiometricsInsights() {
       }
 
       // 2. Fetch AI analysis
-      const res = await fetch("/api/biometrics/analyze");
+      const res = await fetch("/api/biometrics-analysis", {
+        method: "POST"
+      });
       const result = await res.json();
-      if (result.analysis) {
+      if (result.insight) {
+        setAnalysis(result.insight);
+      } else if (result.analysis) {
         setAnalysis(result.analysis);
       } else if (result.message) {
         setAnalysis(result.message);

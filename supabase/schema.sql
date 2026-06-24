@@ -139,3 +139,31 @@ $$ language plpgsql;
 create trigger set_profiles_updated_at
   before update on public.profiles
   for each row execute procedure public.handle_updated_at();
+
+-- 5. Biometrics Table (Biometrics Module)
+-- Stores manual biometrics entries.
+drop table if exists public.biometrics cascade;
+
+create table public.biometrics (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  heart_rate integer,
+  sleep_hours numeric(4,1),
+  energy_level text,
+  mood text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.biometrics enable row level security;
+
+create policy "Users can view their own biometrics." 
+  on biometrics for select using (auth.uid() = user_id);
+
+create policy "Users can insert their own biometrics." 
+  on biometrics for insert with check (auth.uid() = user_id);
+
+create policy "Users can update their own biometrics." 
+  on biometrics for update using (auth.uid() = user_id);
+
+create policy "Users can delete their own biometrics." 
+  on biometrics for delete using (auth.uid() = user_id);
