@@ -102,6 +102,7 @@ export default function ProfilePage() {
       }
     }
     loadProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const updateProfile = async (updates: any) => {

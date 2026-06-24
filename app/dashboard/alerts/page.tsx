@@ -41,6 +41,7 @@ export default function AlertsPage() {
 
   useEffect(() => {
     fetchLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
 
     let channel: any;
     const subscribeToLogs = async () => {

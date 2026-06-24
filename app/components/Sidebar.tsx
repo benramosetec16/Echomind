@@ -10,6 +10,7 @@ const navItems = [
   { icon: 'auto_awesome', label: 'Refletir', href: '/dashboard/checkin' },
   { icon: 'favorite', label: 'Pulso', href: '/dashboard/history' },
   { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
+  { icon: 'monitor_heart', label: 'Biometria', href: '/biometrics' },
   { icon: 'nightlight', label: 'Santuário', href: '/dashboard/profile' },
 ];
 
@@ -30,6 +31,7 @@ export default function Sidebar() {
       }
     };
     fetchUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
 
   const handleLogout = async () => {

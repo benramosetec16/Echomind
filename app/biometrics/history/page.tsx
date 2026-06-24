@@ -24,6 +24,7 @@ export default function BiometricsHistory() {
 
   useEffect(() => {
     fetchRecords();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const fetchRecords = async () => {

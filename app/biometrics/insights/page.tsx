@@ -16,6 +16,7 @@ export default function BiometricsInsights() {
 
   useEffect(() => {
     fetchDataAndAnalyze();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDataAndAnalyze = async () => {
