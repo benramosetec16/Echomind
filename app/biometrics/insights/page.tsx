@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import BiometricsCharts from "@/components/biometrics/BiometricsCharts";
 import { createBrowserClient } from "@supabase/ssr";
+import TopBar from "@/app/components/TopBar";
+import PageTransition from "@/app/components/PageTransition";
+import Link from "next/link";
 
 export default function BiometricsInsights() {
   const [analysis, setAnalysis] = useState<string>("");
@@ -50,6 +53,11 @@ export default function BiometricsInsights() {
         method: "POST"
       });
       const result = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(result.error || "Falha ao analisar os dados.");
+      }
+      
       if (result.insight) {
         setAnalysis(result.insight);
       } else if (result.analysis) {
@@ -59,9 +67,9 @@ export default function BiometricsInsights() {
       } else {
         setAnalysis("Não foi possível carregar os insights neste momento.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao carregar insights:", error);
-      setAnalysis("Ocorreu um erro ao conectar com o serviço de análise.");
+      setAnalysis(error.message || "Ocorreu um erro ao conectar com o serviço de análise.");
     } finally {
       setLoading(false);
     }
@@ -74,7 +82,7 @@ export default function BiometricsInsights() {
     const sections = analysis.split('###').filter(s => s.trim().length > 0);
     
     if (sections.length < 2) {
-      return <p className="text-gray-300 leading-relaxed">{analysis}</p>;
+      return <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{analysis}</p>;
     }
 
     return (
@@ -114,52 +122,63 @@ export default function BiometricsInsights() {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Charts Section */}
-      <section>
-        <h2 className="text-xl font-medium mb-4 flex items-center gap-2 text-white">
-          <span className="material-symbols-outlined text-cyan-400">monitoring</span>
-          Evolução Biométrica
-        </h2>
-        {chartData.length > 0 ? (
-          <BiometricsCharts data={chartData} />
-        ) : (
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center text-gray-400">
-            {loading ? "Carregando gráficos..." : "Nenhum dado suficiente para gerar gráficos."}
+    <>
+      <TopBar title="Insights da IA" />
+      <main className="pt-32 px-16 pb-24 relative min-h-screen flex flex-col">
+        <PageTransition>
+          <div className="max-w-[1200px] mx-auto w-full mb-8 flex justify-start gap-4">
+             <Link href="/biometrics" className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm font-medium hover:bg-white/10 transition-colors">Voltar</Link>
           </div>
-        )}
-      </section>
 
-      {/* AI Insights Section */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-medium flex items-center gap-2 text-white">
-            <span className="material-symbols-outlined text-purple-400">auto_awesome</span>
-            Insights da IA Groq
-          </h2>
-          {loading && (
-            <span className="flex items-center gap-2 text-sm text-gray-400">
-              <span className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></span>
-              Analisando...
-            </span>
-          )}
-        </div>
+          <div className="space-y-8 max-w-[1200px] mx-auto w-full">
+            {/* Charts Section */}
+            <section>
+              <h2 className="text-xl font-medium mb-4 flex items-center gap-2 text-white">
+                <span className="material-symbols-outlined text-cyan-400">monitoring</span>
+                Evolução Biométrica
+              </h2>
+              {chartData.length > 0 ? (
+                <BiometricsCharts data={chartData} />
+              ) : (
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center text-gray-400">
+                  {loading ? "Carregando gráficos..." : "Nenhum dado suficiente para gerar gráficos."}
+                </div>
+              )}
+            </section>
 
-        <div className="bg-black/40 border border-white/10 rounded-2xl p-6 md:p-8 min-h-[200px] relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 blur-[80px] pointer-events-none"></div>
-          
-          <div className="relative z-10">
-            {loading ? (
-              <div className="flex flex-col items-center justify-center h-40 text-purple-300 gap-4">
-                <span className="material-symbols-outlined text-4xl animate-pulse">neurology</span>
-                <p>Processando seus dados biométricos com modelos avançados...</p>
+            {/* AI Insights Section */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-medium flex items-center gap-2 text-white">
+                  <span className="material-symbols-outlined text-purple-400">auto_awesome</span>
+                  Insights da IA Groq
+                </h2>
+                {loading && (
+                  <span className="flex items-center gap-2 text-sm text-gray-400">
+                    <span className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></span>
+                    Analisando...
+                  </span>
+                )}
               </div>
-            ) : (
-              renderAnalysis()
-            )}
+
+              <div className="bg-black/40 border border-white/10 rounded-2xl p-6 md:p-8 min-h-[200px] relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 blur-[80px] pointer-events-none"></div>
+                
+                <div className="relative z-10">
+                  {loading ? (
+                    <div className="flex flex-col items-center justify-center h-40 text-purple-300 gap-4">
+                      <span className="material-symbols-outlined text-4xl animate-pulse">neurology</span>
+                      <p>Processando seus dados biométricos com modelos avançados...</p>
+                    </div>
+                  ) : (
+                    renderAnalysis()
+                  )}
+                </div>
+              </div>
+            </section>
           </div>
-        </div>
-      </section>
-    </div>
+        </PageTransition>
+      </main>
+    </>
   );
 }

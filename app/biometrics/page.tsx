@@ -3,6 +3,10 @@ import { cookies } from "next/headers";
 import BiometricsForm from "@/components/biometrics/BiometricsForm";
 import { redirect } from "next/navigation";
 
+import TopBar from "@/app/components/TopBar";
+import PageTransition from "@/app/components/PageTransition";
+import Link from "next/link";
+
 export default async function BiometricsDashboard() {
   const cookieStore = await cookies();
   
@@ -47,58 +51,70 @@ export default async function BiometricsDashboard() {
   ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2 space-y-8">
-        {/* Status Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {cards.map((card, i) => (
-            <div key={i} className={`bg-gradient-to-b ${card.color} border ${card.border} backdrop-blur-md rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-lg transition-transform hover:scale-105`}>
-              <span className="text-3xl mb-2">{card.icon}</span>
-              <span className="text-2xl font-bold text-white mb-1">{card.value}</span>
-              <span className="text-xs text-gray-400 uppercase tracking-wider">{card.label}</span>
-            </div>
-          ))}
-        </div>
+    <>
+      <TopBar title="Biometria & Saúde" />
+      <main className="pt-32 px-16 pb-24 relative min-h-screen flex flex-col">
+        <PageTransition>
+          <div className="max-w-[1200px] mx-auto w-full mb-8 flex justify-end gap-4">
+             <Link href="/biometrics/history" className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm font-medium hover:bg-white/10 transition-colors">Histórico</Link>
+             <Link href="/biometrics/insights" className="px-4 py-2 bg-purple-500/20 border border-purple-500/50 rounded-full text-sm font-medium text-purple-300 hover:bg-purple-500/30 transition-colors">Insights IA</Link>
+          </div>
 
-        {/* Integration Placeholders */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
-          <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
-            <span className="material-symbols-outlined text-cyan-400">sync</span>
-            Integrações Disponíveis
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border border-white/10 bg-black/40 rounded-xl p-4 flex items-center justify-between opacity-50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-                  <span className="text-black font-bold text-xl"></span>
-                </div>
-                <div>
-                  <div className="text-white font-medium text-sm">Apple HealthKit</div>
-                  <div className="text-xs text-gray-400">Em breve</div>
+          <div className="max-w-[1200px] mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              {/* Status Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {cards.map((card, i) => (
+                  <div key={i} className={`bg-gradient-to-b ${card.color} border ${card.border} backdrop-blur-md rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-lg transition-transform hover:scale-105`}>
+                    <span className="text-3xl mb-2">{card.icon}</span>
+                    <span className="text-2xl font-bold text-white mb-1">{card.value}</span>
+                    <span className="text-xs text-gray-400 uppercase tracking-wider">{card.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Integration Placeholders */}
+              <div className="aetheric-glass rounded-2xl p-6 backdrop-blur-md">
+                <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-cyan-400">sync</span>
+                  Integrações Disponíveis
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border border-white/10 bg-black/40 rounded-xl p-4 flex items-center justify-between opacity-50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+                        <span className="text-black font-bold text-xl"></span>
+                      </div>
+                      <div>
+                        <div className="text-white font-medium text-sm">Apple HealthKit</div>
+                        <div className="text-xs text-gray-400">Em breve</div>
+                      </div>
+                    </div>
+                    <button disabled className="text-xs px-3 py-1 bg-white/10 rounded-full text-gray-300">Conectar</button>
+                  </div>
+                  
+                  <div className="border border-white/10 bg-black/40 rounded-xl p-4 flex items-center justify-between opacity-50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-white">watch</span>
+                      </div>
+                      <div>
+                        <div className="text-white font-medium text-sm">Apple Watch</div>
+                        <div className="text-xs text-gray-400">Em breve</div>
+                      </div>
+                    </div>
+                    <button disabled className="text-xs px-3 py-1 bg-white/10 rounded-full text-gray-300">Conectar</button>
+                  </div>
                 </div>
               </div>
-              <button disabled className="text-xs px-3 py-1 bg-white/10 rounded-full text-gray-300">Conectar</button>
             </div>
-            
-            <div className="border border-white/10 bg-black/40 rounded-xl p-4 flex items-center justify-between opacity-50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-white">watch</span>
-                </div>
-                <div>
-                  <div className="text-white font-medium text-sm">Apple Watch</div>
-                  <div className="text-xs text-gray-400">Em breve</div>
-                </div>
-              </div>
-              <button disabled className="text-xs px-3 py-1 bg-white/10 rounded-full text-gray-300">Conectar</button>
+
+            <div className="lg:col-span-1">
+              <BiometricsForm />
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="lg:col-span-1">
-        <BiometricsForm />
-      </div>
-    </div>
+        </PageTransition>
+      </main>
+    </>
   );
 }
