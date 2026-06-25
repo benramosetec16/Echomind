@@ -76,7 +76,7 @@ As respostas devem ser informativas, empáticas e não devem fornecer diagnósti
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: 'llama3-70b-8192', // Ou o modelo groq de preferência
+      model: 'llama-3.3-70b-versatile', // Ou o modelo groq de preferência
       temperature: 0.5,
     });
 

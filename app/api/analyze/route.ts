@@ -28,7 +28,7 @@ Sua resposta DEVE ser um JSON válido, e APENAS o JSON, obedecendo ESTRITAMENTE 
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: 'llama3-70b-8192',
+      model: 'llama-3.3-70b-versatile',
       temperature: 0.3,
       response_format: { type: "json_object" }
     });
