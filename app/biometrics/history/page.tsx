@@ -72,96 +72,99 @@ export default function BiometricsHistory() {
       <TopBar title="Histórico Biométrico" />
       <main className="pt-32 px-16 pb-24 relative min-h-screen flex flex-col">
         <PageTransition>
-          <div className="max-w-[1200px] mx-auto w-full mb-8 flex justify-start gap-4">
-             <Link href="/biometrics" className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm font-medium hover:bg-white/10 transition-colors">Voltar</Link>
+          <div className="max-w-[1200px] mx-auto w-full mb-10 flex justify-start">
+             <Link href="/biometrics" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant hover:text-primary transition-colors">
+               <span className="material-symbols-outlined text-[16px]">arrow_back</span> RETORNAR À BASE
+             </Link>
           </div>
           
-          <div className="max-w-[1200px] mx-auto w-full aetheric-glass rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-cyan-500/5 pointer-events-none"></div>
-            
-            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-              <h2 className="text-2xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-cyan-400">
-                Registros
+          <div className="max-w-[1200px] mx-auto w-full aetheric-glass rounded-[32px] p-8">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+              <h2 className="text-xs uppercase tracking-[0.2em] font-semibold text-secondary flex items-center gap-2">
+                <span className="material-symbols-outlined text-[16px]">history</span>
+                REGISTROS HISTÓRICOS
               </h2>
               
-              <div className="flex gap-2 bg-[#0a0a0a] p-1 rounded-xl border border-white/10">
+              <div className="flex gap-6">
                 <button 
                   onClick={() => setFilter("7d")} 
-                  className={`px-4 py-2 text-sm rounded-lg transition-all ${filter === "7d" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
+                  className={`text-[10px] uppercase tracking-widest font-semibold transition-all hover:text-secondary ${filter === "7d" ? "text-secondary border-b border-secondary pb-1" : "text-on-surface-variant opacity-60"}`}
                 >
-                  Últimos 7 dias
+                  7 DIAS
                 </button>
                 <button 
                   onClick={() => setFilter("30d")} 
-                  className={`px-4 py-2 text-sm rounded-lg transition-all ${filter === "30d" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
+                  className={`text-[10px] uppercase tracking-widest font-semibold transition-all hover:text-secondary ${filter === "30d" ? "text-secondary border-b border-secondary pb-1" : "text-on-surface-variant opacity-60"}`}
                 >
-                  Últimos 30 dias
+                  30 DIAS
                 </button>
                 <button 
                   onClick={() => setFilter("all")} 
-                  className={`px-4 py-2 text-sm rounded-lg transition-all ${filter === "all" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
+                  className={`text-[10px] uppercase tracking-widest font-semibold transition-all hover:text-secondary ${filter === "all" ? "text-secondary border-b border-secondary pb-1" : "text-on-surface-variant opacity-60"}`}
                 >
-                  Todos
+                  TODOS
                 </button>
               </div>
             </div>
 
-            <div className="relative z-10 overflow-x-auto rounded-xl border border-white/10">
-              <table className="w-full text-left text-sm text-gray-300">
-                <thead className="text-xs uppercase bg-black/40 text-gray-400">
+            <div className="overflow-x-auto rounded-xl">
+              <table className="w-full text-left">
+                <thead className="text-[10px] uppercase tracking-[0.15em] text-on-surface-variant border-b border-white/10 opacity-70">
                   <tr>
-                    <th className="px-6 py-4">Data e Hora</th>
-                    <th className="px-6 py-4">Batimentos (bpm)</th>
-                    <th className="px-6 py-4">Sono (h)</th>
-                    <th className="px-6 py-4">Energia</th>
-                    <th className="px-6 py-4">Humor</th>
-                    <th className="px-6 py-4 text-right">Ações</th>
+                    <th className="px-6 py-6 font-semibold">Data e Hora</th>
+                    <th className="px-6 py-6 font-semibold">Frequência</th>
+                    <th className="px-6 py-6 font-semibold">Sono</th>
+                    <th className="px-6 py-6 font-semibold">Energia</th>
+                    <th className="px-6 py-6 font-semibold">Humor</th>
+                    <th className="px-6 py-6 font-semibold text-right">Controle</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="text-sm text-on-surface">
                   {loading ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                        Carregando registros...
+                      <td colSpan={6} className="px-6 py-12 text-center text-on-surface-variant uppercase tracking-widest text-xs opacity-50">
+                        Recuperando registros...
                       </td>
                     </tr>
                   ) : records.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                      <td colSpan={6} className="px-6 py-12 text-center text-on-surface-variant uppercase tracking-widest text-xs opacity-50">
                         Nenhum registro encontrado para este período.
                       </td>
                     </tr>
                   ) : (
                     records.map((record) => (
-                      <tr key={record.id} className="border-b border-white/5 bg-black/20 hover:bg-white/5 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
+                      <tr key={record.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
+                        <td className="px-6 py-6 whitespace-nowrap text-on-surface-variant font-light">
                           {new Date(record.created_at).toLocaleString("pt-BR")}
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="flex items-center gap-2">
-                            <span className="text-red-400">❤️</span> {record.heart_rate}
+                        <td className="px-6 py-6">
+                          <span className="flex items-center gap-2 font-light">
+                            <span className="material-symbols-outlined text-[16px] text-secondary opacity-50 group-hover:opacity-100 transition-opacity">favorite</span>
+                            {record.heart_rate} <span className="text-[10px] opacity-40">BPM</span>
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="flex items-center gap-2">
-                            <span className="text-purple-400">😴</span> {record.sleep_hours}
+                        <td className="px-6 py-6">
+                          <span className="flex items-center gap-2 font-light">
+                            <span className="material-symbols-outlined text-[16px] text-tertiary opacity-50 group-hover:opacity-100 transition-opacity">bedtime</span>
+                            {record.sleep_hours} <span className="text-[10px] opacity-40">H</span>
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="px-2 py-1 bg-yellow-500/10 text-yellow-300 rounded-md text-xs border border-yellow-500/20">
+                        <td className="px-6 py-6">
+                          <span className="text-xs uppercase tracking-widest text-primary opacity-80 border border-primary/20 px-2 py-1 rounded-md">
                             {record.energy_level}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="px-2 py-1 bg-cyan-500/10 text-cyan-300 rounded-md text-xs border border-cyan-500/20">
+                        <td className="px-6 py-6">
+                          <span className="text-xs uppercase tracking-widest text-secondary opacity-80 border border-secondary/20 px-2 py-1 rounded-md">
                             {record.mood}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-6 text-right">
                           <button 
                             onClick={() => handleDelete(record.id)}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
-                            title="Excluir"
+                            className="text-on-surface-variant opacity-30 hover:opacity-100 hover:text-error transition-all"
+                            title="Desintegrar Registro"
                           >
                             <span className="material-symbols-outlined text-[20px]">delete</span>
                           </button>

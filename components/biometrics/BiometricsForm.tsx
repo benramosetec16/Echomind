@@ -44,79 +44,87 @@ export default function BiometricsForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="relative z-10 bg-white/5 dark:bg-black/20 backdrop-blur-xl border border-white/10 dark:border-white/5 rounded-2xl p-8 shadow-[0_0_40px_rgba(0,255,255,0.1)] hover:shadow-[0_0_60px_rgba(0,255,255,0.15)] transition-all duration-500">
-      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 rounded-2xl pointer-events-none"></div>
-      
-      <h2 className="text-2xl font-semibold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
+    <form onSubmit={handleSubmit} className="relative z-10 aetheric-glass rounded-[32px] p-10 overflow-hidden">
+      <h2 className="text-sm uppercase tracking-[0.2em] font-semibold text-secondary mb-8 block">
         Novo Registro Biométrico
       </h2>
 
-      <div className="space-y-5">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Frequência Cardíaca (bpm)</label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">❤️</span>
+      <div className="space-y-6">
+        <div className="group relative">
+          <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
+            Frequência Cardíaca (bpm)
+          </label>
+          <div className="input-underline py-2 flex items-center gap-3">
+            <span className="material-symbols-outlined text-on-surface-variant group-focus-within:text-secondary transition-colors">favorite</span>
             <input
               type="number"
               required
               value={heartRate}
               onChange={(e) => setHeartRate(e.target.value)}
-              placeholder="Ex: 85 bpm"
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-transparent transition-all"
+              placeholder="Ex: 85"
+              className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
             />
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Horas de Sono</label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">😴</span>
+        <div className="group relative">
+          <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
+            Horas de Sono
+          </label>
+          <div className="input-underline py-2 flex items-center gap-3">
+            <span className="material-symbols-outlined text-on-surface-variant group-focus-within:text-secondary transition-colors">bedtime</span>
             <input
               type="number"
               step="0.1"
               required
               value={sleepHours}
               onChange={(e) => setSleepHours(e.target.value)}
-              placeholder="Ex: 8 horas"
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+              placeholder="Ex: 8"
+              className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
             />
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Nível de Energia</label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">⚡</span>
+        <div className="group relative">
+          <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
+            Nível de Energia
+          </label>
+          <div className="input-underline py-2 flex items-center gap-3 relative">
+            <span className="material-symbols-outlined text-on-surface-variant group-focus-within:text-secondary transition-colors">bolt</span>
             <select
               value={energyLevel}
               onChange={(e) => setEnergyLevel(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-transparent transition-all appearance-none"
+              className="w-full bg-transparent border-none outline-none text-on-surface appearance-none cursor-pointer pr-8"
             >
-              <option value="Muito Baixa">Muito Baixa</option>
-              <option value="Baixa">Baixa</option>
-              <option value="Média">Média</option>
-              <option value="Alta">Alta</option>
-              <option value="Muito Alta">Muito Alta</option>
+              <option value="Muito Baixa" className="bg-surface-container">Muito Baixa</option>
+              <option value="Baixa" className="bg-surface-container">Baixa</option>
+              <option value="Média" className="bg-surface-container">Média</option>
+              <option value="Alta" className="bg-surface-container">Alta</option>
+              <option value="Muito Alta" className="bg-surface-container">Muito Alta</option>
             </select>
+            <span className="material-symbols-outlined absolute right-0 text-on-surface-variant opacity-50 pointer-events-none">expand_more</span>
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Humor Atual</label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">😊</span>
+        <div className="group relative">
+          <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
+            Humor Atual
+          </label>
+          <div className="input-underline py-2 flex items-center gap-3 relative">
+            <span className="material-symbols-outlined text-on-surface-variant group-focus-within:text-secondary transition-colors">mood</span>
             <select
               value={mood}
               onChange={(e) => setMood(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all appearance-none"
+              className="w-full bg-transparent border-none outline-none text-on-surface appearance-none cursor-pointer pr-8"
             >
-              <option value="Feliz">Feliz</option>
-              <option value="Tranquilo">Tranquilo</option>
-              <option value="Neutro">Neutro</option>
-              <option value="Ansioso">Ansioso</option>
-              <option value="Triste">Triste</option>
-              <option value="Estressado">Estressado</option>
+              <option value="Feliz" className="bg-surface-container">Feliz</option>
+              <option value="Tranquilo" className="bg-surface-container">Tranquilo</option>
+              <option value="Neutro" className="bg-surface-container">Neutro</option>
+              <option value="Ansioso" className="bg-surface-container">Ansioso</option>
+              <option value="Triste" className="bg-surface-container">Triste</option>
+              <option value="Estressado" className="bg-surface-container">Estressado</option>
             </select>
+            <span className="material-symbols-outlined absolute right-0 text-on-surface-variant opacity-50 pointer-events-none">expand_more</span>
           </div>
         </div>
 
@@ -129,14 +137,11 @@ export default function BiometricsForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full relative group overflow-hidden rounded-xl p-[1px] mt-4"
+          className={`cyan-ice-ghost w-full py-4 rounded-xl text-xs uppercase tracking-[0.2em] font-semibold mt-4 transition-all duration-300 ${
+            loading ? 'text-secondary opacity-50' : 'text-secondary hover:border-secondary/60'
+          }`}
         >
-          <span className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500 bg-[length:200%_auto] animate-gradient opacity-70 group-hover:opacity-100 transition-opacity duration-300"></span>
-          <div className="relative bg-black/80 backdrop-blur-md px-6 py-3 rounded-xl transition-all duration-300 group-hover:bg-black/60 flex items-center justify-center">
-            <span className="font-semibold bg-clip-text text-transparent bg-gradient-to-r from-cyan-300 to-purple-300 group-hover:text-white transition-colors">
-              {loading ? "Salvando..." : "Salvar Registro"}
-            </span>
-          </div>
+          {loading ? "PROCESSANDO..." : "SALVAR REGISTRO"}
         </button>
       </div>
     </form>
