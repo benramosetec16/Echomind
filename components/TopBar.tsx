@@ -23,6 +23,9 @@ export default function TopBar({ title }: { title: string }) {
           <Link href="/biometrics" className="text-xs uppercase tracking-widest text-on-surface-variant hover:text-secondary transition-colors">
             Biometria
           </Link>
+          <Link href="/study" className="text-xs uppercase tracking-widest text-on-surface-variant hover:text-secondary transition-colors">
+            Estudos
+          </Link>
         </nav>
         
         <div className="flex items-center gap-3">
