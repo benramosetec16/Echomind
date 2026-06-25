@@ -11,6 +11,7 @@ const navItems = [
   { icon: 'favorite', label: 'Pulso', href: '/dashboard/history' },
   { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
   { icon: 'monitor_heart', label: 'Biometria', href: '/biometrics' },
+  { icon: 'school', label: 'Estudos', href: '/study' },
   { icon: 'nightlight', label: 'Santuário', href: '/dashboard/profile' },
 ];
 
