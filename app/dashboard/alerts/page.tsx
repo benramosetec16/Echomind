@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import TopBar from '../../components/TopBar';
 import PageTransition from '../../components/PageTransition';
 import { createClient } from '../../../utils/supabase/client';
@@ -19,6 +19,9 @@ interface BiometricLog {
 export default function AlertsPage() {
   const [logs, setLogs] = useState<BiometricLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCalmModal, setShowCalmModal] = useState(false);
+  const [breathPhase, setBreathPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
+  const [breathCount, setBreathCount] = useState(0);
   const supabase = createClient();
 
   // Fetch logs
@@ -41,26 +44,78 @@ export default function AlertsPage() {
 
   useEffect(() => {
     fetchLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-
-    let channel: any;
-    const subscribeToLogs = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      channel = supabase.channel('realtime:biometric')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'biometric_logs', filter: `user_id=eq.${user.id}` }, (payload) => {
-          setLogs((prev) => [payload.new as BiometricLog, ...prev]);
-        })
-        .subscribe();
-    };
-
-    subscribeToLogs();
-
-    return () => {
-      if (channel) supabase.removeChannel(channel);
-    };
   }, []);
+
+  // Insert mock log for testing
+  const insertMockLog = async (type: 'info' | 'normal' | 'warning' | 'critical') => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return alert("Você deve estar conectado para simular os registros.");
+
+    const mocks = {
+      critical: { title: 'Pico de Cortisol Elevado', desc: 'O sistema detectou um aumento repentino de 34% nos marcadores de estresse durante a sessão de foco.', bpm: 84 },
+      warning: { title: 'Interrupção do Ciclo REM', desc: 'Pequenas interrupções detectadas no padrão de sono profundo.', bpm: 68 },
+      normal: { title: 'Calibração Metabólica', desc: 'Verificação de rotina concluída. Todos os sistemas normais.', bpm: 62 },
+      info: { title: 'Pico de Captação de Serotonina', desc: 'Resposta positiva a estímulo externo. Humor estabilizado.', bpm: 65 }
+    };
+
+    const mock = mocks[type];
+
+    await supabase.from('biometric_logs').insert({
+      user_id: user.id,
+      title: mock.title,
+      description: mock.desc,
+      type: type,
+      bpm: mock.bpm
+    });
+
+    fetchLogs(); // refresh the list
+  };
+
+  // Calm Protocol: guided breathing cycle
+  const startCalmProtocol = () => {
+    setShowCalmModal(true);
+    setBreathCount(0);
+    setBreathPhase('inhale');
+  };
+
+  useEffect(() => {
+    if (!showCalmModal) return;
+    const phases: Array<{ phase: 'inhale' | 'hold' | 'exhale'; duration: number }> = [
+      { phase: 'inhale', duration: 4000 },
+      { phase: 'hold', duration: 4000 },
+      { phase: 'exhale', duration: 6000 },
+    ];
+    let phaseIndex = 0;
+    let cycles = breathCount;
+    const runPhase = () => {
+      setBreathPhase(phases[phaseIndex].phase);
+      const timer = setTimeout(() => {
+        phaseIndex = (phaseIndex + 1) % phases.length;
+        if (phaseIndex === 0) {
+          cycles += 1;
+          setBreathCount(cycles);
+          if (cycles >= 4) { setShowCalmModal(false); return; }
+        }
+        runPhase();
+      }, phases[phaseIndex].duration);
+      return timer;
+    };
+    const t = runPhase();
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCalmModal]);
+
+  // Export logs as JSON
+  const exportProtocol = () => {
+    const dataStr = JSON.stringify(logs, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `echomind-protocolo-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // Format time (e.g. 14:02)
   const formatTime = (dateStr: string) => {
@@ -69,16 +124,6 @@ export default function AlertsPage() {
 
   // Find the most recent critical or warning log for the spotlight card
   const activeAlert = logs.find(log => !log.is_dismissed && (log.type === 'critical' || log.type === 'warning'));
-
-  // Calculate dynamic stats
-  const avgBpm = logs.length > 0 
-    ? Math.round(logs.reduce((acc, l) => acc + (l.bpm || 60), 0) / logs.length)
-    : 62;
-  
-  const criticalCount = logs.filter(l => l.type === 'critical').length;
-  const harmonyPercent = logs.length > 0 
-    ? Math.max(0, 100 - (criticalCount * 15) - (logs.filter(l => l.type === 'warning').length * 5))
-    : 92;
 
   return (
     <>
@@ -143,7 +188,10 @@ export default function AlertsPage() {
                     </p>
                     
                     <div className="flex gap-4">
-                      <button className="px-6 py-3 rounded-full border border-secondary text-secondary text-sm font-semibold uppercase tracking-[0.1em] hover:bg-secondary/10 transition-colors">
+                      <button
+                        onClick={startCalmProtocol}
+                        className="px-6 py-3 rounded-full border border-secondary text-secondary text-sm font-semibold uppercase tracking-[0.1em] hover:bg-secondary/10 transition-colors"
+                      >
                         Iniciar Protocolo Calma
                       </button>
                       <button 
@@ -191,7 +239,7 @@ export default function AlertsPage() {
                 <div className="flex justify-between items-center pb-6">
                   <div>
                     <div className="text-sm text-on-surface-variant mb-1">Pulso Médio</div>
-                    <div className="text-2xl font-light text-on-surface">{avgBpm} BPM</div>
+                    <div className="text-2xl font-light text-on-surface">62 BPM</div>
                   </div>
                   <span className="material-symbols-outlined text-secondary">trending_flat</span>
                 </div>
@@ -199,7 +247,7 @@ export default function AlertsPage() {
                 <div className="flex justify-between items-center py-6">
                   <div>
                     <div className="text-sm text-on-surface-variant mb-1">Harmonia Etérica</div>
-                    <div className="text-2xl font-light text-on-surface">{harmonyPercent}%</div>
+                    <div className="text-2xl font-light text-on-surface">92%</div>
                   </div>
                   <span className="material-symbols-outlined text-secondary">trending_up</span>
                 </div>
@@ -223,7 +271,11 @@ export default function AlertsPage() {
             >
               <div className="p-8 flex justify-between items-center border-b border-white/5">
                 <h3 className="text-lg font-medium text-on-surface uppercase tracking-[0.1em]">Registro Biométrico (24H)</h3>
-                <button className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-secondary hover:text-secondary/80 transition-colors">
+                <button
+                  onClick={exportProtocol}
+                  disabled={logs.length === 0}
+                  className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-secondary hover:text-secondary/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
                   <span className="material-symbols-outlined text-sm">download</span> Exportar Protocolo
                 </button>
               </div>
@@ -268,7 +320,66 @@ export default function AlertsPage() {
 
           </div>
         </PageTransition>
+
+        {/* Temporary Simulation Controls */}
+        <div className="mt-auto pb-8 pt-8 flex justify-center gap-4 opacity-50 hover:opacity-100 transition-opacity">
+          <span className="text-xs text-on-surface-variant uppercase tracking-widest flex items-center mr-4">SIMULADOR DEV:</span>
+          <button onClick={() => insertMockLog('critical')} className="text-[10px] uppercase px-3 py-1 bg-error/20 text-error rounded hover:bg-error/30">Acionar Crítico</button>
+          <button onClick={() => insertMockLog('info')} className="text-[10px] uppercase px-3 py-1 bg-secondary/20 text-secondary rounded hover:bg-secondary/30">Acionar Info</button>
+          <button onClick={() => insertMockLog('normal')} className="text-[10px] uppercase px-3 py-1 bg-white/10 text-white rounded hover:bg-white/20">Acionar Normal</button>
+        </div>
+
       </main>
+
+      {/* Calm Protocol Modal */}
+      <AnimatePresence>
+        {showCalmModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-xl"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="flex flex-col items-center gap-8 text-center p-12"
+            >
+              <p className="text-xs uppercase tracking-[0.3em] text-secondary font-semibold">
+                Protocolo Calma — Ciclo {breathCount + 1} / 4
+              </p>
+
+              <motion.div
+                animate={{
+                  scale: breathPhase === 'inhale' ? [1, 1.6] : breathPhase === 'hold' ? 1.6 : [1.6, 1],
+                  opacity: breathPhase === 'exhale' ? [1, 0.6] : 1,
+                }}
+                transition={{
+                  duration: breathPhase === 'inhale' ? 4 : breathPhase === 'hold' ? 0 : 6,
+                  ease: 'easeInOut',
+                }}
+                className="w-40 h-40 rounded-full bg-secondary/20 border border-secondary/40 shadow-[0_0_60px_rgba(159,207,213,0.3)] flex items-center justify-center"
+              >
+                <span className="material-symbols-outlined text-4xl text-secondary">air</span>
+              </motion.div>
+
+              <p className="text-3xl font-extralight text-on-surface tracking-tight">
+                {breathPhase === 'inhale' && 'Inspire...'}
+                {breathPhase === 'hold' && 'Segure...'}
+                {breathPhase === 'exhale' && 'Expire...'}
+              </p>
+
+              <button
+                onClick={() => setShowCalmModal(false)}
+                className="text-xs text-on-surface-variant hover:text-secondary transition-colors uppercase tracking-widest"
+              >
+                Encerrar
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

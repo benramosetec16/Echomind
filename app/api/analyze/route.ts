@@ -1,51 +1,65 @@
 import { NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
 export async function POST(request: Request) {
   try {
-    const { texto } = await request.json();
+    const body = await request.json();
+    const { texto } = body;
 
-    if (!texto) {
-      return NextResponse.json({ error: 'Texto não fornecido' }, { status: 400 });
+    if (!texto || typeof texto !== 'string' || texto.trim().length === 0) {
+      return NextResponse.json(
+        { error: 'Texto inválido ou ausente. Forneça um relato válido.' },
+        { status: 400 }
+      );
     }
 
-    const prompt = `Analise o seguinte relato emocional de um usuário: "${texto}".
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'GROQ_API_KEY não está configurada no servidor.' },
+        { status: 500 }
+      );
+    }
 
-Sua resposta DEVE ser um JSON válido, e APENAS o JSON, obedecendo ESTRITAMENTE a seguinte estrutura (sem markdown, sem backticks):
+    const groq = new Groq({ apiKey });
+
+    const systemPrompt = `Você é o EchoMind AI. Analise emoções e comportamentos descritos pelo usuário.
+Retorne APENAS um objeto JSON válido, sem texto extra, no seguinte formato:
 {
-  "emocao_principal": "Uma única palavra ou termo curto",
-  "emocoes_secundarias": ["emoção 1", "emoção 2"],
-  "nivel_estresse": número de 0 a 10,
-  "nivel_energia": número de 0 a 10,
-  "nivel_motivacao": número de 0 a 10,
-  "resumo": "Um breve parágrafo interpretando o relato",
-  "recomendacao": "Um conselho prático ou acolhedor"
-}`;
+  "emocao_principal": "nome da emoção principal em português",
+  "emocoes_secundarias": ["emoção1", "emoção2"],
+  "nivel_estresse": 5,
+  "nivel_energia": 7,
+  "nivel_motivacao": 6,
+  "resumo": "Resumo objetivo do estado emocional em 2 frases.",
+  "recomendacao": "Recomendação prática e breve em 2 frases."
+}
+Os níveis devem ser inteiros de 0 a 10.`;
 
     const chatCompletion = await groq.chat.completions.create({
-      messages: [{ role: 'user', content: prompt }],
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: texto },
+      ],
       model: 'llama-3.3-70b-versatile',
-      temperature: 0.3,
-      response_format: { type: "json_object" }
+      response_format: { type: 'json_object' },
+      temperature: 0.2,
     });
 
-    const content = chatCompletion.choices[0]?.message?.content;
-    
-    if (!content) {
-      throw new Error("Resposta vazia da IA");
+    const responseContent = chatCompletion.choices[0]?.message?.content;
+
+    if (!responseContent) {
+      throw new Error('Resposta vazia recebida do Groq.');
     }
 
-    // Como pedimos json_object, a Groq nos devolve o JSON em string
-    const analysis = JSON.parse(content);
-
-    return NextResponse.json(analysis);
+    const analise = JSON.parse(responseContent);
+    return NextResponse.json(analise, { status: 200 });
 
   } catch (error: any) {
-    console.error('Erro na análise de emoções:', error);
-    return NextResponse.json({ error: 'Ocorreu um erro ao processar sua análise.' }, { status: 500 });
+    console.error('Erro na rota /api/analyze:', error);
+    return NextResponse.json(
+      { error: error.message || 'Erro interno no servidor' },
+      { status: 500 }
+    );
   }
 }

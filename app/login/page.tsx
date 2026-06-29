@@ -2,25 +2,53 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Fingerprint, AlertCircle } from 'lucide-react';
+import { Fingerprint, AlertCircle, Languages } from 'lucide-react';
 import { login, signup } from './actions';
 
+// Objeto simples com os textos em Português e Inglês
+const t = {
+  pt: {
+    title: "Autenticação Segura Necessária",
+    titleSignup: "Estabelecer Ponte Neural",
+    loginBtn: "INICIAR ACESSO",
+    signupBtn: "INICIALIZAR PROTOCOLO",
+    validating: "VALIDANDO...",
+    granted: "ACESSO CONCEDIDO",
+    noAccount: "Não tem uma conta? Cadastre-se",
+    hasAccount: "Já tem uma conta? Faça Login",
+    biometric: "Conexão Biométrica",
+  },
+  en: {
+    title: "Secure Authentication Required",
+    titleSignup: "Establish Neural Bridge",
+    loginBtn: "START ACCESS",
+    signupBtn: "INITIALIZE PROTOCOL",
+    validating: "VALIDATING...",
+    granted: "ACCESS GRANTED",
+    noAccount: "Don't have an account? Sign up",
+    hasAccount: "Already have an account? Log in",
+    biometric: "Biometric Connection",
+  }
+};
+
 export default function LoginPage() {
+  // Estado para controlar o idioma ('pt' ou 'en')
+  const [locale, setLocale] = useState<'pt' | 'en'>('pt');
+  
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [status, setStatus] = useState<'idle' | 'validating' | 'granted'>('idle');
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showBiometricToast, setShowBiometricToast] = useState(false);
   
   const glowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initial loading screen
     const timer = setTimeout(() => setIsLoading(false), 2000);
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    // Cursor-following glow effect
     const handleMouseMove = (e: MouseEvent) => {
       if (glowRef.current) {
         const moveX = (e.clientX - window.innerWidth / 2) / 20;
@@ -46,7 +74,6 @@ export default function LoginPage() {
         setErrorMsg(result.error);
         setStatus('idle');
       } else {
-        // Successful login/signup redirects automatically via Next.js
         setStatus('granted');
       }
     } catch (err) {
@@ -61,8 +88,28 @@ export default function LoginPage() {
     setStatus('idle');
   };
 
+  // Função para alternar o idioma ao clicar no botão
+  const toggleLanguage = () => {
+    setLocale(prev => prev === 'pt' ? 'en' : 'pt');
+  };
+
+  const handleBiometricClick = () => {
+    setShowBiometricToast(true);
+    setTimeout(() => setShowBiometricToast(false), 3500);
+  };
+
   return (
     <>
+      {/* Botão Flutuante para Mudar de Idioma */}
+      <button 
+        type="button"
+        onClick={toggleLanguage}
+        className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/30 px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider transition-all duration-300"
+      >
+        <Languages className="w-4 h-4" />
+        {locale.toUpperCase()}
+      </button>
+
       <AnimatePresence>
         {isLoading && (
           <motion.div
@@ -120,7 +167,7 @@ export default function LoginPage() {
             transition={{ delay: 2.4, duration: 0.8 }}
             className="text-xs uppercase tracking-[0.2em] text-on-surface-variant opacity-60 font-semibold"
           >
-            {mode === 'login' ? 'Autenticação Segura Necessária' : 'Estabelecer Ponte Neural'}
+            {mode === 'login' ? t[locale].title : t[locale].titleSignup}
           </motion.p>
         </header>
 
@@ -207,9 +254,9 @@ export default function LoginPage() {
                 'bg-secondary/10 text-secondary border-secondary/30 shadow-[0_0_20px_rgba(159,207,213,0.2)]'
               }`}
             >
-              {status === 'idle' && (mode === 'login' ? 'INICIAR ACESSO' : 'INICIALIZAR PROTOCOLO')}
-              {status === 'validating' && 'VALIDANDO...'}
-              {status === 'granted' && 'ACESSO CONCEDIDO'}
+              {status === 'idle' && (mode === 'login' ? t[locale].loginBtn : t[locale].signupBtn)}
+              {status === 'validating' && t[locale].validating}
+              {status === 'granted' && t[locale].granted}
             </button>
 
             <div className="flex flex-col items-center gap-4 mt-2">
@@ -220,12 +267,16 @@ export default function LoginPage() {
                 onClick={toggleMode}
                 className="text-xs text-on-surface-variant hover:text-secondary transition-colors underline underline-offset-4"
               >
-                {mode === 'login' ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça Login'}
+                {mode === 'login' ? t[locale].noAccount : t[locale].hasAccount}
               </button>
 
-              <button type="button" className="flex items-center gap-3 text-on-surface-variant hover:text-secondary transition-colors group mt-2">
+              <button
+                type="button"
+                onClick={handleBiometricClick}
+                className="flex items-center gap-3 text-on-surface-variant hover:text-secondary transition-colors group mt-2"
+              >
                 <Fingerprint className="w-5 h-5 text-secondary pulse-effect" />
-                <span className="text-xs uppercase tracking-[0.15em] font-semibold">Conexão Biométrica</span>
+                <span className="text-xs uppercase tracking-[0.15em] font-semibold">{t[locale].biometric}</span>
               </button>
             </div>
           </form>
@@ -242,6 +293,23 @@ export default function LoginPage() {
           </p>
         </motion.footer>
       </motion.main>
+
+      {/* Biometric Toast */}
+      <AnimatePresence>
+        {showBiometricToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-surface-container border border-secondary/20 px-5 py-3 rounded-full shadow-[0_0_30px_rgba(159,207,213,0.15)]"
+          >
+            <Fingerprint className="w-4 h-4 text-secondary" />
+            <span className="text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant">
+              {locale === 'pt' ? 'Biometria disponível em breve' : 'Biometrics coming soon'}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

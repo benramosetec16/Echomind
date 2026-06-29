@@ -35,27 +35,19 @@ export async function transmitAura(payload: { valenceValue: number; texture: str
   try {
     // 1. Call Groq AI for an Aetheric Insight
     const prompt = `
-      Você é a Inteligência Analítica do Echomind, um sistema prático de monitoramento emocional.
-      O usuário acabou de fazer um check-in com os seguintes dados:
-      - Valência emocional (0 a 100): ${payload.valenceValue}
-      - Textura sensorial: ${payload.texture}
-      - Pensamentos: "${payload.thoughts || 'Nenhum texto fornecido'}"
+      You are the Analytical Intelligence of Echomind, a pragmatic emotional tracking system.
+      The user just checked in with the following aura:
+      - Valence (0 to 100): ${payload.valenceValue}
+      - Texture: ${payload.texture}
+      - Thoughts: "${payload.thoughts || 'Silent transmission'}"
       
-      REGRAS OBRIGATÓRIAS:
-      - Responda SEMPRE em português do Brasil
-      - Seja OBJETIVO, DIRETO e ANALÍTICO (máximo 2 frases)
-      - NÃO use linguagem poética, metáforas, frases abstratas ou filosóficas
-      - NÃO use termos como "etérico", "ressonância", "aura", "cósmico", "universo"
-      - Seja PRÁTICO: descreva o estado emocional real e dê uma orientação útil
-      - Exemplo bom: "Seu nível de estresse está moderado, com tendência à ansiedade. Considere uma pausa de 10 minutos para respiração controlada."
-      - Exemplo ruim: "As ondas do seu ser ressoam em frequências de transformação interior..."
-      
-      Gere também um título curto e objetivo (máximo 4 palavras) e uma tag de sentimento de uma única palavra.
+      Gere uma análise objetiva, direta e analítica (máximo de 2 frases) refletindo o estado atual do usuário. Não seja poético. Seja prático. Em português do Brasil.
+      Também gere um título curto e objetivo (máximo 4 palavras) e uma tag de sentimento de uma única palavra. Em português do Brasil.
       
       Responda APENAS com um objeto JSON válido neste formato:
       {
-        "insight": "Sua análise objetiva aqui.",
-        "journalTitle": "Título Objetivo",
+        "insight": "Sua reflexão objetiva aqui.",
+        "journalTitle": "Título aqui",
         "journalTag": "TagAqui"
       }
     `;
@@ -97,28 +89,6 @@ export async function transmitAura(payload: { valenceValue: number; texture: str
       });
 
       if (journalError) console.error('Error saving journal:', journalError);
-
-      // Save to biometric_logs (System Diagnostics)
-      let logType: 'info' | 'normal' | 'warning' | 'critical' = 'info';
-      if (payload.valenceValue < 30) logType = 'critical';
-      else if (payload.valenceValue < 50) logType = 'warning';
-      else if (payload.valenceValue >= 80) logType = 'normal';
-
-      // Simulate BPM based on valence and texture
-      let simulatedBpm = 60 + Math.floor((100 - payload.valenceValue) / 2);
-      if (payload.texture === 'anxiety') simulatedBpm += 15;
-      else if (payload.texture === 'calm') simulatedBpm -= 5;
-
-      const { error: logError } = await supabase.from('biometric_logs').insert({
-        user_id: user.id,
-        title: result.journalTitle || 'Análise Neural',
-        description: result.insight || 'Padrão cognitivo registrado.',
-        type: logType,
-        bpm: simulatedBpm
-      });
-      
-      if (logError) console.error('Error saving biometric log:', logError);
-
     } else {
        console.log('User not authenticated. Returning AI insight without saving to Supabase.');
     }

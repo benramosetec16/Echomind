@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Activity, Battery, Flame, AlertCircle, BrainCircuit, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface AnaliseEmocional {
@@ -12,6 +11,64 @@ interface AnaliseEmocional {
   nivel_motivacao: number;
   resumo: string;
   recomendacao: string;
+}
+
+const getLevelColor = (level: number, reverse: boolean = false): string => {
+  const normalized = reverse ? 10 - level : level;
+  if (normalized <= 3) return 'text-error';
+  if (normalized <= 6) return 'text-tertiary';
+  return 'text-secondary';
+};
+
+const getLevelBg = (level: number, reverse: boolean = false): string => {
+  const normalized = reverse ? 10 - level : level;
+  if (normalized <= 3) return 'bg-error/20 border-error/30';
+  if (normalized <= 6) return 'bg-tertiary/20 border-tertiary/30';
+  return 'bg-secondary/20 border-secondary/30';
+};
+
+function MetricBar({
+  label,
+  value,
+  icon,
+  reverse = false,
+  delay = 0,
+}: {
+  label: string;
+  value: number;
+  icon: string;
+  reverse?: boolean;
+  delay?: number;
+}) {
+  const color = getLevelColor(value, reverse);
+  const bg = getLevelBg(value, reverse);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.5 }}
+      className={`flex flex-col gap-3 p-5 rounded-2xl border ${bg} backdrop-blur-md`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className={`material-symbols-outlined text-lg ${color}`}>{icon}</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+            {label}
+          </span>
+        </div>
+        <span className={`text-xl font-extralight ${color}`}>{value}<span className="text-xs text-on-surface-variant opacity-60">/10</span></span>
+      </div>
+      <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+        <motion.div
+          className={`h-full rounded-full ${color.replace('text-', 'bg-')}`}
+          initial={{ width: 0 }}
+          animate={{ width: `${value * 10}%` }}
+          transition={{ delay: delay + 0.2, duration: 0.8, ease: 'easeOut' }}
+        />
+      </div>
+    </motion.div>
+  );
 }
 
 export default function EmotionAnalyzer() {
@@ -49,143 +106,186 @@ export default function EmotionAnalyzer() {
     }
   };
 
-  const getLevelColor = (level: number, reverse: boolean = false) => {
-    // Para energia/motivação, maior é melhor (verde). Para estresse, menor é melhor.
-    const normalized = reverse ? 10 - level : level;
-    if (normalized <= 3) return 'bg-red-500';
-    if (normalized <= 7) return 'bg-yellow-400';
-    return 'bg-emerald-500';
-  };
-
-  const ProgressCircle = ({ value, icon: Icon, title, reverse = false }: any) => {
-    const color = getLevelColor(value, reverse);
-    return (
-      <div className="flex flex-col items-center p-4 bg-white/5 rounded-2xl border border-white/10 shadow-sm backdrop-blur-md">
-        <div className="flex items-center gap-2 mb-3 text-sm font-medium text-gray-400 uppercase tracking-wider">
-          <Icon className="w-4 h-4" />
-          {title}
-        </div>
-        <div className="relative flex items-center justify-center w-20 h-20">
-          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-            <path
-              className="text-white/10"
-              strokeDasharray="100, 100"
-              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              stroke="currentColor"
-              strokeWidth="3"
-              fill="none"
-            />
-            <motion.path
-              initial={{ strokeDasharray: "0, 100" }}
-              animate={{ strokeDasharray: `${value * 10}, 100` }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className={color.replace('bg-', 'text-')}
-              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              stroke="currentColor"
-              strokeWidth="3"
-              fill="none"
-              strokeLinecap="round"
-            />
-          </svg>
-          <div className="absolute text-xl font-bold text-white">{value}<span className="text-xs text-gray-500">/10</span></div>
-        </div>
-      </div>
-    );
+  const reset = () => {
+    setAnalise(null);
+    setTexto('');
+    setError(null);
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
-      <div className="bg-zinc-900/50 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-xl shadow-2xl">
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center p-3 bg-indigo-500/10 text-indigo-400 rounded-2xl mb-4">
-            <BrainCircuit className="w-8 h-8" />
-          </div>
-          <h2 className="text-3xl font-extrabold text-white mb-2 tracking-tight">EchoMind Analysis</h2>
-          <p className="text-gray-400">Desabafe conosco e descubra insights sobre o seu estado emocional e mental.</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="relative group">
-            <textarea
-              className="w-full h-40 px-6 py-5 bg-black/40 text-gray-100 border border-white/10 rounded-2xl outline-none transition-all duration-300 focus:border-indigo-500/50 focus:bg-black/60 focus:ring-4 focus:ring-indigo-500/10 placeholder-gray-500 resize-none text-lg"
-              placeholder="Como você está se sentindo hoje? Escreva livremente..."
-              value={texto}
-              onChange={(e) => setTexto(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || !texto.trim()}
-            className="w-full py-4 px-6 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(99,102,241,0.3)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+    <div className="w-full max-w-[900px] mx-auto">
+      <AnimatePresence mode="wait">
+        {!analise ? (
+          /* --- Input Form --- */
+          <motion.div
+            key="form"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5 }}
           >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Analisando...
-              </>
-            ) : (
-              'Analisar Relato'
-            )}
-          </button>
-        </form>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-secondary/10 border border-secondary/30 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-secondary text-xl">psychology</span>
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-secondary">
+                    Análise Neural
+                  </h2>
+                  <p className="text-xs text-on-surface-variant opacity-60">
+                    Descreva como você está se sentindo para receber uma análise emocional.
+                  </p>
+                </div>
+              </div>
 
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="mt-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl flex items-center gap-3"
-            >
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <p>{error}</p>
-            </motion.div>
-          )}
+              {/* Textarea */}
+              <div className="relative">
+                <textarea
+                  value={texto}
+                  onChange={(e) => setTexto(e.target.value)}
+                  placeholder="Hoje eu me sinto... (descreva seus pensamentos, emoções, situações do dia)"
+                  rows={6}
+                  className="w-full bg-surface-container-lowest/60 border border-white/10 rounded-2xl px-6 py-5 text-sm text-on-surface placeholder-on-surface-variant/30 focus:outline-none focus:border-secondary/50 transition-colors resize-none leading-relaxed"
+                />
+                <div className="absolute bottom-4 right-4 text-[10px] text-on-surface-variant opacity-30 font-mono">
+                  {texto.length} chars
+                </div>
+              </div>
 
-          {analise && (
+              {/* Error */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-3 p-4 bg-error/10 border border-error/20 rounded-xl"
+                  >
+                    <span className="material-symbols-outlined text-error text-base">error</span>
+                    <p className="text-xs text-error">{error}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={loading || !texto.trim()}
+                className="w-full py-4 rounded-xl bg-secondary/10 border border-secondary/30 text-secondary text-xs font-semibold uppercase tracking-[0.2em] hover:bg-secondary/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3"
+              >
+                {loading ? (
+                  <>
+                    <span className="material-symbols-outlined text-base animate-spin">sync</span>
+                    Processando Ressonância Neural...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-base">auto_awesome</span>
+                    Analisar Estado Emocional
+                  </>
+                )}
+              </button>
+            </form>
+          </motion.div>
+        ) : (
+          /* --- Results --- */
+          <motion.div
+            key="results"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col gap-6"
+          >
+            {/* Primary Emotion */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-10 space-y-6"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6 }}
+              className="aetheric-glass rounded-3xl p-10 text-center relative overflow-hidden"
             >
-              <div className="p-6 md:p-8 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-3xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-indigo-500/20 blur-3xl rounded-full"></div>
-                <h3 className="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-1">Emoção Principal</h3>
-                <p className="text-3xl md:text-4xl font-extrabold text-white capitalize">{analise.emocao_principal}</p>
-                
-                {analise.emocoes_secundarias.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {analise.emocoes_secundarias.map((emocao, idx) => (
-                      <span key={idx} className="px-3 py-1 bg-white/5 border border-white/10 text-gray-300 text-sm rounded-full capitalize">
-                        {emocao}
+              <div className="absolute inset-0 bg-gradient-to-b from-secondary/5 to-transparent pointer-events-none" />
+              <div className="relative z-10">
+                <span className="text-xs font-semibold uppercase tracking-[0.3em] text-secondary block mb-4">
+                  Estado Emocional Primário
+                </span>
+                <h3 className="text-5xl font-extralight text-on-surface tracking-tighter mb-6">
+                  {analise.emocao_principal}
+                </h3>
+                {analise.emocoes_secundarias?.length > 0 && (
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {analise.emocoes_secundarias.map((em, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1 bg-surface-container border border-white/10 rounded-full text-xs text-on-surface-variant font-medium"
+                      >
+                        {em}
                       </span>
                     ))}
                   </div>
                 )}
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <ProgressCircle value={analise.nivel_estresse} icon={Activity} title="Estresse" reverse={false} />
-                <ProgressCircle value={analise.nivel_energia} icon={Battery} title="Energia" reverse={true} />
-                <ProgressCircle value={analise.nivel_motivacao} icon={Flame} title="Motivação" reverse={true} />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-6 bg-black/40 border border-white/10 rounded-3xl">
-                  <h3 className="text-gray-400 font-medium mb-2 uppercase tracking-wide text-xs">Resumo</h3>
-                  <p className="text-gray-200 leading-relaxed">{analise.resumo}</p>
-                </div>
-                <div className="p-6 bg-indigo-500/5 border border-indigo-500/20 rounded-3xl">
-                  <h3 className="text-indigo-400 font-medium mb-2 uppercase tracking-wide text-xs">Recomendação</h3>
-                  <p className="text-indigo-100 leading-relaxed">{analise.recomendacao}</p>
-                </div>
-              </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <MetricBar label="Estresse" value={analise.nivel_estresse} icon="bolt" reverse delay={0.1} />
+              <MetricBar label="Energia" value={analise.nivel_energia} icon="battery_charging_full" delay={0.2} />
+              <MetricBar label="Motivação" value={analise.nivel_motivacao} icon="local_fire_department" delay={0.3} />
+            </div>
+
+            {/* Summary & Recommendation */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+                className="glass-panel rounded-2xl p-6"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="material-symbols-outlined text-on-surface-variant text-base">summarize</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                    Resumo
+                  </span>
+                </div>
+                <p className="text-sm text-on-surface leading-relaxed">{analise.resumo}</p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="glass-panel rounded-2xl p-6 border-l border-l-secondary/30"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="material-symbols-outlined text-secondary text-base">lightbulb</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-secondary">
+                    Recomendação
+                  </span>
+                </div>
+                <p className="text-sm text-on-surface leading-relaxed">{analise.recomendacao}</p>
+              </motion.div>
+            </div>
+
+            {/* Reset */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 }}
+              className="flex justify-center"
+            >
+              <button
+                onClick={reset}
+                className="text-xs text-on-surface-variant hover:text-secondary transition-colors uppercase tracking-[0.15em] font-semibold underline underline-offset-4"
+              >
+                Nova Análise
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

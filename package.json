@@ -9,15 +9,18 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@splinetool/react-spline": "^4.0.0",
+    "@react-pdf/renderer": "^4.5.1",
+    "@splinetool/react-spline": "^4.1.0",
+    "@splinetool/runtime": "^1.12.98",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
     "framer-motion": "^12.40.0",
     "groq-sdk": "^1.2.1",
     "lucide-react": "^1.17.0",
-    "next": "15.2.8",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "next": "16.2.7",
+    "next-intl": "^4.13.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "recharts": "^3.8.1"
   },
   "devDependencies": {
@@ -26,7 +29,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.2.8",
+    "eslint-config-next": "16.2.7",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

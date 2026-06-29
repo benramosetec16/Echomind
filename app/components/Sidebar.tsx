@@ -1,44 +1,46 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { createClient } from '../../utils/supabase/client';
+import { getUserRole, type UserRole, ROLE_LABELS, hasInstitutionalAccess } from '../../utils/roles';
 
-const navItems = [
+const baseNavItems = [
   { icon: 'waves', label: 'Atmosfera', href: '/dashboard' },
   { icon: 'auto_awesome', label: 'Refletir', href: '/dashboard/checkin' },
+  { icon: 'psychology', label: 'Analisar', href: '/dashboard/analyze' },
   { icon: 'favorite', label: 'Pulso', href: '/dashboard/history' },
   { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
-  { icon: 'monitor_heart', label: 'Biometria', href: '/biometrics' },
-  { icon: 'school', label: 'Estudos', href: '/study' },
+  { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
   { icon: 'nightlight', label: 'Santuário', href: '/dashboard/profile' },
 ];
 
+const institutionalNavItem = { icon: 'corporate_fare', label: 'Institucional', href: '/dashboard/institution' };
+
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [userName, setUserName] = useState<string | null>(null);
   const [userInitials, setUserInitials] = useState<string>('UU');
+  const [userRole, setUserRole] = useState<UserRole>('aluno');
   const supabase = createClient();
 
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário';
+        const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Viajante';
         setUserName(name);
         setUserInitials(name.substring(0, 2).toUpperCase());
       }
     };
+    const fetchRole = async () => {
+      const role = await getUserRole();
+      setUserRole(role);
+    };
     fetchUser();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchRole();
   }, [supabase]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
 
   return (
     <nav className="fixed left-0 top-0 h-full w-20 hover:w-64 transition-all duration-500 ease-in-out z-50 bg-background/80 backdrop-blur-xl border-r border-white/5 flex flex-col items-center py-8 gap-6 overflow-hidden group">
@@ -49,7 +51,7 @@ export default function Sidebar() {
       </div>
 
       <div className="flex flex-col gap-4 w-full px-4">
-        {navItems.map((item) => {
+        {[...baseNavItems, ...(hasInstitutionalAccess(userRole) ? [institutionalNavItem] : [])].map((item) => {
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
           
           return (
@@ -76,29 +78,16 @@ export default function Sidebar() {
         })}
       </div>
 
-      <div className="mt-auto mb-8 w-full px-4 flex flex-col gap-3">
-        {/* User Info */}
-        <div className="flex items-center gap-4 group-hover:px-2 transition-all">
+      <div className="mt-auto mb-8 w-full px-4 flex justify-center group-hover:justify-start group-hover:px-6 transition-all">
+        <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden flex-shrink-0 bg-surface-container flex items-center justify-center">
              <span className="font-sans text-sm font-medium text-on-surface-variant">{userInitials}</span>
           </div>
           <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
             <span className="font-sans text-sm text-on-surface font-semibold">{userName || '...'}</span>
-            <span className="text-[10px] text-green-400 uppercase tracking-widest font-semibold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
-              Online
-            </span>
+            <span className="text-[10px] text-secondary uppercase tracking-widest">{ROLE_LABELS[userRole]}</span>
           </div>
         </div>
-
-        {/* Logout button - only visible on hover */}
-        <button 
-          onClick={handleLogout}
-          className="hidden group-hover:flex items-center gap-3 py-2.5 px-3 rounded-full text-on-surface-variant opacity-60 hover:text-error hover:opacity-100 hover:bg-error/10 transition-all duration-300"
-        >
-          <span className="material-symbols-outlined text-xl flex-shrink-0">logout</span>
-          <span className="font-sans text-sm tracking-wide whitespace-nowrap">Sair</span>
-        </button>
       </div>
     </nav>
   );

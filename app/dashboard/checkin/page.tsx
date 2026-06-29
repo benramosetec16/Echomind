@@ -6,6 +6,8 @@ import TopBar from '../../components/TopBar';
 import PageTransition from '../../components/PageTransition';
 import { transmitAura } from './actions';
 import { AlertCircle, Sparkles } from 'lucide-react';
+import { createClient } from '../../../utils/supabase/client';
+
 
 const states = [
   { threshold: 0, text: 'Vórtice de Discórdia', color: '#ffb4ab' },
@@ -23,9 +25,11 @@ const textures = [
 ];
 
 export default function CheckinPage() {
+  const supabase = createClient();
   const [valenceValue, setValenceValue] = useState(50);
   const [selectedTexture, setSelectedTexture] = useState<string | null>('calm');
   const [thoughts, setThoughts] = useState('');
+  const [checkinCount, setCheckinCount] = useState<number | null>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
@@ -46,6 +50,19 @@ export default function CheckinPage() {
       glow2Ref.current.style.transform = `translate(${-xMove}px, ${-xMove / 2}px)`;
     }
   }, [valenceValue]);
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { count } = await supabase
+        .from('emotional_checkins')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      setCheckinCount(count ?? 0);
+    };
+    fetchCount();
+  }, []);
 
   const handleSubmit = async () => {
     if (!selectedTexture) return;
@@ -103,7 +120,7 @@ export default function CheckinPage() {
                 transition={{ delay: 0.1 }}
                 className="text-xl font-medium text-on-surface-variant opacity-40 mt-1"
               >
-                Pulso Etérico #492
+                {checkinCount !== null ? `Pulso Etérico #${checkinCount + 1}` : 'Pulso Etérico'}
               </motion.p>
             </div>
           </header>

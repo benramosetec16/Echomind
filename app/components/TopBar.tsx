@@ -10,6 +10,7 @@ interface TopBarProps {
 
 export default function TopBar({ title }: TopBarProps) {
   const [userName, setUserName] = useState<string | null>(null);
+  const [userInitials, setUserInitials] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const supabase = createClient();
@@ -18,7 +19,9 @@ export default function TopBar({ title }: TopBarProps) {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário');
+        const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário';
+        setUserName(name);
+        setUserInitials(name.substring(0, 2).toUpperCase());
       }
       setLoading(false);
     };
@@ -38,8 +41,12 @@ export default function TopBar({ title }: TopBarProps) {
           sync
         </button>
         <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-full pl-2 pr-4 py-1.5">
-          <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center border border-white/10">
-            <span className="material-symbols-outlined text-on-surface-variant text-sm">person</span>
+          <div className="w-8 h-8 rounded-full bg-secondary/10 border border-secondary/20 flex items-center justify-center flex-shrink-0">
+            {loading ? (
+              <span className="material-symbols-outlined text-on-surface-variant text-sm animate-pulse">person</span>
+            ) : (
+              <span className="text-[11px] font-semibold text-secondary leading-none">{userInitials || '??'}</span>
+            )}
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-medium text-on-surface leading-tight">
@@ -50,7 +57,7 @@ export default function TopBar({ title }: TopBarProps) {
             </span>
           </div>
           {userName && (
-            <button 
+            <button
               onClick={handleLogout}
               className="ml-2 text-[10px] uppercase font-semibold text-error hover:text-error/80 transition-colors"
               title="Sair"

@@ -7,8 +7,8 @@ export async function updateSession(request: NextRequest) {
   })
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder',
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
@@ -30,13 +30,9 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANT: Avoid writing any logic between createServerClient and
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with cross-browser cookies.
-  let user = null;
-  try {
-    const { data } = await supabase.auth.getUser()
-    user = data.user
-  } catch (err) {
-    console.error('Middleware Supabase auth error:', err)
-  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (
     !user &&
