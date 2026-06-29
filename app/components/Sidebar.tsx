@@ -12,6 +12,8 @@ const baseNavItems = [
   { icon: 'psychology', label: 'Analisar', href: '/dashboard/analyze' },
   { icon: 'favorite', label: 'Pulso', href: '/dashboard/history' },
   { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
+  { icon: 'health_metrics', label: 'Biometria', href: '/biometrics' },
+  { icon: 'school', label: 'Estudos', href: '/study' },
   { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
   { icon: 'nightlight', label: 'Santuário', href: '/dashboard/profile' },
 ];
