@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import {
@@ -31,7 +31,7 @@ interface BiometricsChartsProps {
 export default function BiometricsCharts({ data }: BiometricsChartsProps) {
   const [activeChart, setActiveChart] = useState<"heart_rate" | "sleep" | "mood">("heart_rate");
 
-  // Transformar mood e energy para num├®rico para o gr├ífico (opcional/simplificado)
+  // Transformar mood e energy para numérico para o gráfico (opcional/simplificado)
   const chartData = data.map(item => {
     let moodValue = 0;
     switch(item.mood) {
@@ -60,7 +60,7 @@ export default function BiometricsCharts({ data }: BiometricsChartsProps) {
               : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"
           }`}
         >
-          Frequ├¬ncia Card├¡aca
+          Frequência Cardíaca
         </button>
         <button
           onClick={() => setActiveChart("sleep")}
@@ -80,7 +80,7 @@ export default function BiometricsCharts({ data }: BiometricsChartsProps) {
               : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"
           }`}
         >
-          Humor (Tend├¬ncia)
+          Humor (Tendência)
         </button>
       </div>
 

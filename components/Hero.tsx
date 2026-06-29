@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -26,7 +26,7 @@ export default function Hero() {
           >
             <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
             <span className="text-xs uppercase tracking-[0.15em] font-semibold text-secondary">
-              Intelig├¬ncia Emocional Neural
+              Inteligência Emocional Neural
             </span>
           </motion.div>
 
@@ -36,7 +36,7 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.8 }}
           >
-            Entendendo emo├º├Áes <br className="hidden md:block" />
+            Entendendo emoções <br className="hidden md:block" />
             <span className="font-medium bg-clip-text text-transparent bg-gradient-to-r from-secondary via-white to-primary">
               antes do colapso.
             </span>
@@ -48,7 +48,7 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.8 }}
           >
-            Utilizamos intelig├¬ncia artificial para identificar padr├Áes emocionais e gerar insights para ajudar jovens a compreender melhor sua sa├║de emocional.
+            Utilizamos inteligência artificial para identificar padrões emocionais e gerar insights para ajudar jovens a compreender melhor sua saúde emocional.
           </motion.p>
 
           <motion.div 
@@ -61,7 +61,7 @@ export default function Hero() {
               href="/login"
               className="px-8 py-4 rounded-full bg-white text-background font-semibold text-sm uppercase tracking-widest hover:bg-secondary transition-colors text-center shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(159,207,213,0.4)]"
             >
-              Come├ºar Agora
+              Começar Agora
             </Link>
             <button 
               className="px-8 py-4 rounded-full border border-white/20 bg-white/5 backdrop-blur-md text-white font-semibold text-sm uppercase tracking-widest hover:bg-white/10 transition-colors text-center"

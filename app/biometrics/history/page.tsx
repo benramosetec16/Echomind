@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
@@ -69,12 +69,12 @@ export default function BiometricsHistory() {
 
   return (
     <>
-      <TopBar title="Hist├│rico Biom├®trico" />
+      <TopBar title="Histórico Biométrico" />
       <main className="pt-32 px-16 pb-24 relative min-h-screen flex flex-col">
         <PageTransition>
           <div className="max-w-[1200px] mx-auto w-full mb-10 flex justify-start">
              <Link href="/biometrics" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant hover:text-primary transition-colors">
-               <span className="material-symbols-outlined text-[16px]">arrow_back</span> RETORNAR ├Ç BASE
+               <span className="material-symbols-outlined text-[16px]">arrow_back</span> RETORNAR À BASE
              </Link>
           </div>
           
@@ -82,7 +82,7 @@ export default function BiometricsHistory() {
             <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
               <h2 className="text-xs uppercase tracking-[0.2em] font-semibold text-secondary flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">history</span>
-                REGISTROS HIST├ôRICOS
+                REGISTROS HISTÓRICOS
               </h2>
               
               <div className="flex gap-6">
@@ -112,7 +112,7 @@ export default function BiometricsHistory() {
                 <thead className="text-[10px] uppercase tracking-[0.15em] text-on-surface-variant border-b border-white/10 opacity-70">
                   <tr>
                     <th className="px-6 py-6 font-semibold">Data e Hora</th>
-                    <th className="px-6 py-6 font-semibold">Frequ├¬ncia</th>
+                    <th className="px-6 py-6 font-semibold">Frequência</th>
                     <th className="px-6 py-6 font-semibold">Sono</th>
                     <th className="px-6 py-6 font-semibold">Energia</th>
                     <th className="px-6 py-6 font-semibold">Humor</th>
@@ -129,7 +129,7 @@ export default function BiometricsHistory() {
                   ) : records.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-on-surface-variant uppercase tracking-widest text-xs opacity-50">
-                        Nenhum registro encontrado para este per├¡odo.
+                        Nenhum registro encontrado para este período.
                       </td>
                     </tr>
                   ) : (

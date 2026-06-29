@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -37,10 +37,10 @@ export async function GET(request: Request) {
     const { data: userData, error: authError } = await supabase.auth.getUser();
 
     if (authError || !userData?.user) {
-      return NextResponse.json({ error: 'N├úo autorizado' }, { status: 401 });
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    // Buscar os ├║ltimos 14 registros para an├ílise
+    // Buscar os últimos 14 registros para análise
     const { data: biometrics, error: dbError } = await supabase
       .from('biometrics')
       .select('*')
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
 
     if (!biometrics || biometrics.length === 0) {
       return NextResponse.json({ 
-        message: 'Sem dados suficientes para an├ílise. Registre alguns dados biom├®tricos primeiro.' 
+        message: 'Sem dados suficientes para análise. Registre alguns dados biométricos primeiro.' 
       }, { status: 200 });
     }
 
@@ -62,30 +62,30 @@ export async function GET(request: Request) {
       `Data: ${new Date(b.created_at).toLocaleDateString('pt-BR')}, BPM: ${b.heart_rate}, Sono: ${b.sleep_hours}h, Energia: ${b.energy_level}, Humor: ${b.mood}`
     ).join('\n');
 
-    const prompt = `Analise os dados biom├®tricos abaixo do usu├írio:
+    const prompt = `Analise os dados biométricos abaixo do usuário:
 
 ${dataSummary}
 
-Forne├ºa:
-1. Interpreta├º├úo geral
-2. Poss├¡veis padr├Áes
-3. Recomenda├º├Áes
+Forneça:
+1. Interpretação geral
+2. Possíveis padrões
+3. Recomendações
 4. Alertas relevantes
 
-As respostas devem ser informativas, emp├íticas e n├úo devem fornecer diagn├│stico m├®dico. Formate a resposta usando Markdown, separando cada uma das 4 se├º├Áes com cabe├ºalhos "### 1. Interpreta├º├úo geral" etc. Seja conciso, mas com um tom futurista e focado no bem-estar.`;
+As respostas devem ser informativas, empáticas e não devem fornecer diagnóstico médico. Formate a resposta usando Markdown, separando cada uma das 4 seções com cabeçalhos "### 1. Interpretação geral" etc. Seja conciso, mas com um tom futurista e focado no bem-estar.`;
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: 'llama-3.3-70b-versatile', // Ou o modelo groq de prefer├¬ncia
+      model: 'llama-3.3-70b-versatile', // Ou o modelo groq de preferência
       temperature: 0.5,
     });
 
-    const analysis = chatCompletion.choices[0]?.message?.content || 'N├úo foi poss├¡vel gerar an├ílise no momento.';
+    const analysis = chatCompletion.choices[0]?.message?.content || 'Não foi possível gerar análise no momento.';
 
     return NextResponse.json({ analysis });
 
   } catch (error: any) {
-    console.error('Erro na an├ílise biom├®trica:', error);
+    console.error('Erro na análise biométrica:', error);
     return NextResponse.json({ error: error.message || 'Erro interno no servidor' }, { status: 500 });
   }
 }

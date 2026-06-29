@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -7,7 +7,7 @@ import { biometricsService } from "@/services/biometrics";
 export default function BiometricsForm() {
   const [heartRate, setHeartRate] = useState("");
   const [sleepHours, setSleepHours] = useState("");
-  const [energyLevel, setEnergyLevel] = useState("M├®dia");
+  const [energyLevel, setEnergyLevel] = useState("Média");
   const [mood, setMood] = useState("Neutro");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -29,11 +29,11 @@ export default function BiometricsForm() {
       setMessage("Registro salvo com sucesso!");
       setHeartRate("");
       setSleepHours("");
-      setEnergyLevel("M├®dia");
+      setEnergyLevel("Média");
       setMood("Neutro");
       router.refresh();
       
-      // Simula├º├úo futura de sync com Apple HealthKit
+      // Simulação futura de sync com Apple HealthKit
       // /* FUTURE: await syncWithAppleHealthKit(userData.user.id); */
     } catch (err: any) {
       console.error(err);
@@ -46,13 +46,13 @@ export default function BiometricsForm() {
   return (
     <form onSubmit={handleSubmit} className="relative z-10 aetheric-glass rounded-[32px] p-10 overflow-hidden">
       <h2 className="text-sm uppercase tracking-[0.2em] font-semibold text-secondary mb-8 block">
-        Novo Registro Biom├®trico
+        Novo Registro Biométrico
       </h2>
 
       <div className="space-y-6">
         <div className="group relative">
           <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-            Frequ├¬ncia Card├¡aca (bpm)
+            Frequência Cardíaca (bpm)
           </label>
           <div className="input-underline py-2 flex items-center gap-3">
             <span className="material-symbols-outlined text-on-surface-variant group-focus-within:text-secondary transition-colors">favorite</span>
@@ -87,7 +87,7 @@ export default function BiometricsForm() {
 
         <div className="group relative">
           <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-            N├¡vel de Energia
+            Nível de Energia
           </label>
           <div className="input-underline py-2 flex items-center gap-3 relative">
             <span className="material-symbols-outlined text-on-surface-variant group-focus-within:text-secondary transition-colors">bolt</span>
@@ -98,7 +98,7 @@ export default function BiometricsForm() {
             >
               <option value="Muito Baixa" className="bg-surface-container">Muito Baixa</option>
               <option value="Baixa" className="bg-surface-container">Baixa</option>
-              <option value="M├®dia" className="bg-surface-container">M├®dia</option>
+              <option value="Média" className="bg-surface-container">Média</option>
               <option value="Alta" className="bg-surface-container">Alta</option>
               <option value="Muito Alta" className="bg-surface-container">Muito Alta</option>
             </select>

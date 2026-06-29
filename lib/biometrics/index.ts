@@ -1,4 +1,4 @@
-﻿export type BiometricsData = {
+export type BiometricsData = {
   id?: string;
   user_id?: string;
   heart_rate: number | null;

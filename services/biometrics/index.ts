@@ -1,4 +1,4 @@
-﻿import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "@supabase/ssr";
 import { BiometricsData } from "@/lib/biometrics";
 
 export class BiometricsService {

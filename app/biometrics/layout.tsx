@@ -1,4 +1,4 @@
-﻿import Sidebar from '../components/Sidebar';
+import Sidebar from '../components/Sidebar';
 import AethericBackground from '../components/AethericBackground';
 
 export default function BiometricsLayout({ children }: { children: React.ReactNode }) {

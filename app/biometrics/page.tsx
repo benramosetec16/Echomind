@@ -1,4 +1,4 @@
-﻿import { createServerClient } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import BiometricsForm from "@/components/biometrics/BiometricsForm";
 import { redirect } from "next/navigation";
@@ -25,11 +25,11 @@ export default async function BiometricsDashboard() {
   const { data: userData, error: authError } = await supabase.auth.getUser();
 
   if (authError || !userData?.user) {
-    // Para simplificar, n├úo redirecionando imediatamente para login em dev,
+    // Para simplificar, não redirecionando imediatamente para login em dev,
     // mas na vida real seria redirect('/login')
   }
 
-  // Buscar ├║ltimo registro
+  // Buscar último registro
   let latest = null;
   if (userData?.user) {
     const { data } = await supabase
@@ -44,20 +44,20 @@ export default async function BiometricsDashboard() {
   }
 
   const cards = [
-    { label: "├Ültima Leitura Card├¡aca", value: latest ? `${latest.heart_rate}` : "--", unit: latest ? "bpm" : "", icon: "favorite" },
+    { label: "Última Leitura Cardíaca", value: latest ? `${latest.heart_rate}` : "--", unit: latest ? "bpm" : "", icon: "favorite" },
     { label: "Horas de Sono", value: latest ? `${latest.sleep_hours}` : "--", unit: latest ? "h" : "", icon: "bedtime" },
-    { label: "N├¡vel de Energia", value: latest ? latest.energy_level : "--", unit: "", icon: "bolt" },
+    { label: "Nível de Energia", value: latest ? latest.energy_level : "--", unit: "", icon: "bolt" },
     { label: "Humor", value: latest ? latest.mood : "--", unit: "", icon: "mood" }
   ];
 
   return (
     <>
-      <TopBar title="Biometria & Sa├║de" />
+      <TopBar title="Biometria & Saúde" />
       <main className="pt-32 px-16 pb-24 relative min-h-screen flex flex-col">
         <PageTransition>
           <div className="max-w-[1200px] mx-auto w-full mb-10 flex justify-end gap-6 items-center">
              <Link href="/biometrics/history" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant hover:text-primary transition-colors">
-               <span className="material-symbols-outlined text-[16px]">history</span> HIST├ôRICO
+               <span className="material-symbols-outlined text-[16px]">history</span> HISTÓRICO
              </Link>
              <Link href="/biometrics/insights" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-tertiary hover:text-white transition-colors">
                <span className="material-symbols-outlined text-[16px]">auto_awesome</span> INSIGHTS IA
@@ -85,7 +85,7 @@ export default async function BiometricsDashboard() {
               {/* Integration Placeholders */}
               <div className="aetheric-glass rounded-[40px] p-8 flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-6">
-                  <span className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant block">Integra├º├Áes</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant block">Integrações</span>
                   <span className="material-symbols-outlined text-secondary opacity-50">sync</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

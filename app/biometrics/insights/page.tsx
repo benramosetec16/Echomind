@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import BiometricsCharts from "@/components/biometrics/BiometricsCharts";
@@ -65,11 +65,11 @@ export default function BiometricsInsights() {
       } else if (result.message) {
         setAnalysis(result.message);
       } else {
-        setAnalysis("N├úo foi poss├¡vel carregar os insights neste momento.");
+        setAnalysis("Não foi possível carregar os insights neste momento.");
       }
     } catch (error: any) {
       console.error("Erro ao carregar insights:", error);
-      setAnalysis(error.message || "Ocorreu um erro ao conectar com o servi├ºo de an├ílise.");
+      setAnalysis(error.message || "Ocorreu um erro ao conectar com o serviço de análise.");
     } finally {
       setLoading(false);
     }
@@ -95,7 +95,7 @@ export default function BiometricsInsights() {
           let icon = "psychology";
           let colorClass = "text-secondary";
 
-          if (title.toLowerCase().includes("padr├Áes")) {
+          if (title.toLowerCase().includes("padrões")) {
             icon = "pattern"; colorClass = "text-tertiary";
           } else if (title.toLowerCase().includes("recomenda")) {
             icon = "lightbulb"; colorClass = "text-primary";
@@ -126,7 +126,7 @@ export default function BiometricsInsights() {
         <PageTransition>
           <div className="max-w-[1200px] mx-auto w-full mb-10 flex justify-start">
              <Link href="/biometrics" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant hover:text-primary transition-colors">
-               <span className="material-symbols-outlined text-[16px]">arrow_back</span> RETORNAR ├Ç BASE
+               <span className="material-symbols-outlined text-[16px]">arrow_back</span> RETORNAR À BASE
              </Link>
           </div>
 
@@ -135,13 +135,13 @@ export default function BiometricsInsights() {
             <section className="aetheric-glass rounded-[32px] p-8 mb-8">
               <h2 className="text-xs uppercase tracking-[0.2em] font-semibold text-secondary mb-8 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">monitoring</span>
-                EVOLU├ç├âO BIOM├ëTRICA
+                EVOLUÇÃO BIOMÉTRICA
               </h2>
               {chartData.length > 0 ? (
                 <BiometricsCharts data={chartData} />
               ) : (
                 <div className="text-center opacity-50 py-10 text-on-surface-variant text-sm tracking-widest uppercase font-semibold">
-                  {loading ? "Inicializando rastreamento..." : "Nenhum dado suficiente para visualiza├º├úo."}
+                  {loading ? "Inicializando rastreamento..." : "Nenhum dado suficiente para visualização."}
                 </div>
               )}
             </section>
@@ -156,7 +156,7 @@ export default function BiometricsInsights() {
                 {loading && (
                   <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-on-surface-variant opacity-60 font-semibold">
                     <span className="w-3 h-3 border-2 border-tertiary border-t-transparent rounded-full animate-[spin_2s_linear_infinite]"></span>
-                    Analisando Padr├Áes
+                    Analisando Padrões
                   </span>
                 )}
               </div>
@@ -165,7 +165,7 @@ export default function BiometricsInsights() {
                 {loading ? (
                   <div className="flex flex-col items-center justify-center h-40 gap-4 opacity-50">
                     <span className="material-symbols-outlined text-4xl pulse-effect text-tertiary">neurology</span>
-                    <p className="text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant">Sintetizando Dados Biom├®tricos...</p>
+                    <p className="text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant">Sintetizando Dados Biométricos...</p>
                   </div>
                 ) : (
                   renderAnalysis()

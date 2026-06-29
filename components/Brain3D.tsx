@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import Spline from '@splinetool/react-spline/next';
@@ -17,7 +17,7 @@ export default function Brain3D({ initialStatus = 'neutral', className = '' }: B
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
 
-  // Cores de diagn├│stico
+  // Cores de diagnóstico
   const statusColors = {
     neutral: 'rgba(159, 207, 213, 0.4)',   // Azul
     positive: 'rgba(74, 222, 128, 0.4)',    // Verde
@@ -28,7 +28,7 @@ export default function Brain3D({ initialStatus = 'neutral', className = '' }: B
   const currentColor = statusColors[status];
 
   useEffect(() => {
-    // Diagn├│stico de Sistema: Conecta com a an├ílise real-time do usu├írio
+    // Diagnóstico de Sistema: Conecta com a análise real-time do usuário
     const fetchUserStatus = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -98,7 +98,7 @@ export default function Brain3D({ initialStatus = 'neutral', className = '' }: B
         )}
       </AnimatePresence>
 
-      {/* C├®rebro 3D */}
+      {/* Cérebro 3D */}
       <motion.div 
         className="absolute inset-0 z-10 w-full h-full flex items-center justify-center"
         animate={{ y: [-10, 10, -10] }}

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import TopBar from '../components/TopBar';
@@ -8,9 +8,9 @@ import { motion } from 'framer-motion';
 type StudyMode = 'explain' | 'summarize' | 'review' | 'schedule' | 'qa';
 
 const STUDY_MODES = [
-  { id: 'explain', label: 'Explica├º├úo Profunda', icon: 'school' },
+  { id: 'explain', label: 'Explicação Profunda', icon: 'school' },
   { id: 'summarize', label: 'Sintetizar Resumo', icon: 'compress' },
-  { id: 'review', label: 'Revis├úo e Quest├Áes', icon: 'quiz' },
+  { id: 'review', label: 'Revisão e Questões', icon: 'quiz' },
   { id: 'schedule', label: 'Cronograma', icon: 'calendar_month' },
   { id: 'qa', label: 'Q&A Direto', icon: 'forum' },
 ];
@@ -35,7 +35,7 @@ export default function StudyPage() {
       });
       
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro na requisi├º├úo');
+      if (!res.ok) throw new Error(data.error || 'Erro na requisição');
       
       setResult(data.result);
     } catch (err) {
@@ -55,7 +55,7 @@ export default function StudyPage() {
             <div className="mb-10">
               <h2 className="text-3xl font-extralight text-on-surface tracking-tighter mb-4">Apoio Cognitivo</h2>
               <p className="text-sm text-on-surface-variant opacity-80 max-w-2xl">
-                Selecione um protocolo educacional e forne├ºa a mat├®ria base. A IA processar├í o conte├║do para otimizar a sua reten├º├úo neural.
+                Selecione um protocolo educacional e forneça a matéria base. A IA processará o conteúdo para otimizar a sua retenção neural.
               </p>
             </div>
 
@@ -82,7 +82,7 @@ export default function StudyPage() {
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Cole seu texto, anota├º├Áes ou digite o tema que deseja estudar..."
+                placeholder="Cole seu texto, anotações ou digite o tema que deseja estudar..."
                 className="w-full h-40 bg-transparent text-on-surface resize-none focus:outline-none placeholder-on-surface-variant/30 text-sm font-light mb-6"
               />
               <div className="flex justify-end border-t border-white/5 pt-6">
