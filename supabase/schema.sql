@@ -25,6 +25,7 @@ create table public.profiles (
   focus_latency numeric(4,2) default 0.14,
   sync_integrity numeric(4,1) default 99.8,
   aetheric_yield numeric(4,1) default 8.2,
+  role text default 'aluno',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

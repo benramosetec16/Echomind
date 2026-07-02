@@ -23,7 +23,7 @@ interface Checkin {
 }
 
 export default function HistoryPage() {
-  const [timeRange, setTimeRange] = useState<'7D' | '30D'>('30D');
+  const [timeRange, setTimeRange] = useState<'7D' | '30D' | 'ALL'>('30D');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [checkins, setCheckins] = useState<Checkin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,9 +127,23 @@ export default function HistoryPage() {
     return 'text-primary bg-surface-variant border-white/10';
   };
 
+  // Filter checkins based on timeRange
+  const filteredCheckins = checkins.filter(c => {
+    if (timeRange === '7D') {
+      const date = new Date();
+      date.setDate(date.getDate() - 7);
+      return new Date(c.created_at) >= date;
+    } else if (timeRange === '30D') {
+      const date = new Date();
+      date.setDate(date.getDate() - 30);
+      return new Date(c.created_at) >= date;
+    }
+    return true; // For 'ALL'
+  });
+
   // Calculate dynamic path based on checkins
   const calculatePath = () => {
-    if (checkins.length < 2) {
+    if (filteredCheckins.length < 2) {
       return "M 0,100 C 100,150 200,80 300,200 C 400,280 500,200 600,180 C 700,160 800,90 800,90";
     }
     
@@ -137,15 +151,15 @@ export default function HistoryPage() {
     const width = 800;
     const height = 300;
     const paddingY = 50;
-    const stepX = width / (checkins.length - 1);
+    const stepX = width / (filteredCheckins.length - 1);
 
-    let path = `M 0,${height - paddingY - (checkins[0].valence_value / 100) * (height - 2 * paddingY)}`;
+    let path = `M 0,${height - paddingY - (filteredCheckins[0].valence_value / 100) * (height - 2 * paddingY)}`;
     
-    for (let i = 1; i < checkins.length; i++) {
+    for (let i = 1; i < filteredCheckins.length; i++) {
       const prevX = (i - 1) * stepX;
-      const prevY = height - paddingY - (checkins[i - 1].valence_value / 100) * (height - 2 * paddingY);
+      const prevY = height - paddingY - (filteredCheckins[i - 1].valence_value / 100) * (height - 2 * paddingY);
       const currX = i * stepX;
-      const currY = height - paddingY - (checkins[i].valence_value / 100) * (height - 2 * paddingY);
+      const currY = height - paddingY - (filteredCheckins[i].valence_value / 100) * (height - 2 * paddingY);
       
       const cp1x = prevX + (currX - prevX) / 2;
       const cp1y = prevY;
@@ -227,6 +241,12 @@ export default function HistoryPage() {
                     className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.15em] transition-all ${timeRange === '30D' ? 'bg-secondary/10 text-secondary' : 'text-on-surface-variant hover:text-on-surface'}`}
                   >
                     30D
+                  </button>
+                  <button 
+                    onClick={() => setTimeRange('ALL')}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.15em] transition-all ${timeRange === 'ALL' ? 'bg-secondary/10 text-secondary' : 'text-on-surface-variant hover:text-on-surface'}`}
+                  >
+                    TODOS
                   </button>
                 </div>
               </div>

@@ -44,7 +44,7 @@ export default function BiometricsCharts({ data }: BiometricsChartsProps) {
     }
     return {
       ...item,
-      dateFormatted: new Date(item.date).toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit' }),
+      dateFormatted: new Date(item.date).toLocaleString("pt-BR", { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
       moodValue
     };
   }).reverse(); // Do mais antigo para o mais recente se vier ordernado desc
