@@ -89,6 +89,43 @@ export async function transmitAura(payload: { valenceValue: number; texture: str
       });
 
       if (journalError) console.error('Error saving journal:', journalError);
+
+      // Save Biometric Log based on valence
+      let logType = 'normal';
+      let nomenclature = 'Equilíbrio';
+      let bpm = 70;
+
+      if (payload.valenceValue < 25) {
+        logType = 'critical';
+        nomenclature = 'Vórtice de Discórdia';
+        bpm = 92;
+      } else if (payload.valenceValue < 45) {
+        logType = 'warning';
+        nomenclature = 'Deriva Melancólica';
+        bpm = 84;
+      } else if (payload.valenceValue < 75) {
+        logType = 'normal';
+        nomenclature = 'Equilíbrio';
+        bpm = 70;
+      } else if (payload.valenceValue < 90) {
+        logType = 'info';
+        nomenclature = 'Clareza Luminosa';
+        bpm = 60;
+      } else {
+        logType = 'info';
+        nomenclature = 'Serenidade Infinita';
+        bpm = 55;
+      }
+      
+      const { error: biometricError } = await supabase.from('biometric_logs').insert({
+        user_id: user.id,
+        title: nomenclature,
+        description: result.insight,
+        type: logType,
+        bpm: bpm
+      });
+      
+      if (biometricError) console.error('Error saving biometric log:', biometricError);
     } else {
        console.log('User not authenticated. Returning AI insight without saving to Supabase.');
     }

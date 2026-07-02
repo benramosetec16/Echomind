@@ -44,6 +44,38 @@ export default function AlertsPage() {
 
   useEffect(() => {
     fetchLogs();
+
+    let channel: any;
+    const setupRealtime = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      channel = supabase.channel('realtime-alerts')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'biometric_logs', filter: `user_id=eq.${user.id}` },
+          (payload) => {
+            setLogs((prev) => [payload.new as BiometricLog, ...prev]);
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'biometric_logs', filter: `user_id=eq.${user.id}` },
+          (payload) => {
+            setLogs((prev) => prev.map(log => log.id === payload.new.id ? payload.new as BiometricLog : log));
+          }
+        )
+        .subscribe();
+    };
+
+    setupRealtime();
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Insert mock log for testing
