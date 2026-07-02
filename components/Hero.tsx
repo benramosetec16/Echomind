@@ -63,11 +63,12 @@ export default function Hero() {
             >
               Começar Agora
             </Link>
-            <button 
+            <Link 
+              href="/presentation"
               className="px-8 py-4 rounded-full border border-white/20 bg-white/5 backdrop-blur-md text-white font-semibold text-sm uppercase tracking-widest hover:bg-white/10 transition-colors text-center"
             >
               Conhecer Tecnologia
-            </button>
+            </Link>
           </motion.div>
         </motion.div>
 

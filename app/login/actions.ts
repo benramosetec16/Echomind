@@ -33,6 +33,7 @@ export async function signup(formData: FormData) {
   const email = (formData.get('email') as string)?.trim()
   const password = formData.get('password') as string
   const fullName = (formData.get('fullName') as string)?.trim()
+  const role = (formData.get('role') as string) || 'aluno'
 
   if (!email || !password || !fullName) {
     return { error: 'Identity, Keyphrase and Name are required' }
@@ -44,6 +45,7 @@ export async function signup(formData: FormData) {
     options: {
       data: {
         full_name: fullName,
+        role: role,
       },
     },
   })

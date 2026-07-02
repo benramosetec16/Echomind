@@ -6,6 +6,7 @@ import PageTransition from '../components/PageTransition';
 import { useState, useEffect } from 'react';
 import { createClient } from '../../utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import { getUserRole } from '../../utils/roles';
 
 export default function DashboardPage() {
   const [userName, setUserName] = useState<string | null>(null);
@@ -19,8 +20,15 @@ export default function DashboardPage() {
         setUserName(user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Viajante');
       }
     };
+    const checkRole = async () => {
+      const role = await getUserRole();
+      if (role === 'professor') router.replace('/dashboard/professor');
+      else if (role === 'orientador') router.replace('/dashboard/orientador');
+      else if (role === 'administrador') router.replace('/dashboard/admin');
+    };
     fetchUser();
-  }, [supabase]);
+    checkRole();
+  }, [supabase, router]);
 
   return (
     <>

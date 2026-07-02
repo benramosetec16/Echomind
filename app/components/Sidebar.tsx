@@ -4,21 +4,50 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { createClient } from '../../utils/supabase/client';
-import { getUserRole, type UserRole, ROLE_LABELS, hasInstitutionalAccess } from '../../utils/roles';
+import { getUserRole, type UserRole, ROLE_LABELS } from '../../utils/roles';
 
-const baseNavItems = [
-  { icon: 'waves', label: 'Atmosfera', href: '/dashboard' },
-  { icon: 'auto_awesome', label: 'Refletir', href: '/dashboard/checkin' },
-  { icon: 'psychology', label: 'Analisar', href: '/dashboard/analyze' },
-  { icon: 'favorite', label: 'Pulso', href: '/dashboard/history' },
-  { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
-  { icon: 'health_metrics', label: 'Biometria', href: '/biometrics' },
-  { icon: 'school', label: 'Estudos', href: '/study' },
-  { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
+// Shared items available to all roles
+const sharedItems = [
   { icon: 'nightlight', label: 'Santuário', href: '/dashboard/profile' },
 ];
 
-const institutionalNavItem = { icon: 'corporate_fare', label: 'Institucional', href: '/dashboard/institution' };
+// Nav items per role
+const navByRole: Record<UserRole, { icon: string; label: string; href: string }[]> = {
+  aluno: [
+    { icon: 'waves', label: 'Atmosfera', href: '/dashboard' },
+    { icon: 'auto_awesome', label: 'Refletir', href: '/dashboard/checkin' },
+    { icon: 'psychology', label: 'Analisar', href: '/dashboard/analyze' },
+    { icon: 'favorite', label: 'Pulso', href: '/dashboard/history' },
+    { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
+    { icon: 'health_metrics', label: 'Biometria', href: '/biometrics' },
+    { icon: 'school', label: 'Estudos', href: '/study' },
+    { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
+  ],
+  professor: [
+    { icon: 'waves', label: 'Painel', href: '/dashboard/professor' },
+    { icon: 'groups', label: 'Turmas', href: '/dashboard/professor' },
+    { icon: 'auto_awesome', label: 'Refletir', href: '/dashboard/checkin' },
+    { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
+    { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
+    { icon: 'corporate_fare', label: 'Institucional', href: '/dashboard/institution' },
+  ],
+  orientador: [
+    { icon: 'waves', label: 'Painel', href: '/dashboard/orientador' },
+    { icon: 'visibility', label: 'Observação', href: '/dashboard/orientador' },
+    { icon: 'auto_awesome', label: 'Refletir', href: '/dashboard/checkin' },
+    { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
+    { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
+    { icon: 'corporate_fare', label: 'Institucional', href: '/dashboard/institution' },
+  ],
+  administrador: [
+    { icon: 'waves', label: 'Controle', href: '/dashboard/admin' },
+    { icon: 'group', label: 'Usuários', href: '/dashboard/admin' },
+    { icon: 'auto_awesome', label: 'Refletir', href: '/dashboard/checkin' },
+    { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
+    { icon: 'database', label: 'Sistema', href: '/dashboard/admin' },
+    { icon: 'corporate_fare', label: 'Institucional', href: '/dashboard/institution' },
+  ],
+};
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -53,12 +82,12 @@ export default function Sidebar() {
       </div>
 
       <div className="flex flex-col gap-4 w-full px-4">
-        {[...baseNavItems, ...(hasInstitutionalAccess(userRole) ? [institutionalNavItem] : [])].map((item) => {
+        {[...(navByRole[userRole] || navByRole.aluno), ...sharedItems].map((item) => {
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
           
           return (
             <Link 
-              key={item.href} 
+              key={`${item.href}-${item.label}`} 
               href={item.href}
               className={`flex items-center gap-4 py-3 px-3 transition-all duration-300 rounded-full active:scale-95 ${
                 isActive 

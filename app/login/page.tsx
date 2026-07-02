@@ -201,7 +201,7 @@ export default function LoginPage() {
                   <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
                     Designação (Nome Completo)
                   </label>
-                  <div className="input-underline py-2">
+                  <div className="input-underline py-2 mb-6">
                     <input
                       name="fullName"
                       type="text"
@@ -209,6 +209,22 @@ export default function LoginPage() {
                       placeholder="João Silva"
                       className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
                     />
+                  </div>
+
+                  <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
+                    Cargo
+                  </label>
+                  <div className="input-underline py-2">
+                    <select
+                      name="role"
+                      required={mode === 'signup'}
+                      className="w-full bg-transparent border-none outline-none text-on-surface appearance-none cursor-pointer"
+                    >
+                      <option value="aluno" className="bg-surface-container text-on-surface">Aluno</option>
+                      <option value="professor" className="bg-surface-container text-on-surface">Professor</option>
+                      <option value="orientador" className="bg-surface-container text-on-surface">Orientador</option>
+                      <option value="administrador" className="bg-surface-container text-on-surface">Administrador</option>
+                    </select>
                   </div>
                 </motion.div>
               )}
