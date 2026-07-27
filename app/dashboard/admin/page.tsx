@@ -210,7 +210,7 @@ export default function AdminDashboard() {
             >
               <h3 className="text-lg font-light text-on-surface mb-6">Distribuição por Cargo</h3>
               <div className="flex flex-col gap-4">
-                {roleDistribution.map((role) => (
+                {roleDist.map((role) => (
                   <div key={role.label}>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-sm text-on-surface-variant">{role.label}</span>
