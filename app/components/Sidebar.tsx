@@ -11,22 +11,24 @@ const sharedItems = [
   { icon: 'nightlight', label: 'Santuário', href: '/dashboard/profile' },
 ];
 
-// Nav items per role
 const navByRole: Record<UserRole, { icon: string; label: string; href: string }[]> = {
   aluno: [
     { icon: 'waves', label: 'Atmosfera', href: '/dashboard' },
     { icon: 'auto_awesome', label: 'Refletir', href: '/dashboard/checkin' },
     { icon: 'psychology', label: 'Analisar', href: '/dashboard/analyze' },
+    { icon: 'chat', label: 'Mensagens', href: '/dashboard/messages' },
     { icon: 'favorite', label: 'Pulso', href: '/dashboard/history' },
     { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
     { icon: 'health_metrics', label: 'Biometria', href: '/biometrics' },
     { icon: 'school', label: 'Estudos', href: '/study' },
     { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
+    { icon: 'handshake', label: 'Parceiros', href: '/dashboard/parceiros' },
   ],
   professor: [
     { icon: 'waves', label: 'Painel', href: '/dashboard/professor' },
     { icon: 'groups', label: 'Turmas', href: '/dashboard/professor' },
     { icon: 'auto_awesome', label: 'Refletir', href: '/dashboard/checkin' },
+    { icon: 'chat', label: 'Mensagens', href: '/dashboard/messages' },
     { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
     { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
     { icon: 'corporate_fare', label: 'Institucional', href: '/dashboard/institution' },
@@ -35,8 +37,10 @@ const navByRole: Record<UserRole, { icon: string; label: string; href: string }[
     { icon: 'waves', label: 'Painel', href: '/dashboard/orientador' },
     { icon: 'visibility', label: 'Observação', href: '/dashboard/orientador' },
     { icon: 'auto_awesome', label: 'Refletir', href: '/dashboard/checkin' },
+    { icon: 'chat', label: 'Mensagens', href: '/dashboard/messages' },
     { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
     { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
+    { icon: 'handshake', label: 'Parceiros', href: '/dashboard/parceiros' },
     { icon: 'corporate_fare', label: 'Institucional', href: '/dashboard/institution' },
   ],
   administrador: [

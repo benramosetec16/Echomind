@@ -214,7 +214,7 @@ export default function LoginPage() {
                   <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
                     Cargo
                   </label>
-                  <div className="input-underline py-2">
+                  <div className="input-underline py-2 mb-6">
                     <select
                       name="role"
                       required={mode === 'signup'}
@@ -225,6 +225,54 @@ export default function LoginPage() {
                       <option value="orientador" className="bg-surface-container text-on-surface">Orientador</option>
                       <option value="administrador" className="bg-surface-container text-on-surface">Administrador</option>
                     </select>
+                  </div>
+
+                  <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
+                    Instituição (Código)
+                  </label>
+                  <div className="input-underline py-2 mb-6">
+                    <input
+                      name="institutionId"
+                      type="text"
+                      placeholder="UUID da Instituição (Opcional)"
+                      className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
+                    />
+                  </div>
+
+                  <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
+                    Sala (Código)
+                  </label>
+                  <div className="input-underline py-2 mb-6">
+                    <input
+                      name="classroomId"
+                      type="text"
+                      placeholder="UUID da Turma (Opcional)"
+                      className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
+                    />
+                  </div>
+
+                  <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
+                    Nome do Responsável
+                  </label>
+                  <div className="input-underline py-2 mb-6">
+                    <input
+                      name="guardianName"
+                      type="text"
+                      placeholder="Maria Silva (Opcional)"
+                      className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
+                    />
+                  </div>
+
+                  <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
+                    Telefone do Responsável
+                  </label>
+                  <div className="input-underline py-2">
+                    <input
+                      name="guardianPhone"
+                      type="text"
+                      placeholder="(11) 99999-9999 (Opcional)"
+                      className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
+                    />
                   </div>
                 </motion.div>
               )}

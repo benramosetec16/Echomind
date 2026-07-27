@@ -34,6 +34,12 @@ export async function signup(formData: FormData) {
   const password = formData.get('password') as string
   const fullName = (formData.get('fullName') as string)?.trim()
   const role = (formData.get('role') as string) || 'aluno'
+  
+  // New institutional and guardian fields
+  const institutionId = (formData.get('institutionId') as string)?.trim() || ''
+  const classroomId = (formData.get('classroomId') as string)?.trim() || ''
+  const guardianName = (formData.get('guardianName') as string)?.trim() || ''
+  const guardianPhone = (formData.get('guardianPhone') as string)?.trim() || ''
 
   if (!email || !password || !fullName) {
     return { error: 'Identity, Keyphrase and Name are required' }
@@ -46,6 +52,10 @@ export async function signup(formData: FormData) {
       data: {
         full_name: fullName,
         role: role,
+        institution_id: institutionId,
+        classroom_id: classroomId,
+        guardian_name: guardianName,
+        guardian_phone: guardianPhone,
       },
     },
   })

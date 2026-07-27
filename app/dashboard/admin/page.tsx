@@ -6,30 +6,37 @@ import { createClient } from '../../../utils/supabase/client';
 import TopBar from '../../components/TopBar';
 import PageTransition from '../../components/PageTransition';
 
-const systemStats = [
-  { label: 'Usuários Ativos', value: '312', icon: 'group', sub: '+8 esta semana' },
-  { label: 'IA Processamentos', value: '1.4k', icon: 'psychology', sub: 'Últimas 24h' },
-  { label: 'Uptime do Sistema', value: '99.9%', icon: 'cloud_done', sub: '30 dias' },
-  { label: 'Registros Biom.', value: '28.7k', icon: 'database', sub: 'Total acumulado' },
-];
+interface RoleDist {
+  label: string;
+  count: number;
+  color: string;
+  pct: number;
+}
 
-const roleDistribution = [
-  { label: 'Alunos', count: 282, color: 'bg-secondary', pct: 90 },
-  { label: 'Professores', count: 21, color: 'bg-primary', pct: 7 },
-  { label: 'Orientadores', count: 7, color: 'bg-tertiary', pct: 2 },
-  { label: 'Administradores', count: 2, color: 'bg-white/40', pct: 1 },
-];
-
-const recentActivity = [
-  { action: 'Novo usuário registrado', detail: 'Cargo: Professor', time: '5 min atrás', icon: 'person_add' },
-  { action: 'Alerta biométrico criado', detail: 'Turma 1C – nível crítico', time: '22 min atrás', icon: 'warning' },
-  { action: 'Schema do banco atualizado', detail: 'supabase/schema.sql', time: '2h atrás', icon: 'storage' },
-  { action: 'Protocolo de IA disparado', detail: '47 análises em paralelo', time: '3h atrás', icon: 'psychology' },
-  { action: 'Sessão encerrada automaticamente', detail: 'Ghost Mode ativo', time: '5h atrás', icon: 'logout' },
-];
+interface Activity {
+  id: string;
+  action: string;
+  detail: string;
+  time: string;
+  icon: string;
+  created_at: Date;
+}
 
 export default function AdminDashboard() {
   const [userName, setUserName] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [stats, setStats] = useState({
+    activeUsers: 0,
+    activeUsersNew: 0,
+    aiProcessings: 0,
+    uptime: '99.9%',
+    biometricLogs: 0,
+  });
+
+  const [roleDist, setRoleDist] = useState<RoleDist[]>([]);
+  const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
+
   const supabase = createClient();
 
   useEffect(() => {
@@ -41,6 +48,115 @@ export default function AdminDashboard() {
     };
     fetchUser();
   }, [supabase]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      
+      // Fetch total profiles & distribution
+      const { data: profiles } = await supabase.from('profiles').select('id, role, created_at');
+      
+      // Fetch AI operations (journal entries & biometric logs)
+      const { count: journalCount } = await supabase.from('journal_entries').select('*', { count: 'exact', head: true });
+      const { count: bioCount } = await supabase.from('biometric_logs').select('*', { count: 'exact', head: true });
+
+      // Recent Activity - Just use latest 5 profiles as new users and latest 5 biometric logs as alerts
+      const { data: recentProfiles } = await supabase.from('profiles').select('id, role, created_at').order('created_at', { ascending: false }).limit(5);
+      const { data: recentBio } = await supabase.from('biometric_logs').select('id, type, created_at').order('created_at', { ascending: false }).limit(5);
+
+      if (profiles) {
+        const total = profiles.length;
+        const now = new Date();
+        const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        
+        const newUsers = profiles.filter(p => new Date(p.created_at) > lastWeek).length;
+        
+        setStats({
+          activeUsers: total,
+          activeUsersNew: newUsers,
+          aiProcessings: (journalCount || 0) + (bioCount || 0),
+          uptime: '99.9%',
+          biometricLogs: bioCount || 0,
+        });
+
+        const rolesCount: Record<string, number> = {
+          aluno: 0,
+          professor: 0,
+          orientador: 0,
+          administrador: 0,
+        };
+
+        profiles.forEach(p => {
+          if (rolesCount[p.role] !== undefined) rolesCount[p.role]++;
+        });
+
+        setRoleDist([
+          { label: 'Alunos', count: rolesCount.aluno, color: 'bg-secondary', pct: total > 0 ? (rolesCount.aluno / total) * 100 : 0 },
+          { label: 'Professores', count: rolesCount.professor, color: 'bg-primary', pct: total > 0 ? (rolesCount.professor / total) * 100 : 0 },
+          { label: 'Orientadores', count: rolesCount.orientador, color: 'bg-tertiary', pct: total > 0 ? (rolesCount.orientador / total) * 100 : 0 },
+          { label: 'Administradores', count: rolesCount.administrador, color: 'bg-white/40', pct: total > 0 ? (rolesCount.administrador / total) * 100 : 0 },
+        ]);
+
+        const activities: Activity[] = [];
+        
+        if (recentProfiles) {
+          recentProfiles.forEach(p => {
+            activities.push({
+              id: p.id,
+              action: 'Novo usuário registrado',
+              detail: `Cargo: ${p.role}`,
+              time: '',
+              icon: 'person_add',
+              created_at: new Date(p.created_at)
+            });
+          });
+        }
+        
+        if (recentBio) {
+          recentBio.forEach(b => {
+            activities.push({
+              id: b.id,
+              action: 'Alerta biométrico',
+              detail: `Nível: ${b.type}`,
+              time: '',
+              icon: 'warning',
+              created_at: new Date(b.created_at)
+            });
+          });
+        }
+
+        activities.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
+        
+        const finalActivities = activities.slice(0, 5).map(a => {
+          const diffMins = Math.floor((now.getTime() - a.created_at.getTime()) / 60000);
+          a.time = diffMins > 60 ? `há ${Math.floor(diffMins/60)}h` : `há ${diffMins} min`;
+          return a;
+        });
+        
+        setRecentActivity(finalActivities);
+      }
+      
+      setLoading(false);
+    };
+
+    loadData();
+    
+    const channel = supabase.channel('admin_dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'biometric_logs' }, () => loadData())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
+  const systemStats = [
+    { label: 'Usuários Totais', value: stats.activeUsers, icon: 'group', sub: `+${stats.activeUsersNew} esta semana` },
+    { label: 'IA Processamentos', value: stats.aiProcessings, icon: 'psychology', sub: 'Total' },
+    { label: 'Uptime do Sistema', value: stats.uptime, icon: 'cloud_done', sub: '30 dias' },
+    { label: 'Registros Biom.', value: stats.biometricLogs, icon: 'database', sub: 'Total acumulado' },
+  ];
 
   return (
     <>
@@ -80,7 +196,7 @@ export default function AdminDashboard() {
                   <span className="text-xs uppercase tracking-[0.15em] text-on-surface-variant font-semibold">{stat.label}</span>
                   <span className="material-symbols-outlined text-secondary opacity-60 text-xl">{stat.icon}</span>
                 </div>
-                <span className="text-4xl font-extralight text-on-surface">{stat.value}</span>
+                <span className="text-4xl font-extralight text-on-surface">{loading ? '...' : stat.value}</span>
                 <span className="text-[11px] text-on-surface-variant opacity-50 uppercase tracking-wider">{stat.sub}</span>
               </motion.div>
             ))}
@@ -98,7 +214,7 @@ export default function AdminDashboard() {
                   <div key={role.label}>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-sm text-on-surface-variant">{role.label}</span>
-                      <span className="text-xs font-semibold text-on-surface">{role.count}</span>
+                      <span className="text-xs font-semibold text-on-surface">{loading ? '-' : role.count}</span>
                     </div>
                     <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                       <motion.div
@@ -120,18 +236,24 @@ export default function AdminDashboard() {
             >
               <h3 className="text-lg font-light text-on-surface mb-6">Log de Atividade</h3>
               <div className="flex flex-col gap-4">
-                {recentActivity.map((item, i) => (
-                  <div key={i} className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-xl bg-secondary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="material-symbols-outlined text-secondary text-base">{item.icon}</span>
+                {loading ? (
+                  <div className="text-sm text-on-surface-variant opacity-60">Carregando logs...</div>
+                ) : recentActivity.length === 0 ? (
+                  <div className="text-sm text-on-surface-variant opacity-60">Nenhuma atividade recente.</div>
+                ) : (
+                  recentActivity.map((item, i) => (
+                    <div key={i} className="flex items-start gap-4">
+                      <div className="w-8 h-8 rounded-xl bg-secondary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="material-symbols-outlined text-secondary text-base">{item.icon}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-on-surface font-medium truncate">{item.action}</p>
+                        <p className="text-xs text-on-surface-variant opacity-50 truncate">{item.detail}</p>
+                      </div>
+                      <span className="text-[10px] text-on-surface-variant opacity-30 whitespace-nowrap">{item.time}</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-on-surface font-medium truncate">{item.action}</p>
-                      <p className="text-xs text-on-surface-variant opacity-50 truncate">{item.detail}</p>
-                    </div>
-                    <span className="text-[10px] text-on-surface-variant opacity-30 whitespace-nowrap">{item.time}</span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </motion.div>
           </div>

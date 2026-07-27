@@ -44,6 +44,37 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Se tem usuário, aplicar restrição de rotas no dashboard
+  if (user && request.nextUrl.pathname.startsWith('/dashboard')) {
+    // Buscar perfil do usuário para pegar o cargo real e não só do metadata
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+      
+    const role = profile?.role || 'aluno'
+    const path = request.nextUrl.pathname
+
+    if (path.startsWith('/dashboard/admin') && role !== 'administrador') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+    
+    if (path.startsWith('/dashboard/professor') && role !== 'professor') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+    
+    if (path.startsWith('/dashboard/orientador') && role !== 'orientador') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // If user is logged in and trying to access the login page, redirect to dashboard
   if (
     user &&

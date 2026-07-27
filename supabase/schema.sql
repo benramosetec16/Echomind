@@ -9,7 +9,32 @@ drop table if exists public.biometric_logs cascade;
 drop table if exists public.aetheric_journal cascade;
 drop table if exists public.emotional_checkins cascade;
 drop table if exists public.profiles cascade;
+drop table if exists public.classrooms cascade;
+drop table if exists public.institutions cascade;
 
+
+-- 0.1 Institutions Table
+create table public.institutions (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.institutions enable row level security;
+create policy "Anyone can view institutions." 
+  on institutions for select using (true);
+
+-- 0.2 Classrooms Table (Turmas)
+create table public.classrooms (
+  id uuid default gen_random_uuid() primary key,
+  institution_id uuid references public.institutions(id) on delete cascade not null,
+  name text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.classrooms enable row level security;
+create policy "Anyone can view classrooms." 
+  on classrooms for select using (true);
 
 -- 1. Profiles Table (extends Supabase Auth)
 -- Stores user preferences and specific configurations from the Sanctuary page.
@@ -26,11 +51,39 @@ create table public.profiles (
   sync_integrity numeric(4,1) default 99.8,
   aetheric_yield numeric(4,1) default 8.2,
   role text default 'aluno',
+  
+  -- Institutional fields (nullable for backward compatibility with old accounts)
+  institution_id uuid references public.institutions(id) on delete set null,
+  classroom_id uuid references public.classrooms(id) on delete set null,
+  professor_id uuid references public.profiles(id) on delete set null,
+  orientador_id uuid references public.profiles(id) on delete set null,
+  
+  -- Guardian fields
+  guardian_name text,
+  guardian_phone text,
+
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 alter table public.profiles enable row level security;
+
+-- 1.5 Messages Table (Etapa 7)
+create table public.messages (
+  id uuid default gen_random_uuid() primary key,
+  sender_id uuid references public.profiles(id) on delete cascade not null,
+  receiver_id uuid references public.profiles(id) on delete cascade not null,
+  content text not null,
+  type text default 'text' check (type in ('text', 'session_request')),
+  is_read boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.messages enable row level security;
+create policy "Users can view their own messages." 
+  on messages for select using (auth.uid() = sender_id or auth.uid() = receiver_id);
+create policy "Users can insert their own messages." 
+  on messages for insert with check (auth.uid() = sender_id);
 
 create policy "Users can view their own profile." 
   on profiles for select using (auth.uid() = id);
@@ -42,11 +95,17 @@ create policy "Users can update their own profile."
 create function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, full_name, role)
+  insert into public.profiles (
+    id, full_name, role, guardian_name, guardian_phone, institution_id, classroom_id
+  )
   values (
     new.id,
     new.raw_user_meta_data->>'full_name',
-    coalesce(new.raw_user_meta_data->>'role', 'aluno')
+    coalesce(new.raw_user_meta_data->>'role', 'aluno'),
+    new.raw_user_meta_data->>'guardian_name',
+    new.raw_user_meta_data->>'guardian_phone',
+    nullif(new.raw_user_meta_data->>'institution_id', '')::uuid,
+    nullif(new.raw_user_meta_data->>'classroom_id', '')::uuid
   );
   return new;
 end;
