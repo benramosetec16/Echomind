@@ -3,44 +3,58 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Fingerprint, AlertCircle, Languages } from 'lucide-react';
-import { login, signup } from './actions';
+import { login, signup, requestPasswordReset, confirmPasswordReset } from './actions';
 
-// Objeto simples com os textos em Português e Inglês
 const t = {
   pt: {
     title: "Autenticação Segura Necessária",
     titleSignup: "Estabelecer Ponte Neural",
+    titleForgot: "Recuperação Neural",
+    titleOtp: "Validação de Identidade",
+    titleReset: "Nova Frase-chave",
     loginBtn: "INICIAR ACESSO",
     signupBtn: "INICIALIZAR PROTOCOLO",
+    forgotBtn: "SOLICITAR RECUPERAÇÃO",
+    resetBtn: "REDEFINIR ACESSO",
     validating: "VALIDANDO...",
     granted: "ACESSO CONCEDIDO",
     noAccount: "Não tem uma conta? Cadastre-se",
     hasAccount: "Já tem uma conta? Faça Login",
+    forgotPass: "Esqueceu sua frase-chave?",
     biometric: "Conexão Biométrica",
   },
   en: {
     title: "Secure Authentication Required",
     titleSignup: "Establish Neural Bridge",
+    titleForgot: "Neural Recovery",
+    titleOtp: "Identity Validation",
+    titleReset: "New Keyphrase",
     loginBtn: "START ACCESS",
     signupBtn: "INITIALIZE PROTOCOL",
+    forgotBtn: "REQUEST RECOVERY",
+    resetBtn: "RESET ACCESS",
     validating: "VALIDATING...",
     granted: "ACCESS GRANTED",
     noAccount: "Don't have an account? Sign up",
     hasAccount: "Already have an account? Log in",
+    forgotPass: "Forgot your keyphrase?",
     biometric: "Biometric Connection",
   }
 };
 
 export default function LoginPage() {
-  // Estado para controlar o idioma ('pt' ou 'en')
   const [locale, setLocale] = useState<'pt' | 'en'>('pt');
   
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'otp_reset'>('login');
   const [status, setStatus] = useState<'idle' | 'validating' | 'granted'>('idle');
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showBiometricToast, setShowBiometricToast] = useState(false);
   
+  // States for OTP flow
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+
   const glowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,43 +78,72 @@ export default function LoginPage() {
     e.preventDefault();
     setStatus('validating');
     setErrorMsg(null);
+    setSuccessMsg(null);
     
     const formData = new FormData(e.currentTarget);
     
     try {
-      const result = mode === 'login' ? await login(formData) : await signup(formData);
-      
-      if (result?.error) {
-        setErrorMsg(result.error);
-        setStatus('idle');
-      } else {
-        setStatus('granted');
+      if (mode === 'login') {
+        const result = await login(formData);
+        if (result?.error) { setErrorMsg(result.error); setStatus('idle'); } 
+        else { setStatus('granted'); }
+      } 
+      else if (mode === 'signup') {
+        const result = await signup(formData);
+        if (result?.error) { setErrorMsg(result.error); setStatus('idle'); } 
+        else { setStatus('granted'); }
+      }
+      else if (mode === 'forgot') {
+        const emailVal = (formData.get('email') as string)?.trim() || '';
+        setRecoveryEmail(emailVal);
+        const result = await requestPasswordReset(formData);
+        if (result?.error) { setErrorMsg(result.error); setStatus('idle'); } 
+        else {
+          setSuccessMsg(locale === 'pt' ? 'Código de 6 dígitos enviado para seu e-mail.' : '6-digit code sent to your email.');
+          setMode('otp_reset');
+          setStatus('idle');
+        }
+      }
+      else if (mode === 'otp_reset') {
+        const result = await confirmPasswordReset(formData);
+        if (result?.error) { setErrorMsg(result.error); setStatus('idle'); } 
+        else {
+          setSuccessMsg(locale === 'pt' ? 'Senha atualizada com sucesso! Faça o login.' : 'Password updated successfully! Please log in.');
+          setMode('login');
+          setStatus('idle');
+        }
       }
     } catch (err) {
-      setErrorMsg('Ocorreu uma disrupção neural. Tente novamente.');
+      setErrorMsg(locale === 'pt' ? 'Ocorreu uma disrupção neural. Tente novamente.' : 'A neural disruption occurred. Try again.');
       setStatus('idle');
     }
   };
 
-  const toggleMode = () => {
-    setMode(prev => prev === 'login' ? 'signup' : 'login');
-    setErrorMsg(null);
-    setStatus('idle');
-  };
-
-  // Função para alternar o idioma ao clicar no botão
-  const toggleLanguage = () => {
-    setLocale(prev => prev === 'pt' ? 'en' : 'pt');
-  };
+  const toggleLanguage = () => setLocale(prev => prev === 'pt' ? 'en' : 'pt');
 
   const handleBiometricClick = () => {
     setShowBiometricToast(true);
     setTimeout(() => setShowBiometricToast(false), 3500);
   };
 
+  const getTitle = () => {
+    if (mode === 'login') return t[locale].title;
+    if (mode === 'signup') return t[locale].titleSignup;
+    if (mode === 'forgot') return t[locale].titleForgot;
+    if (mode === 'otp_reset') return t[locale].titleReset;
+    return t[locale].title;
+  };
+
+  const getButtonLabel = () => {
+    if (mode === 'login') return t[locale].loginBtn;
+    if (mode === 'signup') return t[locale].signupBtn;
+    if (mode === 'forgot') return t[locale].forgotBtn;
+    if (mode === 'otp_reset') return t[locale].resetBtn;
+    return t[locale].loginBtn;
+  };
+
   return (
     <>
-      {/* Botão Flutuante para Mudar de Idioma */}
       <button 
         type="button"
         onClick={toggleLanguage}
@@ -119,10 +162,7 @@ export default function LoginPage() {
             className="fixed inset-0 z-50 flex items-center justify-center bg-background"
           >
             <motion.div
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.8, 0.3],
-              }}
+              animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.8, 0.3] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
               className="absolute w-64 h-64 rounded-full bg-secondary/10 blur-[60px]"
             />
@@ -152,7 +192,7 @@ export default function LoginPage() {
         transition={{ duration: 1, delay: 0.2 }}
         className="relative z-10 w-full max-w-[420px] mx-auto min-h-screen flex flex-col items-center justify-center px-6"
       >
-        <header className="text-center mb-8">
+        <header className="text-center mb-8 mt-12">
           <motion.h1 
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -167,7 +207,7 @@ export default function LoginPage() {
             transition={{ delay: 2.4, duration: 0.8 }}
             className="text-xs uppercase tracking-[0.2em] text-on-surface-variant opacity-60 font-semibold"
           >
-            {mode === 'login' ? t[locale].title : t[locale].titleSignup}
+            {getTitle()}
           </motion.p>
         </header>
 
@@ -177,18 +217,33 @@ export default function LoginPage() {
           transition={{ delay: 2.6, duration: 0.8 }}
           className="glass-panel w-full rounded-[24px] p-10 relative overflow-hidden"
         >
-          {errorMsg && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="absolute top-0 left-0 right-0 bg-red-500/10 border-b border-red-500/20 p-3 flex items-center justify-center gap-2"
-            >
-              <AlertCircle className="w-4 h-4 text-red-400" />
-              <span className="text-xs text-red-400 font-medium tracking-wider">{errorMsg}</span>
-            </motion.div>
-          )}
+          <AnimatePresence mode="popLayout">
+            {errorMsg && (
+              <motion.div 
+                key="error"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute top-0 left-0 right-0 bg-red-500/10 border-b border-red-500/20 p-3 flex items-center justify-center gap-2"
+              >
+                <AlertCircle className="w-4 h-4 text-red-400" />
+                <span className="text-[10px] text-red-400 font-medium tracking-wider text-center px-2">{errorMsg}</span>
+              </motion.div>
+            )}
+            {successMsg && !errorMsg && (
+              <motion.div 
+                key="success"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute top-0 left-0 right-0 bg-secondary/10 border-b border-secondary/20 p-3 flex items-center justify-center gap-2"
+              >
+                <span className="text-[10px] text-secondary font-medium tracking-wider text-center px-2">{successMsg}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <form onSubmit={handleSubmit} className={`flex flex-col gap-8 ${errorMsg ? 'mt-4' : ''}`}>
+          <form onSubmit={handleSubmit} className={`flex flex-col gap-6 ${(errorMsg || successMsg) ? 'mt-6' : ''}`}>
             
             <AnimatePresence mode="wait">
               {mode === 'signup' && (
@@ -196,142 +251,158 @@ export default function LoginPage() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="group relative overflow-hidden"
+                  className="group relative overflow-hidden flex flex-col gap-6"
                 >
-                  <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-                    Designação (Nome Completo)
-                  </label>
-                  <div className="input-underline py-2 mb-6">
-                    <input
-                      name="fullName"
-                      type="text"
-                      required={mode === 'signup'}
-                      placeholder="João Silva"
-                      className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
-                    />
+                  <div className="group relative">
+                    <label className="block text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-1 transition-colors group-focus-within:text-secondary">
+                      Designação (Nome Completo)
+                    </label>
+                    <div className="input-underline py-2">
+                      <input name="fullName" type="text" required={mode === 'signup'} placeholder="João Silva" className="w-full bg-transparent border-none outline-none text-on-surface text-sm placeholder-on-surface-variant/30" />
+                    </div>
                   </div>
 
-                  <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-                    Cargo
-                  </label>
-                  <div className="input-underline py-2 mb-6">
-                    <select
-                      name="role"
-                      required={mode === 'signup'}
-                      className="w-full bg-transparent border-none outline-none text-on-surface appearance-none cursor-pointer"
-                    >
-                      <option value="aluno" className="bg-surface-container text-on-surface">Aluno</option>
-                      <option value="professor" className="bg-surface-container text-on-surface">Professor</option>
-                      <option value="orientador" className="bg-surface-container text-on-surface">Orientador</option>
-                      <option value="gestor" className="bg-surface-container text-on-surface">Gestor Institucional</option>
-                      <option value="administrador" className="bg-surface-container text-on-surface">Administrador</option>
-                    </select>
+                  <div className="group relative">
+                    <label className="block text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-1 transition-colors group-focus-within:text-secondary">
+                      Cargo
+                    </label>
+                    <div className="input-underline py-2">
+                      <select name="role" required={mode === 'signup'} className="w-full bg-transparent border-none outline-none text-on-surface text-sm appearance-none cursor-pointer">
+                        <option value="aluno" className="bg-surface-container text-on-surface">Aluno</option>
+                        <option value="professor" className="bg-surface-container text-on-surface">Professor</option>
+                        <option value="orientador" className="bg-surface-container text-on-surface">Orientador</option>
+                        <option value="gestor" className="bg-surface-container text-on-surface">Gestor Institucional</option>
+                        <option value="administrador" className="bg-surface-container text-on-surface">Administrador</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-                    Código Institucional / Sala
-                  </label>
-                  <div className="input-underline py-2 mb-6">
-                    <input
-                      name="code"
-                      type="text"
-                      placeholder="Ex: PROF001 ou TURMA-A"
-                      className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30 uppercase"
-                    />
+                  <div className="group relative">
+                    <label className="block text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-1 transition-colors group-focus-within:text-secondary">
+                      Código Institucional / Sala
+                    </label>
+                    <div className="input-underline py-2">
+                      <input name="code" type="text" placeholder="Ex: PROF001 ou TURMA-A" className="w-full bg-transparent border-none outline-none text-on-surface text-sm placeholder-on-surface-variant/30 uppercase" />
+                    </div>
                   </div>
 
-                  <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-                    Instituição (Código)
-                  </label>
-                  <div className="input-underline py-2 mb-6">
-                    <input
-                      name="institutionId"
-                      type="text"
-                      placeholder="UUID da Instituição (Opcional)"
-                      className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
-                    />
+                  <div className="group relative">
+                    <label className="block text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-1 transition-colors group-focus-within:text-secondary">
+                      Nome do Responsável
+                    </label>
+                    <div className="input-underline py-2">
+                      <input name="guardianName" type="text" placeholder="Opcional" className="w-full bg-transparent border-none outline-none text-on-surface text-sm placeholder-on-surface-variant/30" />
+                    </div>
                   </div>
 
-                  <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-                    Sala (Código)
-                  </label>
-                  <div className="input-underline py-2 mb-6">
-                    <input
-                      name="classroomId"
-                      type="text"
-                      placeholder="UUID da Turma (Opcional)"
-                      className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
-                    />
-                  </div>
-
-                  <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-                    Nome do Responsável
-                  </label>
-                  <div className="input-underline py-2 mb-6">
-                    <input
-                      name="guardianName"
-                      type="text"
-                      placeholder="Maria Silva (Opcional)"
-                      className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
-                    />
-                  </div>
-
-                  <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-                    Telefone do Responsável
-                  </label>
-                  <div className="input-underline py-2">
-                    <input
-                      name="guardianPhone"
-                      type="text"
-                      placeholder="(11) 99999-9999 (Opcional)"
-                      className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
-                    />
+                  <div className="group relative">
+                    <label className="block text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-1 transition-colors group-focus-within:text-secondary">
+                      Telefone do Responsável
+                    </label>
+                    <div className="input-underline py-2">
+                      <input name="guardianPhone" type="text" placeholder="Opcional" className="w-full bg-transparent border-none outline-none text-on-surface text-sm placeholder-on-surface-variant/30" />
+                    </div>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <div className="group relative">
-              <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-                Identidade (Email)
-              </label>
-              <div className="input-underline py-2">
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="Identificador Universal"
-                  className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
-                />
+            {mode !== 'otp_reset' && (
+              <div className="group relative">
+                <label className="block text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-1 transition-colors group-focus-within:text-secondary">
+                  Identidade (Email)
+                </label>
+                <div className="input-underline py-2">
+                  <input
+                    name="email"
+                    type="email"
+                    required
+                    placeholder="Identificador Universal"
+                    className="w-full bg-transparent border-none outline-none text-sm text-on-surface placeholder-on-surface-variant/30"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="group relative">
-              <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
-                Frase-chave (Senha)
-              </label>
-              <div className="input-underline py-2">
-                <input
-                  name="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  placeholder="••••••••••••"
-                  className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30"
-                />
+            {(mode === 'login' || mode === 'signup') && (
+              <div className="group relative">
+                <div className="flex justify-between items-end mb-1">
+                  <label className="block text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant transition-colors group-focus-within:text-secondary">
+                    Frase-chave (Senha)
+                  </label>
+                  {mode === 'login' && (
+                    <button type="button" onClick={() => { setMode('forgot'); setErrorMsg(null); setSuccessMsg(null); }} className="text-[9px] uppercase tracking-wider text-secondary opacity-70 hover:opacity-100 transition-opacity">
+                      {t[locale].forgotPass}
+                    </button>
+                  )}
+                </div>
+                <div className="input-underline py-2">
+                  <input
+                    name="password"
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="••••••••••••"
+                    className="w-full bg-transparent border-none outline-none text-sm text-on-surface placeholder-on-surface-variant/30"
+                  />
+                </div>
               </div>
-            </div>
+            )}
+
+            {mode === 'otp_reset' && (
+              <AnimatePresence>
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="flex flex-col gap-6"
+                >
+                  <input type="hidden" name="email" value={recoveryEmail} />
+                  
+                  <div className="group relative">
+                    <label className="block text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-1 transition-colors group-focus-within:text-secondary">
+                      Código de Recuperação (OTP)
+                    </label>
+                    <div className="input-underline py-2">
+                      <input
+                        name="otp"
+                        type="text"
+                        required
+                        maxLength={6}
+                        placeholder="Ex: 123456"
+                        className="w-full bg-transparent border-none outline-none text-sm text-on-surface placeholder-on-surface-variant/30 tracking-[0.5em] font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="group relative">
+                    <label className="block text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-1 transition-colors group-focus-within:text-secondary">
+                      Nova Frase-chave
+                    </label>
+                    <div className="input-underline py-2">
+                      <input
+                        name="newPassword"
+                        type="password"
+                        required
+                        minLength={6}
+                        placeholder="••••••••••••"
+                        className="w-full bg-transparent border-none outline-none text-sm text-on-surface placeholder-on-surface-variant/30"
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            )}
 
             <button
               type="submit"
               disabled={status !== 'idle'}
-              className={`cyan-ice-ghost w-full py-4 rounded-xl text-xs uppercase tracking-[0.2em] font-semibold mt-4 transition-all duration-300 ${
+              className={`cyan-ice-ghost w-full py-4 rounded-xl text-[11px] uppercase tracking-[0.2em] font-semibold mt-4 transition-all duration-300 ${
                 status === 'idle' ? 'text-secondary hover:border-secondary/60' : 
                 status === 'validating' ? 'text-secondary opacity-50' : 
                 'bg-secondary/10 text-secondary border-secondary/30 shadow-[0_0_20px_rgba(159,207,213,0.2)]'
               }`}
             >
-              {status === 'idle' && (mode === 'login' ? t[locale].loginBtn : t[locale].signupBtn)}
+              {status === 'idle' && getButtonLabel()}
               {status === 'validating' && t[locale].validating}
               {status === 'granted' && t[locale].granted}
             </button>
@@ -341,8 +412,8 @@ export default function LoginPage() {
               
               <button 
                 type="button" 
-                onClick={toggleMode}
-                className="text-xs text-on-surface-variant hover:text-secondary transition-colors underline underline-offset-4"
+                onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setErrorMsg(null); setSuccessMsg(null); }}
+                className="text-[10px] uppercase tracking-wider text-on-surface-variant hover:text-secondary transition-colors"
               >
                 {mode === 'login' ? t[locale].noAccount : t[locale].hasAccount}
               </button>
@@ -353,7 +424,7 @@ export default function LoginPage() {
                 className="flex items-center gap-3 text-on-surface-variant hover:text-secondary transition-colors group mt-2"
               >
                 <Fingerprint className="w-5 h-5 text-secondary pulse-effect" />
-                <span className="text-xs uppercase tracking-[0.15em] font-semibold">{t[locale].biometric}</span>
+                <span className="text-[10px] uppercase tracking-[0.15em] font-semibold">{t[locale].biometric}</span>
               </button>
             </div>
           </form>
@@ -365,13 +436,12 @@ export default function LoginPage() {
           transition={{ delay: 3, duration: 1 }}
           className="mt-8 text-center opacity-30"
         >
-          <p className="text-[10px] uppercase tracking-[0.2em] font-semibold text-on-surface-variant">
+          <p className="text-[9px] uppercase tracking-[0.2em] font-semibold text-on-surface-variant">
             © PROTOCOLO NEURAL ECHOMIND
           </p>
         </motion.footer>
       </motion.main>
 
-      {/* Biometric Toast */}
       <AnimatePresence>
         {showBiometricToast && (
           <motion.div
@@ -381,7 +451,7 @@ export default function LoginPage() {
             className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-surface-container border border-secondary/20 px-5 py-3 rounded-full shadow-[0_0_30px_rgba(159,207,213,0.15)]"
           >
             <Fingerprint className="w-4 h-4 text-secondary" />
-            <span className="text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant">
+            <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant">
               {locale === 'pt' ? 'Biometria disponível em breve' : 'Biometrics coming soon'}
             </span>
           </motion.div>

@@ -99,3 +99,87 @@ export async function signup(formData: FormData) {
   revalidatePath('/', 'layout')
   redirect('/dashboard')
 }
+
+export async function requestPasswordReset(formData: FormData) {
+  const email = (formData.get('email') as string)?.trim().toLowerCase()
+  if (!email) return { error: 'E-mail é obrigatório' }
+
+  const { createAdminClient } = await import('../../utils/supabase/admin')
+  const { sendOtpEmail } = await import('../../utils/email')
+
+  const adminAuth = createAdminClient()
+
+  // Verify if user exists first using RPC
+  const { data: userId, error: userError } = await adminAuth.rpc('get_user_id_by_email', { user_email: email })
+  if (userError || !userId) {
+    // Return success anyway to prevent user enumeration
+    return { success: true }
+  }
+
+  // 1. Generate 6 digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString()
+
+  // 2. Set expiration (15 minutes)
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString()
+
+  // 3. Save to DB using Admin Client
+  const { error: dbError } = await adminAuth
+    .from('password_reset_otps')
+    .insert({ email: email, otp_code: otp, expires_at: expiresAt })
+
+  if (dbError) {
+    return { error: 'Falha ao processar solicitação.' }
+  }
+
+  // 4. Send email via EmailJS
+  try {
+    await sendOtpEmail(email, otp)
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message || 'Erro ao enviar o e-mail de recuperação.' }
+  }
+}
+
+export async function confirmPasswordReset(formData: FormData) {
+  const email = (formData.get('email') as string)?.trim().toLowerCase()
+  const otp = (formData.get('otp') as string)?.trim()
+  const newPassword = formData.get('newPassword') as string
+
+  if (!email || !otp || !newPassword) return { error: 'Preencha todos os campos.' }
+
+  const { createAdminClient } = await import('../../utils/supabase/admin')
+  const adminAuth = createAdminClient()
+
+  // 1. Validate OTP
+  const { data: otpRecord, error: otpError } = await adminAuth
+    .from('password_reset_otps')
+    .select('*')
+    .eq('email', email)
+    .eq('otp_code', otp)
+    .eq('used', false)
+    .gte('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (otpError || !otpRecord) {
+    return { error: 'Código inválido ou expirado.' }
+  }
+
+  // 2. Find User ID via RPC
+  const { data: userId, error: userError } = await adminAuth.rpc('get_user_id_by_email', { user_email: email })
+  if (userError || !userId) {
+    return { error: 'Usuário não encontrado.' }
+  }
+
+  // 3. Update password
+  const { error: updateError } = await adminAuth.auth.admin.updateUserById(userId, { password: newPassword })
+  if (updateError) {
+    return { error: 'Falha ao redefinir a senha.' }
+  }
+
+  // 4. Mark OTP as used
+  await adminAuth.from('password_reset_otps').update({ used: true }).eq('id', otpRecord.id)
+
+  return { success: true }
+}
