@@ -67,8 +67,11 @@ export async function sendSystemEmail(params: EmailTemplateParams) {
 
   if (!response.ok) {
     const text = await response.text()
+    console.error('EmailJS Falhou. Payload Enviado (sem chaves):', { ...payload, user_id: '***', accessToken: '***' })
+    console.error('EmailJS Resposta:', text)
     throw new Error(`EmailJS Falhou: ${text}`)
   }
 
+  console.log(`E-mail (via EmailJS) enviado com sucesso para ${params.to_email}`)
   return true
 }
