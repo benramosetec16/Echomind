@@ -52,14 +52,15 @@ export async function sendSystemEmail(params: EmailTemplateParams) {
   }
 
   try {
+    emailjs.init({
+      publicKey: publicKey,
+      privateKey: privateKey,
+    })
+
     const response = await emailjs.send(
       serviceId,
       templateId,
-      templateParams,
-      {
-        publicKey,
-        privateKey, // Obrigatório para uso server-side seguro
-      }
+      templateParams
     )
 
     console.log(`✅ E-mail enviado com sucesso para ${params.to_email} | Status: ${response.status} ${response.text}`)

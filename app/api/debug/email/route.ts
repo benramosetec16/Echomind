@@ -26,6 +26,11 @@ export async function GET(req: NextRequest) {
   const testEmail = req.nextUrl.searchParams.get('to') || 'test@example.com'
 
   try {
+    emailjs.init({
+      publicKey: publicKey,
+      privateKey: privateKey,
+    })
+
     const response = await emailjs.send(
       serviceId,
       templateId,
@@ -42,8 +47,7 @@ export async function GET(req: NextRequest) {
         button_link: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
         security_message: 'E-mail enviado para fins de diagnóstico técnico.',
         footer_message: 'EchoMind © Diagnóstico'
-      },
-      { publicKey, privateKey }
+      }
     )
 
     return NextResponse.json({
