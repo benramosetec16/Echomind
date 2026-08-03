@@ -215,21 +215,26 @@ export default function InstitutionPage() {
     };
   }, [router, supabase]);
 
-  // Create Classroom
+  // Create Classroom (via API com service role para evitar bloqueio de RLS)
   const handleCreateClassroom = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!institutionId || !newRoomName.trim() || !newRoomCode.trim()) return;
+    if (!institutionId || !newRoomName.trim()) return;
 
-    const { error } = await supabase.from('classrooms').insert({
-      institution_id: institutionId,
-      name: newRoomName.trim(),
-      code: newRoomCode.trim().toUpperCase(),
-      professor_id: selectedProfId || null,
-      orientador_id: selectedOrientadorId || null,
+    const res = await fetch('/api/institution/classroom', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        institution_id: institutionId,
+        name: newRoomName.trim(),
+        code: newRoomCode.trim().toUpperCase() || null,
+        professor_id: selectedProfId || null,
+        orientador_id: selectedOrientadorId || null,
+      }),
     });
 
-    if (error) {
-      alert('Erro ao criar sala: ' + error.message);
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Erro ao criar sala: ' + data.error);
     } else {
       setNewRoomName('');
       setNewRoomCode('');
@@ -239,39 +244,42 @@ export default function InstitutionPage() {
     }
   };
 
-  // Delete Classroom
+  // Delete Classroom (via API com service role)
   const handleDeleteClassroom = async (id: string) => {
     if (!confirm('Deseja realmente remover esta sala?')) return;
-    const { error } = await supabase.from('classrooms').delete().eq('id', id);
-    if (error) alert('Erro ao remover sala: ' + error.message);
+    const res = await fetch(`/api/institution/classroom?id=${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) alert('Erro ao remover sala: ' + data.error);
     else if (institutionId) loadInstitutionalData(institutionId);
   };
 
-  // Generate Institutional Code
+  // Generate Institutional Code (via API com service role + envio de e-mail)
+  const [recipientEmail, setRecipientEmail] = useState('');
+
   const handleGenerateCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!institutionId) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const generatedCode = customCode.trim()
-      ? customCode.trim().toUpperCase()
-      : `${codeType.substring(0, 4).toUpperCase()}${Math.floor(1000 + Math.random() * 9000)}`;
-
-    const { error } = await supabase.from('institutional_codes').insert({
-      institution_id: institutionId,
-      code: generatedCode,
-      type: codeType,
-      status: 'ativo',
-      created_by: user.id,
-      classroom_id: codeRoomId || null,
+    const res = await fetch('/api/institution/codes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        institution_id: institutionId,
+        type: codeType,
+        classroom_id: codeRoomId || null,
+        custom_code: customCode.trim() || null,
+        recipientEmail: recipientEmail.trim() || null,
+      }),
     });
 
-    if (error) {
-      alert('Erro ao gerar código: ' + error.message);
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Erro ao gerar código: ' + data.error);
     } else {
+      const emailMsg = data.emailSent ? '\nE-mail enviado com sucesso!' : (recipientEmail ? '\nFalha ao enviar e-mail, mas o código foi gerado.' : '');
+      alert(`Código gerado: ${data.code}${emailMsg}`);
       setCustomCode('');
+      setRecipientEmail('');
       if (institutionId) loadInstitutionalData(institutionId);
     }
   };
@@ -496,11 +504,19 @@ export default function InstitutionPage() {
                   className="bg-background/50 border border-white/10 rounded-2xl px-4 py-3 text-sm text-on-surface outline-none focus:border-secondary uppercase"
                 />
 
+                <input
+                  type="email"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  placeholder="E-mail do destinatário (Opcional)"
+                  className="bg-background/50 border border-white/10 rounded-2xl px-4 py-3 text-sm text-on-surface outline-none focus:border-secondary"
+                />
+
                 <button
                   type="submit"
                   className="bg-secondary text-background font-semibold rounded-2xl text-xs uppercase tracking-wider hover:bg-secondary-bright transition-colors"
                 >
-                  Gerar Código
+                  Gerar e Enviar Código
                 </button>
               </form>
 
