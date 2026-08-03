@@ -3,12 +3,14 @@ import Groq from 'groq-sdk';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
 export async function GET(request: Request) {
   try {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: 'Chave GROQ_API_KEY não configurada.' }, { status: 500 });
+    }
+
+    const groq = new Groq({ apiKey });
     const cookieStore = await cookies();
     
     // Configurar o cliente Supabase do lado do servidor
@@ -76,7 +78,7 @@ As respostas devem ser informativas, empáticas e não devem fornecer diagnósti
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: 'llama-3.3-70b-versatile', // Ou o modelo groq de preferência
+      model: 'llama-3.3-70b-versatile',
       temperature: 0.5,
     });
 

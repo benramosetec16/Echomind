@@ -33,16 +33,48 @@ export async function signup(formData: FormData) {
   const email = (formData.get('email') as string)?.trim()
   const password = formData.get('password') as string
   const fullName = (formData.get('fullName') as string)?.trim()
-  const role = (formData.get('role') as string) || 'aluno'
+  const requestedRole = (formData.get('role') as string) || 'aluno'
+  const code = (formData.get('code') as string)?.trim()?.toUpperCase() || ''
   
-  // New institutional and guardian fields
-  const institutionId = (formData.get('institutionId') as string)?.trim() || ''
-  const classroomId = (formData.get('classroomId') as string)?.trim() || ''
+  let institutionId = (formData.get('institutionId') as string)?.trim() || ''
+  let classroomId = (formData.get('classroomId') as string)?.trim() || ''
+  let role = requestedRole
   const guardianName = (formData.get('guardianName') as string)?.trim() || ''
   const guardianPhone = (formData.get('guardianPhone') as string)?.trim() || ''
 
   if (!email || !password || !fullName) {
     return { error: 'Identity, Keyphrase and Name are required' }
+  }
+
+  // If code is provided, validate code within institution
+  if (code) {
+    // 1. Check institutional_codes table
+    const { data: codeData } = await supabase
+      .from('institutional_codes')
+      .select('*')
+      .eq('code', code)
+      .eq('status', 'ativo')
+      .maybeSingle()
+
+    if (codeData) {
+      institutionId = codeData.institution_id
+      if (codeData.classroom_id) classroomId = codeData.classroom_id
+      if (codeData.type && codeData.type !== 'sala') {
+        role = codeData.type
+      }
+    } else {
+      // 2. Check classrooms table directly
+      const { data: roomData } = await supabase
+        .from('classrooms')
+        .select('id, institution_id')
+        .eq('code', code)
+        .maybeSingle()
+
+      if (roomData) {
+        institutionId = roomData.institution_id
+        classroomId = roomData.id
+      }
+    }
   }
 
   const { error } = await supabase.auth.signUp({
@@ -64,8 +96,6 @@ export async function signup(formData: FormData) {
     return { error: error.message }
   }
 
-  // If email confirmation is enabled, we should redirect to a confirmation page or show a message.
-  // For now, if no error, we try to redirect. 
   revalidatePath('/', 'layout')
   redirect('/dashboard')
 }

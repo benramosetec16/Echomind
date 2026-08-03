@@ -43,6 +43,13 @@ const navByRole: Record<UserRole, { icon: string; label: string; href: string }[
     { icon: 'handshake', label: 'Parceiros', href: '/dashboard/parceiros' },
     { icon: 'corporate_fare', label: 'Institucional', href: '/dashboard/institution' },
   ],
+  gestor: [
+    { icon: 'corporate_fare', label: 'Gestão Escolar', href: '/dashboard/institution' },
+    { icon: 'meeting_room', label: 'Salas', href: '/dashboard/institution' },
+    { icon: 'vpn_key', label: 'Códigos', href: '/dashboard/institution' },
+    { icon: 'chat', label: 'Mensagens', href: '/dashboard/messages' },
+    { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
+  ],
   administrador: [
     { icon: 'waves', label: 'Controle', href: '/dashboard/admin' },
     { icon: 'group', label: 'Usuários', href: '/dashboard/admin' },

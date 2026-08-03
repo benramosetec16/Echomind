@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@/utils/supabase/client";
 
 type BiometricRecord = {
   id: string;
@@ -21,10 +21,7 @@ export default function BiometricsHistory() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"7d" | "30d" | "all">("7d");
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = createClient();
 
   useEffect(() => {
     fetchRecords();

@@ -20,121 +20,136 @@ const textureToIcon: Record<string, string> = {
   bloom: 'filter_vintage'
 };
 
-export async function transmitAura(payload: { valenceValue: number; texture: string; thoughts: string }) {
+// Fallback titles and tags based on valence
+function getFallbackMetadata(valence: number, texture: string) {
+  let title = 'Registro Emocional';
+  let tag = 'Equilíbrio';
+  if (valence < 25) {
+    title = 'Vórtice de Discórdia';
+    tag = 'Turbulência';
+  } else if (valence < 45) {
+    title = 'Deriva Melancólica';
+    tag = 'Instabilidade';
+  } else if (valence < 75) {
+    title = 'Equilíbrio Neural';
+    tag = 'Serenidade';
+  } else {
+    title = 'Clareza Luminosa';
+    tag = 'Harmonia';
+  }
+  return { title, tag };
+}
+
+export async function transmitAura(payload: { valenceValue: number; texture: string; thoughts: string }): Promise<{ success?: boolean; insight?: string; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Initialize Groq
+  let aiResult = {
+    insight: `Ressonância de ${payload.valenceValue}% registrada com sucesso.`,
+    journalTitle: getFallbackMetadata(payload.valenceValue, payload.texture).title,
+    journalTag: getFallbackMetadata(payload.valenceValue, payload.texture).tag
+  };
+
+  // 1. Try Groq AI analysis if API key exists
   const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    return { error: 'GROQ_API_KEY is not configured in .env.local.' };
+  if (apiKey) {
+    try {
+      const groq = new Groq({ apiKey });
+      const prompt = `
+        You are the Analytical Intelligence of Echomind, a pragmatic emotional tracking system.
+        The user just checked in with the following aura:
+        - Valence (0 to 100): ${payload.valenceValue}
+        - Texture: ${payload.texture}
+        - Thoughts: "${payload.thoughts || 'Silent transmission'}"
+        
+        Gere uma análise objetiva, direta e analítica (máximo de 2 frases) refletindo o estado atual do usuário. Não seja poético. Seja prático. Em português do Brasil.
+        Também gere um título curto e objetivo (máximo 4 palavras) e uma tag de sentimento de uma única palavra. Em português do Brasil.
+        
+        Responda APENAS com um objeto JSON válido neste formato:
+        {
+          "insight": "Sua reflexão objetiva aqui.",
+          "journalTitle": "Título aqui",
+          "journalTag": "TagAqui"
+        }
+      `;
+
+      const chatCompletion = await groq.chat.completions.create({
+        messages: [
+          { role: 'system', content: 'You only reply in valid JSON.' },
+          { role: 'user', content: prompt }
+        ],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.7,
+        response_format: { type: 'json_object' }
+      });
+
+      const aiResponse = chatCompletion.choices[0]?.message?.content;
+      if (aiResponse) {
+        const parsed = JSON.parse(aiResponse);
+        if (parsed.insight) aiResult.insight = parsed.insight;
+        if (parsed.journalTitle) aiResult.journalTitle = parsed.journalTitle;
+        if (parsed.journalTag) aiResult.journalTag = parsed.journalTag;
+      }
+    } catch (aiErr) {
+      console.warn('Groq AI call failed or timed out, using fallback metadata:', aiErr);
+    }
   }
 
-  const groq = new Groq({ apiKey });
-
-  try {
-    // 1. Call Groq AI for an Aetheric Insight
-    const prompt = `
-      You are the Analytical Intelligence of Echomind, a pragmatic emotional tracking system.
-      The user just checked in with the following aura:
-      - Valence (0 to 100): ${payload.valenceValue}
-      - Texture: ${payload.texture}
-      - Thoughts: "${payload.thoughts || 'Silent transmission'}"
-      
-      Gere uma análise objetiva, direta e analítica (máximo de 2 frases) refletindo o estado atual do usuário. Não seja poético. Seja prático. Em português do Brasil.
-      Também gere um título curto e objetivo (máximo 4 palavras) e uma tag de sentimento de uma única palavra. Em português do Brasil.
-      
-      Responda APENAS com um objeto JSON válido neste formato:
-      {
-        "insight": "Sua reflexão objetiva aqui.",
-        "journalTitle": "Título aqui",
-        "journalTag": "TagAqui"
-      }
-    `;
-
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        { role: 'system', content: 'You only reply in valid JSON.' },
-        { role: 'user', content: prompt }
-      ],
-      model: 'llama-3.3-70b-versatile',
-      temperature: 0.7,
-      response_format: { type: 'json_object' }
+  // 2. ALWAYS Save to Supabase (Journal & Checkin & Biometric Logs must NEVER fail)
+  if (user) {
+    // Save check-in
+    const { error: checkinError } = await supabase.from('emotional_checkins').insert({
+      user_id: user.id,
+      valence_value: payload.valenceValue,
+      texture: payload.texture,
+      thoughts: payload.thoughts
     });
 
-    const aiResponse = chatCompletion.choices[0]?.message?.content;
-    if (!aiResponse) throw new Error('No response from Aetheric Intelligence');
+    if (checkinError) console.error('Error saving checkin:', checkinError);
 
-    const result = JSON.parse(aiResponse);
+    // Save to journal
+    const { error: journalError } = await supabase.from('aetheric_journal').insert({
+      user_id: user.id,
+      title: aiResult.journalTitle,
+      sentiment_tag: aiResult.journalTag,
+      sentiment_dots: calculateDots(payload.valenceValue),
+      icon: textureToIcon[payload.texture] || 'auto_awesome'
+    });
 
-    // 2. Save to Supabase (only if logged in)
-    if (user) {
-      // Save check-in
-      const { error: checkinError } = await supabase.from('emotional_checkins').insert({
-        user_id: user.id,
-        valence_value: payload.valenceValue,
-        texture: payload.texture,
-        thoughts: payload.thoughts
-      });
+    if (journalError) console.error('Error saving journal:', journalError);
 
-      if (checkinError) console.error('Error saving checkin:', checkinError);
+    // Save Biometric Log based on valence
+    let logType = 'normal';
+    let nomenclature = aiResult.journalTitle;
+    let bpm = 70;
 
-      // Save to journal
-      const { error: journalError } = await supabase.from('aetheric_journal').insert({
-        user_id: user.id,
-        title: result.journalTitle || 'Aetheric Echo',
-        sentiment_tag: result.journalTag || 'Unknown',
-        sentiment_dots: calculateDots(payload.valenceValue),
-        icon: textureToIcon[payload.texture] || 'auto_awesome'
-      });
-
-      if (journalError) console.error('Error saving journal:', journalError);
-
-      // Save Biometric Log based on valence
-      let logType = 'normal';
-      let nomenclature = 'Equilíbrio';
-      let bpm = 70;
-
-      if (payload.valenceValue < 25) {
-        logType = 'critical';
-        nomenclature = 'Vórtice de Discórdia';
-        bpm = 92;
-      } else if (payload.valenceValue < 45) {
-        logType = 'warning';
-        nomenclature = 'Deriva Melancólica';
-        bpm = 84;
-      } else if (payload.valenceValue < 75) {
-        logType = 'normal';
-        nomenclature = 'Equilíbrio';
-        bpm = 70;
-      } else if (payload.valenceValue < 90) {
-        logType = 'info';
-        nomenclature = 'Clareza Luminosa';
-        bpm = 60;
-      } else {
-        logType = 'info';
-        nomenclature = 'Serenidade Infinita';
-        bpm = 55;
-      }
-      
-      const { error: biometricError } = await supabase.from('biometric_logs').insert({
-        user_id: user.id,
-        title: nomenclature,
-        description: result.insight,
-        type: logType,
-        bpm: bpm
-      });
-      
-      if (biometricError) console.error('Error saving biometric log:', biometricError);
+    if (payload.valenceValue < 25) {
+      logType = 'critical';
+      bpm = 92;
+    } else if (payload.valenceValue < 45) {
+      logType = 'warning';
+      bpm = 84;
+    } else if (payload.valenceValue < 75) {
+      logType = 'normal';
+      bpm = 70;
+    } else if (payload.valenceValue < 90) {
+      logType = 'info';
+      bpm = 60;
     } else {
-       console.log('User not authenticated. Returning AI insight without saving to Supabase.');
+      logType = 'info';
+      bpm = 55;
     }
-
-    return { success: true, insight: result.insight };
-
-  } catch (error: any) {
-    console.error('Groq / DB Error:', error);
-    // Retornar a mensagem de erro exata do Groq para que possamos entender o que houve
-    return { error: 'Groq Error: ' + (error.message || 'Falha ao processar o sinal.') };
+    
+    const { error: biometricError } = await supabase.from('biometric_logs').insert({
+      user_id: user.id,
+      title: nomenclature,
+      description: aiResult.insight,
+      type: logType,
+      bpm: bpm
+    });
+    
+    if (biometricError) console.error('Error saving biometric log:', biometricError);
   }
+
+  return { success: true, insight: aiResult.insight };
 }

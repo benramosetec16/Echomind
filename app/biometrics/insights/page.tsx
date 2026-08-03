@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import BiometricsCharts from "@/components/biometrics/BiometricsCharts";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@/utils/supabase/client";
 import TopBar from "@/app/components/TopBar";
 import PageTransition from "@/app/components/PageTransition";
 import Link from "next/link";
@@ -12,10 +12,7 @@ export default function BiometricsInsights() {
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = createClient();
 
   useEffect(() => {
     fetchDataAndAnalyze();

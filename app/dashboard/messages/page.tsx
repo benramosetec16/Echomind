@@ -36,13 +36,44 @@ export default function MessagesPage() {
         
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role, orientador_id')
+          .select('role, orientador_id, classroom_id, institution_id')
           .eq('id', user.id)
           .single();
           
         if (profile) {
           setUserRole(profile.role);
-          setOrientadorId(profile.orientador_id);
+          
+          let targetOrientador = profile.orientador_id;
+          
+          // Se não tem orientador direto, buscar pela Sala (Aluno -> Sala -> Orientador)
+          if (!targetOrientador && profile.classroom_id) {
+            const { data: classroom } = await supabase
+              .from('classrooms')
+              .select('orientador_id')
+              .eq('id', profile.classroom_id)
+              .maybeSingle();
+            
+            if (classroom?.orientador_id) {
+              targetOrientador = classroom.orientador_id;
+            }
+          }
+
+          // Fallback: buscar qualquer orientador/gestor na mesma instituição se ainda não encontrado
+          if (!targetOrientador && profile.institution_id) {
+            const { data: instStaff } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('institution_id', profile.institution_id)
+              .in('role', ['orientador', 'gestor'])
+              .limit(1)
+              .maybeSingle();
+              
+            if (instStaff?.id) {
+              targetOrientador = instStaff.id;
+            }
+          }
+
+          setOrientadorId(targetOrientador);
         }
       }
     };

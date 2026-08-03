@@ -6,6 +6,12 @@ import { createClient } from '../../../utils/supabase/client';
 import TopBar from '../../components/TopBar';
 import PageTransition from '../../components/PageTransition';
 
+interface Institution {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
 interface RoleDist {
   label: string;
   count: number;
@@ -25,6 +31,10 @@ interface Activity {
 export default function AdminDashboard() {
   const [userName, setUserName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [newInstName, setNewInstName] = useState('');
+  const [creatingInst, setCreatingInst] = useState(false);
 
   const [stats, setStats] = useState({
     activeUsers: 0,
@@ -49,100 +59,107 @@ export default function AdminDashboard() {
     fetchUser();
   }, [supabase]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
+  const loadData = async () => {
+    setLoading(true);
+    
+    // Fetch institutions
+    const { data: instData } = await supabase.from('institutions').select('*').order('created_at', { ascending: false });
+    if (instData) setInstitutions(instData);
+
+    // Fetch total profiles & distribution
+    const { data: profiles } = await supabase.from('profiles').select('id, role, created_at');
+    
+    // Fetch AI operations (aetheric_journal & biometric_logs)
+    const { count: journalCount } = await supabase.from('aetheric_journal').select('*', { count: 'exact', head: true });
+    const { count: bioCount } = await supabase.from('biometric_logs').select('*', { count: 'exact', head: true });
+
+    // Recent Activity - Latest 5 profiles & biometric logs
+    const { data: recentProfiles } = await supabase.from('profiles').select('id, role, created_at').order('created_at', { ascending: false }).limit(5);
+    const { data: recentBio } = await supabase.from('biometric_logs').select('id, type, created_at').order('created_at', { ascending: false }).limit(5);
+
+    if (profiles) {
+      const total = profiles.length;
+      const now = new Date();
+      const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       
-      // Fetch total profiles & distribution
-      const { data: profiles } = await supabase.from('profiles').select('id, role, created_at');
+      const newUsers = profiles.filter(p => new Date(p.created_at) > lastWeek).length;
       
-      // Fetch AI operations (journal entries & biometric logs)
-      const { count: journalCount } = await supabase.from('journal_entries').select('*', { count: 'exact', head: true });
-      const { count: bioCount } = await supabase.from('biometric_logs').select('*', { count: 'exact', head: true });
+      setStats({
+        activeUsers: total,
+        activeUsersNew: newUsers,
+        aiProcessings: (journalCount || 0) + (bioCount || 0),
+        uptime: '99.9%',
+        biometricLogs: bioCount || 0,
+      });
 
-      // Recent Activity - Just use latest 5 profiles as new users and latest 5 biometric logs as alerts
-      const { data: recentProfiles } = await supabase.from('profiles').select('id, role, created_at').order('created_at', { ascending: false }).limit(5);
-      const { data: recentBio } = await supabase.from('biometric_logs').select('id, type, created_at').order('created_at', { ascending: false }).limit(5);
+      const rolesCount: Record<string, number> = {
+        aluno: 0,
+        professor: 0,
+        orientador: 0,
+        gestor: 0,
+        administrador: 0,
+      };
 
-      if (profiles) {
-        const total = profiles.length;
-        const now = new Date();
-        const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        
-        const newUsers = profiles.filter(p => new Date(p.created_at) > lastWeek).length;
-        
-        setStats({
-          activeUsers: total,
-          activeUsersNew: newUsers,
-          aiProcessings: (journalCount || 0) + (bioCount || 0),
-          uptime: '99.9%',
-          biometricLogs: bioCount || 0,
-        });
+      profiles.forEach(p => {
+        if (rolesCount[p.role] !== undefined) rolesCount[p.role]++;
+      });
 
-        const rolesCount: Record<string, number> = {
-          aluno: 0,
-          professor: 0,
-          orientador: 0,
-          administrador: 0,
-        };
+      setRoleDist([
+        { label: 'Alunos', count: rolesCount.aluno, color: 'bg-secondary', pct: total > 0 ? (rolesCount.aluno / total) * 100 : 0 },
+        { label: 'Professores', count: rolesCount.professor, color: 'bg-primary', pct: total > 0 ? (rolesCount.professor / total) * 100 : 0 },
+        { label: 'Orientadores', count: rolesCount.orientador, color: 'bg-tertiary', pct: total > 0 ? (rolesCount.orientador / total) * 100 : 0 },
+        { label: 'Gestores', count: rolesCount.gestor, color: 'bg-yellow-400', pct: total > 0 ? (rolesCount.gestor / total) * 100 : 0 },
+        { label: 'Administradores', count: rolesCount.administrador, color: 'bg-white/40', pct: total > 0 ? (rolesCount.administrador / total) * 100 : 0 },
+      ]);
 
-        profiles.forEach(p => {
-          if (rolesCount[p.role] !== undefined) rolesCount[p.role]++;
-        });
-
-        setRoleDist([
-          { label: 'Alunos', count: rolesCount.aluno, color: 'bg-secondary', pct: total > 0 ? (rolesCount.aluno / total) * 100 : 0 },
-          { label: 'Professores', count: rolesCount.professor, color: 'bg-primary', pct: total > 0 ? (rolesCount.professor / total) * 100 : 0 },
-          { label: 'Orientadores', count: rolesCount.orientador, color: 'bg-tertiary', pct: total > 0 ? (rolesCount.orientador / total) * 100 : 0 },
-          { label: 'Administradores', count: rolesCount.administrador, color: 'bg-white/40', pct: total > 0 ? (rolesCount.administrador / total) * 100 : 0 },
-        ]);
-
-        const activities: Activity[] = [];
-        
-        if (recentProfiles) {
-          recentProfiles.forEach(p => {
-            activities.push({
-              id: p.id,
-              action: 'Novo usuário registrado',
-              detail: `Cargo: ${p.role}`,
-              time: '',
-              icon: 'person_add',
-              created_at: new Date(p.created_at)
-            });
+      const activities: Activity[] = [];
+      
+      if (recentProfiles) {
+        recentProfiles.forEach(p => {
+          activities.push({
+            id: p.id,
+            action: 'Novo usuário registrado',
+            detail: `Cargo: ${p.role}`,
+            time: '',
+            icon: 'person_add',
+            created_at: new Date(p.created_at)
           });
-        }
-        
-        if (recentBio) {
-          recentBio.forEach(b => {
-            activities.push({
-              id: b.id,
-              action: 'Alerta biométrico',
-              detail: `Nível: ${b.type}`,
-              time: '',
-              icon: 'warning',
-              created_at: new Date(b.created_at)
-            });
-          });
-        }
-
-        activities.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
-        
-        const finalActivities = activities.slice(0, 5).map(a => {
-          const diffMins = Math.floor((now.getTime() - a.created_at.getTime()) / 60000);
-          a.time = diffMins > 60 ? `há ${Math.floor(diffMins/60)}h` : `há ${diffMins} min`;
-          return a;
         });
-        
-        setRecentActivity(finalActivities);
       }
       
-      setLoading(false);
-    };
+      if (recentBio) {
+        recentBio.forEach(b => {
+          activities.push({
+            id: b.id,
+            action: 'Alerta biométrico',
+            detail: `Nível: ${b.type}`,
+            time: '',
+            icon: 'warning',
+            created_at: new Date(b.created_at)
+          });
+        });
+      }
 
+      activities.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
+      
+      const finalActivities = activities.slice(0, 5).map(a => {
+        const diffMins = Math.floor((now.getTime() - a.created_at.getTime()) / 60000);
+        a.time = diffMins > 60 ? `há ${Math.floor(diffMins/60)}h` : `há ${diffMins} min`;
+        return a;
+      });
+      
+      setRecentActivity(finalActivities);
+    }
+    
+    setLoading(false);
+  };
+
+  useEffect(() => {
     loadData();
     
     const channel = supabase.channel('admin_dashboard')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'institutions' }, () => loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'biometric_logs' }, () => loadData())
       .subscribe();
 
@@ -151,11 +168,31 @@ export default function AdminDashboard() {
     };
   }, [supabase]);
 
+  const handleCreateInstitution = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newInstName.trim()) return;
+    setCreatingInst(true);
+    const { error } = await supabase.from('institutions').insert({ name: newInstName.trim() });
+    if (error) alert('Erro ao criar instituição: ' + error.message);
+    else {
+      setNewInstName('');
+      loadData();
+    }
+    setCreatingInst(false);
+  };
+
+  const handleDeleteInstitution = async (id: string) => {
+    if (!confirm('Deseja realmente remover esta instituição?')) return;
+    const { error } = await supabase.from('institutions').delete().eq('id', id);
+    if (error) alert('Erro ao remover: ' + error.message);
+    else loadData();
+  };
+
   const systemStats = [
     { label: 'Usuários Totais', value: stats.activeUsers, icon: 'group', sub: `+${stats.activeUsersNew} esta semana` },
+    { label: 'Instituições', value: institutions.length, icon: 'domain', sub: 'Ativas' },
     { label: 'IA Processamentos', value: stats.aiProcessings, icon: 'psychology', sub: 'Total' },
     { label: 'Uptime do Sistema', value: stats.uptime, icon: 'cloud_done', sub: '30 dias' },
-    { label: 'Registros Biom.', value: stats.biometricLogs, icon: 'database', sub: 'Total acumulado' },
   ];
 
   return (
@@ -180,7 +217,7 @@ export default function AdminDashboard() {
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
               className="text-base text-on-surface-variant max-w-xl mt-2"
             >
-              Saúde operacional da plataforma, distribuição de usuários e logs de atividade em tempo real.
+              Gestão global da plataforma EchoMind, instituições cadastradas e logs operacionais.
             </motion.p>
           </section>
 
@@ -202,13 +239,67 @@ export default function AdminDashboard() {
             ))}
           </section>
 
+          {/* Institutions Management */}
+          <section className="max-w-[1200px] mx-auto mb-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+              className="aetheric-glass rounded-[28px] p-8"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-lg font-light text-on-surface">Gestão de Instituições</h3>
+                  <p className="text-xs text-on-surface-variant">Cadastre e administre as instituições parceiras do EchoMind.</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleCreateInstitution} className="flex gap-3 mb-6">
+                <input
+                  type="text"
+                  value={newInstName}
+                  onChange={(e) => setNewInstName(e.target.value)}
+                  placeholder="Nome da Nova Instituição..."
+                  className="flex-1 bg-background/50 border border-white/10 rounded-2xl px-4 py-3 text-sm text-on-surface outline-none focus:border-secondary transition-colors"
+                />
+                <button
+                  type="submit"
+                  disabled={creatingInst || !newInstName.trim()}
+                  className="px-6 py-3 bg-secondary text-background font-semibold rounded-2xl text-xs uppercase tracking-wider hover:bg-secondary-bright transition-colors disabled:opacity-50"
+                >
+                  {creatingInst ? 'Criando...' : 'Adicionar Instituição'}
+                </button>
+              </form>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {institutions.length === 0 ? (
+                  <p className="text-sm text-on-surface-variant opacity-60 col-span-3">Nenhuma instituição cadastrada ainda.</p>
+                ) : (
+                  institutions.map((inst) => (
+                    <div key={inst.id} className="bg-surface-container/50 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-medium text-on-surface">{inst.name}</h4>
+                        <span className="text-[10px] text-on-surface-variant opacity-50 uppercase">{new Date(inst.created_at).toLocaleDateString('pt-BR')}</span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteInstitution(inst.id)}
+                        className="text-red-400 hover:text-red-300 p-2 rounded-xl hover:bg-red-500/10 transition-colors"
+                        title="Remover Instituição"
+                      >
+                        <span className="material-symbols-outlined text-sm">delete</span>
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </section>
+
           <div className="max-w-[1200px] mx-auto grid md:grid-cols-2 gap-8">
             {/* Role Distribution */}
             <motion.div
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
               className="aetheric-glass rounded-[28px] p-8"
             >
-              <h3 className="text-lg font-light text-on-surface mb-6">Distribuição por Cargo</h3>
+              <h3 className="text-lg font-light text-on-surface mb-6">Distribuição de Perfis no Sistema</h3>
               <div className="flex flex-col gap-4">
                 {roleDist.map((role) => (
                   <div key={role.label}>
@@ -234,7 +325,7 @@ export default function AdminDashboard() {
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
               className="aetheric-glass rounded-[28px] p-8"
             >
-              <h3 className="text-lg font-light text-on-surface mb-6">Log de Atividade</h3>
+              <h3 className="text-lg font-light text-on-surface mb-6">Log Geral em Tempo Real</h3>
               <div className="flex flex-col gap-4">
                 {loading ? (
                   <div className="text-sm text-on-surface-variant opacity-60">Carregando logs...</div>

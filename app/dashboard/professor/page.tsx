@@ -27,7 +27,7 @@ export default function ProfessorDashboard() {
   const [userName, setUserName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   const [stats, setStats] = useState({
     activeClasses: 0,
     monitoredStudents: 0,
@@ -50,125 +50,160 @@ export default function ProfessorDashboard() {
     fetchUser();
   }, [supabase]);
 
+  const loadData = async (currentUserId: string) => {
+    setLoading(true);
+
+    // 1. Fetch Classrooms assigned to this Teacher
+    const { data: myRooms } = await supabase
+      .from('classrooms')
+      .select('id, name')
+      .eq('professor_id', currentUserId);
+
+    const roomIds = myRooms ? myRooms.map((r) => r.id) : [];
+
+    // 2. Fetch Students of these classrooms or directly linked
+    let studentsQuery = supabase
+      .from('profiles')
+      .select('id, full_name, classroom_id')
+      .eq('role', 'aluno');
+
+    if (roomIds.length > 0) {
+      studentsQuery = studentsQuery.or(`professor_id.eq.${currentUserId},classroom_id.in.(${roomIds.join(',')})`);
+    } else {
+      studentsQuery = studentsQuery.eq('professor_id', currentUserId);
+    }
+
+    const { data: students } = await studentsQuery;
+
+    if (!students || students.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    const studentIds = students.map((s) => s.id);
+    const studentMap = new Map(students.map((s) => [s.id, s]));
+
+    // 3. Fetch Check-ins today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const { data: checkins } = await supabase
+      .from('emotional_checkins')
+      .select('id, user_id, valence_value, created_at')
+      .in('user_id', studentIds)
+      .gte('created_at', today.toISOString());
+
+    // 4. Fetch Alerts (Biometric logs)
+    const { data: alerts } = await supabase
+      .from('biometric_logs')
+      .select('id, user_id, title, type, created_at')
+      .in('user_id', studentIds)
+      .eq('is_dismissed', false)
+      .order('created_at', { ascending: false });
+
+    // 5. Fetch Classrooms info
+    const classroomIds = [...new Set(students.map((s) => s.classroom_id).filter(Boolean))];
+    let classesData: any[] = [];
+    if (classroomIds.length > 0) {
+      const { data: clsData } = await supabase
+        .from('classrooms')
+        .select('id, name')
+        .in('id', classroomIds);
+      if (clsData) classesData = clsData;
+    }
+
+    // Build stats per classroom
+    const roomStatsMap = new Map<string, ClassroomStat>();
+
+    classesData.forEach((c) => {
+      roomStatsMap.set(c.id, {
+        id: c.id,
+        name: c.name,
+        total: 0,
+        checkins: 0,
+        avgMood: 0,
+        alerts: 0,
+      });
+    });
+
+    const sumValenceMap = new Map<string, number>();
+    const countValenceMap = new Map<string, number>();
+
+    students.forEach((student) => {
+      const cId = student.classroom_id;
+      if (cId && roomStatsMap.has(cId)) {
+        const item = roomStatsMap.get(cId)!;
+        item.total += 1;
+      }
+    });
+
+    if (checkins) {
+      checkins.forEach((c) => {
+        const student = studentMap.get(c.user_id);
+        if (student && student.classroom_id && roomStatsMap.has(student.classroom_id)) {
+          const item = roomStatsMap.get(student.classroom_id)!;
+          item.checkins += 1;
+          sumValenceMap.set(student.classroom_id, (sumValenceMap.get(student.classroom_id) || 0) + c.valence_value);
+          countValenceMap.set(student.classroom_id, (countValenceMap.get(student.classroom_id) || 0) + 1);
+        }
+      });
+    }
+
+    if (alerts) {
+      alerts.forEach((a) => {
+        const student = studentMap.get(a.user_id);
+        if (student && student.classroom_id && roomStatsMap.has(student.classroom_id)) {
+          const item = roomStatsMap.get(student.classroom_id)!;
+          item.alerts += 1;
+        }
+      });
+    }
+
+    roomStatsMap.forEach((val, key) => {
+      const totalV = sumValenceMap.get(key) || 0;
+      const countV = countValenceMap.get(key) || 0;
+      val.avgMood = countV > 0 ? Math.round(totalV / countV) : 75;
+    });
+
+    const classroomList = Array.from(roomStatsMap.values());
+    setClassrooms(classroomList);
+
+    // Format alerts
+    const formattedAlerts: AlertStat[] = (alerts || []).slice(0, 5).map((a) => {
+      const student = studentMap.get(a.user_id);
+      const now = new Date();
+      const alertDate = new Date(a.created_at);
+      const diffMins = Math.floor((now.getTime() - alertDate.getTime()) / 60000);
+      const timeStr = diffMins > 60 ? `há ${Math.floor(diffMins / 60)}h` : `há ${diffMins} min`;
+
+      return {
+        id: a.id,
+        student: student?.full_name || 'Aluno',
+        type: a.title,
+        time: timeStr,
+        severity: a.type,
+      };
+    });
+    setRecentAlerts(formattedAlerts);
+
+    setStats({
+      activeClasses: classroomList.length,
+      monitoredStudents: students.length,
+      pendingAlerts: alerts ? alerts.length : 0,
+      checkinsToday: checkins ? checkins.length : 0,
+    });
+
+    setLoading(false);
+  };
+
   useEffect(() => {
     if (!userId) return;
 
-    const loadData = async () => {
-      setLoading(true);
-      
-      // 1. Fetch Students
-      const { data: students, error: studentsErr } = await supabase
-        .from('profiles')
-        .select('id, full_name, classroom_id')
-        .eq('professor_id', userId);
-        
-      if (studentsErr || !students) {
-        console.error(studentsErr);
-        setLoading(false);
-        return;
-      }
-      
-      const studentIds = students.map(s => s.id);
-      const studentMap = new Map(students.map(s => [s.id, s]));
-      
-      // 2. Fetch Check-ins today
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const { data: checkins } = await supabase
-        .from('emotional_checkins')
-        .select('id, user_id, valence_value, created_at')
-        .in('user_id', studentIds)
-        .gte('created_at', today.toISOString());
+    loadData(userId);
 
-      // 3. Fetch Alerts (Biometric logs) today or recent pending
-      const { data: alerts } = await supabase
-        .from('biometric_logs')
-        .select('id, user_id, title, type, created_at')
-        .in('user_id', studentIds)
-        .eq('is_dismissed', false)
-        .order('created_at', { ascending: false });
-
-      // 4. Fetch Classrooms info
-      const classroomIds = [...new Set(students.map(s => s.classroom_id).filter(Boolean))];
-      let classesData: any[] = [];
-      if (classroomIds.length > 0) {
-        const { data: clsData } = await supabase
-          .from('classrooms')
-          .select('id, name')
-          .in('id', classroomIds);
-        if (clsData) classesData = clsData;
-      }
-
-      // Compute stats
-      const activeClasses = classroomIds.length;
-      const monitoredStudents = students.length;
-      const pendingAlerts = alerts?.length || 0;
-      const checkinsToday = checkins?.length || 0;
-
-      setStats({
-        activeClasses,
-        monitoredStudents,
-        pendingAlerts,
-        checkinsToday,
-      });
-
-      // Compute Classroom stats
-      const clsStats: ClassroomStat[] = classesData.map(cls => {
-        const clsStudents = students.filter(s => s.classroom_id === cls.id);
-        const clsStudentIds = clsStudents.map(s => s.id);
-        
-        const clsCheckins = checkins?.filter(c => clsStudentIds.includes(c.user_id)) || [];
-        const clsAlerts = alerts?.filter(a => clsStudentIds.includes(a.user_id)) || [];
-        
-        let avgMood = 0;
-        if (clsCheckins.length > 0) {
-          const sum = clsCheckins.reduce((acc, curr) => acc + curr.valence_value, 0);
-          avgMood = Math.round(sum / clsCheckins.length);
-        }
-
-        return {
-          id: cls.id,
-          name: cls.name,
-          total: clsStudents.length,
-          checkins: clsCheckins.length,
-          avgMood,
-          alerts: clsAlerts.length,
-        };
-      });
-      setClassrooms(clsStats);
-
-      // Compute Recent Alerts
-      const rAlerts: AlertStat[] = (alerts || []).slice(0, 5).map(a => {
-        const date = new Date(a.created_at);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        let timeStr = `há ${diffMins} min`;
-        if (diffMins > 60) timeStr = `há ${Math.floor(diffMins / 60)}h`;
-
-        return {
-          id: a.id,
-          student: studentMap.get(a.user_id)?.full_name || 'Aluno',
-          type: a.title,
-          time: timeStr,
-          severity: a.type === 'critical' ? 'critical' : 'warning',
-        };
-      });
-      setRecentAlerts(rAlerts);
-
-      setLoading(false);
-    };
-
-    loadData();
-
-    // Realtime subscriptions
-    const channel = supabase.channel('professor_dashboard')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'emotional_checkins' }, () => {
-        loadData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'biometric_logs' }, () => {
-        loadData();
-      })
+    const channel = supabase
+      .channel('professor_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'emotional_checkins' }, () => loadData(userId))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'biometric_logs' }, () => loadData(userId))
       .subscribe();
 
     return () => {
@@ -176,139 +211,104 @@ export default function ProfessorDashboard() {
     };
   }, [userId, supabase]);
 
-  const statCards = [
-    { label: 'Turmas Ativas', value: stats.activeClasses, icon: 'groups' },
-    { label: 'Alunos Monitorados', value: stats.monitoredStudents, icon: 'person' },
-    { label: 'Alertas Pendentes', value: stats.pendingAlerts, icon: 'warning' },
-    { label: 'Check-ins Hoje', value: stats.checkinsToday, icon: 'check_circle' },
-  ];
-
   return (
     <>
       <TopBar title="Painel do Professor" />
       <main className="pt-32 px-8 md:px-16 pb-24 relative min-h-screen">
         <PageTransition>
-          <section className="max-w-[1200px] mx-auto mb-12">
-            <motion.span
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="text-xs font-semibold text-secondary uppercase tracking-[0.3em]"
-            >
-              Visão do Professor
-            </motion.span>
-            <motion.h2
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="text-5xl font-extralight leading-[1.1] text-on-surface tracking-tighter mt-1"
-            >
-              Olá, {userName || '...'}.
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="text-base text-on-surface-variant max-w-xl mt-2"
-            >
-              Visão geral do estado emocional e de engajamento das suas turmas em tempo real.
-            </motion.p>
-          </section>
+          <header className="max-w-[1200px] mx-auto mb-12">
+            <span className="text-xs font-semibold text-secondary uppercase tracking-[0.3em]">
+              Visão Pedagógica & Acompanhamento
+            </span>
+            <h1 className="text-5xl font-extralight tracking-tighter text-on-surface mt-1">
+              Olá, Professor {userName || '...'}.
+            </h1>
+            <p className="text-on-surface-variant max-w-xl mt-2">
+              Acompanhamento do clima emocional das suas salas em tempo real.
+            </p>
+          </header>
 
-          {/* Stats Row */}
+          {/* Stat Cards */}
           <section className="max-w-[1200px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
-            {statCards.map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.1 }}
-                className="aetheric-glass rounded-[24px] p-6 flex flex-col gap-3"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase tracking-[0.15em] text-on-surface-variant font-semibold">{stat.label}</span>
-                  <span className="material-symbols-outlined text-secondary opacity-60 text-xl">{stat.icon}</span>
-                </div>
-                <span className="text-4xl font-extralight text-on-surface">
-                  {loading ? '...' : stat.value}
-                </span>
-              </motion.div>
-            ))}
+            <div className="aetheric-glass rounded-[24px] p-6">
+              <span className="text-xs uppercase tracking-wider text-on-surface-variant">Salas Ativas</span>
+              <h3 className="text-3xl font-light text-on-surface mt-2">{loading ? '...' : stats.activeClasses}</h3>
+            </div>
+            <div className="aetheric-glass rounded-[24px] p-6">
+              <span className="text-xs uppercase tracking-wider text-on-surface-variant">Alunos Monitorados</span>
+              <h3 className="text-3xl font-light text-on-surface mt-2">{loading ? '...' : stats.monitoredStudents}</h3>
+            </div>
+            <div className="aetheric-glass rounded-[24px] p-6">
+              <span className="text-xs uppercase tracking-wider text-on-surface-variant">Check-ins Hoje</span>
+              <h3 className="text-3xl font-light text-secondary mt-2">{loading ? '...' : stats.checkinsToday}</h3>
+            </div>
+            <div className="aetheric-glass rounded-[24px] p-6">
+              <span className="text-xs uppercase tracking-wider text-on-surface-variant">Alertas Ativos</span>
+              <h3 className="text-3xl font-light text-yellow-400 mt-2">{loading ? '...' : stats.pendingAlerts}</h3>
+            </div>
           </section>
 
-          {/* Classrooms */}
+          {/* Classrooms Grid */}
           <section className="max-w-[1200px] mx-auto mb-10">
-            <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="text-2xl font-light text-on-surface mb-6">
-              Minhas Turmas
-            </motion.h3>
-            <div className="flex flex-col gap-4">
+            <div className="aetheric-glass rounded-[28px] p-8">
+              <h2 className="text-xl font-light text-on-surface mb-6">Salas Sob Sua Responsabilidade</h2>
+
               {loading ? (
-                <div className="text-sm text-on-surface-variant opacity-60">Sincronizando ambiente...</div>
+                <div className="text-sm text-on-surface-variant opacity-60">Carregando salas...</div>
               ) : classrooms.length === 0 ? (
-                <div className="text-sm text-on-surface-variant opacity-60">Nenhuma turma registrada.</div>
+                <div className="text-sm text-on-surface-variant opacity-60">Nenhuma sala atribuída no momento.</div>
               ) : (
-                classrooms.map((cls, i) => (
-                  <motion.div
-                    key={cls.id}
-                    initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + i * 0.1 }}
-                    className="aetheric-glass rounded-[24px] p-6 grid grid-cols-2 md:grid-cols-5 gap-4 items-center hover:border-secondary/20 transition-colors"
-                  >
-                    <div className="md:col-span-2">
-                      <p className="font-medium text-on-surface">{cls.name}</p>
-                      <p className="text-xs text-on-surface-variant mt-1 opacity-60">{cls.checkins}/{cls.total} check-ins hoje</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1">Humor Médio</p>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                          <div className="h-full bg-secondary rounded-full transition-all duration-1000" style={{ width: `${cls.avgMood}%`, opacity: cls.avgMood < 60 ? 0.5 : 1 }} />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  {classrooms.map((room) => (
+                    <div key={room.id} className="bg-surface-container/40 border border-white/5 rounded-2xl p-6">
+                      <h3 className="text-lg font-medium text-on-surface mb-4">{room.name}</h3>
+
+                      <div className="space-y-2 text-xs text-on-surface-variant">
+                        <div className="flex justify-between">
+                          <span>Total de Alunos:</span>
+                          <strong className="text-on-surface">{room.total}</strong>
                         </div>
-                        <span className="text-xs font-medium text-on-surface">{cls.avgMood}</span>
+                        <div className="flex justify-between">
+                          <span>Check-ins Hoje:</span>
+                          <strong className="text-secondary">{room.checkins}</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Média da Valência:</span>
+                          <strong className="text-on-surface">{room.avgMood}/100</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Alertas Ativos:</span>
+                          <strong className={room.alerts > 0 ? 'text-red-400' : 'text-on-surface'}>{room.alerts}</strong>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-center">
-                      <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1">Engajamento</p>
-                      <span className="text-sm font-medium text-on-surface">{cls.total > 0 ? Math.round((cls.checkins / cls.total) * 100) : 0}%</span>
-                    </div>
-                    <div className="text-center">
-                      {cls.alerts > 0 ? (
-                        <span className="px-3 py-1 bg-red-500/10 text-red-400 text-xs font-semibold uppercase tracking-wider rounded-full border border-red-500/20">
-                          {cls.alerts} Alerta{cls.alerts > 1 ? 's' : ''}
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 bg-secondary/10 text-secondary text-xs font-semibold uppercase tracking-wider rounded-full border border-secondary/20">
-                          Normal
-                        </span>
-                      )}
-                    </div>
-                  </motion.div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           </section>
 
           {/* Recent Alerts */}
           <section className="max-w-[1200px] mx-auto">
-            <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="text-2xl font-light text-on-surface mb-6">
-              Alertas Recentes
-            </motion.h3>
-            <div className="flex flex-col gap-3">
+            <div className="aetheric-glass rounded-[28px] p-8">
+              <h2 className="text-xl font-light text-on-surface mb-6">Alertas Recentes dos Seus Alunos</h2>
+
               {loading ? (
-                <div className="text-sm text-on-surface-variant opacity-60">Analisando sinapses...</div>
+                <div className="text-sm text-on-surface-variant opacity-60">Carregando alertas...</div>
               ) : recentAlerts.length === 0 ? (
-                <div className="text-sm text-on-surface-variant opacity-60">Nenhuma irregularidade detectada.</div>
+                <div className="text-sm text-on-surface-variant opacity-60">Nenhum alerta recente.</div>
               ) : (
-                recentAlerts.map((alert) => (
-                  <motion.div
-                    key={alert.id}
-                    initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-                    className="aetheric-glass rounded-[20px] p-5 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${alert.severity === 'critical' ? 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]' : 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.5)]'}`} />
+                <div className="space-y-3">
+                  {recentAlerts.map((alert) => (
+                    <div key={alert.id} className="bg-surface-container/40 border border-white/5 rounded-2xl p-4 flex justify-between items-center">
                       <div>
-                        <p className="text-sm font-medium text-on-surface">{alert.student}</p>
-                        <p className="text-xs text-on-surface-variant opacity-60">{alert.type}</p>
+                        <h4 className="text-sm font-medium text-on-surface">{alert.student}</h4>
+                        <p className="text-xs text-on-surface-variant opacity-70">{alert.type}</p>
                       </div>
+                      <span className="text-[11px] text-on-surface-variant opacity-40">{alert.time}</span>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-xs text-on-surface-variant opacity-40">{alert.time}</span>
-                      <button className="text-xs text-secondary hover:underline underline-offset-2 uppercase tracking-wider">Avaliar</button>
-                    </div>
-                  </motion.div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           </section>

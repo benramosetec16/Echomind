@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import TopBar from '../components/TopBar';
 import PageTransition from '../components/PageTransition';
+import OnboardingModal from '../../components/OnboardingModal';
 import { useState, useEffect } from 'react';
 import { createClient } from '../../utils/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -10,30 +11,96 @@ import { getUserRole } from '../../utils/roles';
 
 export default function DashboardPage() {
   const [userName, setUserName] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string>('aluno');
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  const [metrics, setMetrics] = useState({
+    latestValence: 75,
+    checkinsCount: 0,
+    journalCount: 0,
+  });
+
   const supabase = createClient();
   const router = useRouter();
 
+  const loadStudentMetrics = async (uid: string) => {
+    const [checkinRes, journalRes] = await Promise.all([
+      supabase
+        .from('emotional_checkins')
+        .select('valence_value, created_at')
+        .eq('user_id', uid)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('aetheric_journal')
+        .select('id', { count: 'exact' })
+        .eq('user_id', uid),
+    ]);
+
+    const checkins = checkinRes.data || [];
+    const latestValence = checkins.length > 0 ? checkins[0].valence_value : 75;
+
+    setMetrics({
+      latestValence,
+      checkinsCount: checkins.length,
+      journalCount: journalRes.count || 0,
+    });
+  };
+
   useEffect(() => {
+    let channel: any;
+
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserName(user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Viajante');
+        setUserId(user.id);
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, institution_id, onboarding_completed')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          // If legacy user or unassigned, trigger OnboardingModal without altering role or credentials
+          if (!profile.onboarding_completed && !profile.institution_id) {
+            setShowOnboarding(true);
+          }
+        }
+
+        await loadStudentMetrics(user.id);
+
+        // Realtime Subscription
+        channel = supabase
+          .channel('student_dashboard_realtime')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'emotional_checkins', filter: `user_id=eq.${user.id}` }, () => loadStudentMetrics(user.id))
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'aetheric_journal', filter: `user_id=eq.${user.id}` }, () => loadStudentMetrics(user.id))
+          .subscribe();
       }
     };
+
     const checkRole = async () => {
       const role = await getUserRole();
+      setUserRole(role);
       if (role === 'professor') router.replace('/dashboard/professor');
       else if (role === 'orientador') router.replace('/dashboard/orientador');
+      else if (role === 'gestor') router.replace('/dashboard/institution');
       else if (role === 'administrador') router.replace('/dashboard/admin');
     };
+
     fetchUser();
     checkRole();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [supabase, router]);
 
   return (
     <>
       <TopBar title="Atmosfera" />
-      <main className="pt-32 px-16 pb-24 relative min-h-screen">
+      <main className="pt-32 px-8 md:px-16 pb-24 relative min-h-screen">
         <PageTransition>
           {/* Hero Section */}
           <section className="max-w-[1200px] mx-auto mb-16">
@@ -80,7 +147,7 @@ export default function DashboardPage() {
                   <span className="material-symbols-outlined text-secondary opacity-50 group-hover:opacity-100 transition-opacity">vital_signs</span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extralight text-on-surface">92</span>
+                  <span className="text-5xl font-extralight text-on-surface">{metrics.latestValence}</span>
                   <span className="text-sm text-on-surface-variant opacity-40">/100</span>
                 </div>
               </div>
@@ -93,7 +160,7 @@ export default function DashboardPage() {
               </div>
             </motion.div>
 
-            {/* Mind Minutes */}
+            {/* Total Checkins */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -102,12 +169,12 @@ export default function DashboardPage() {
             >
               <div>
                 <div className="flex justify-between items-start mb-6">
-                  <span className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant">Minutos Focados</span>
-                  <span className="material-symbols-outlined text-secondary opacity-50 group-hover:opacity-100 transition-opacity">timer</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant">Check-ins Realizados</span>
+                  <span className="material-symbols-outlined text-secondary opacity-50 group-hover:opacity-100 transition-opacity">auto_awesome</span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extralight text-on-surface">42</span>
-                  <span className="text-sm text-on-surface-variant opacity-40">Hoje</span>
+                  <span className="text-5xl font-extralight text-on-surface">{metrics.checkinsCount}</span>
+                  <span className="text-sm text-on-surface-variant opacity-40">Registros</span>
                 </div>
               </div>
               <div className="mt-8 relative h-20 flex items-center justify-center">
@@ -120,7 +187,7 @@ export default function DashboardPage() {
               </div>
             </motion.div>
 
-            {/* Rest Quality */}
+            {/* Journal Entries */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -129,12 +196,12 @@ export default function DashboardPage() {
             >
               <div>
                 <div className="flex justify-between items-start mb-6">
-                  <span className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant">Qualidade do Descanso</span>
-                  <span className="material-symbols-outlined text-secondary opacity-50 group-hover:opacity-100 transition-opacity">bedtime</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant">Entradas no Journal</span>
+                  <span className="material-symbols-outlined text-secondary opacity-50 group-hover:opacity-100 transition-opacity">book</span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extralight text-on-surface">Profundo</span>
-                  <span className="text-sm text-on-surface-variant opacity-40">8.2h</span>
+                  <span className="text-5xl font-extralight text-on-surface">{metrics.journalCount}</span>
+                  <span className="text-sm text-on-surface-variant opacity-40">Páginas</span>
                 </div>
               </div>
               <div className="mt-8">
@@ -142,8 +209,8 @@ export default function DashboardPage() {
                   <div className="absolute top-0 left-0 h-full w-4/5 bg-secondary aether-glow"></div>
                 </div>
                 <div className="flex justify-between mt-2 text-[10px] font-semibold uppercase tracking-widest opacity-30">
-                  <span>Recuperação</span>
-                  <span>80%</span>
+                  <span>Sincronização</span>
+                  <span>100%</span>
                 </div>
               </div>
             </motion.div>
@@ -178,7 +245,7 @@ export default function DashboardPage() {
                 className="group cursor-pointer"
               >
                 <div className="aetheric-glass rounded-[40px] p-8 flex gap-8 items-center transition-all duration-500 group-hover:bg-white/[0.04]">
-                  <div className="w-32 h-32 rounded-3xl overflow-hidden bg-surface-container flex-shrink-0 border border-white/5 grayscale group-hover:grayscale-0 transition-all duration-1000 relative">
+                  <div className="w-32 h-32 rounded-3xl overflow-hidden bg-surface-container flex-shrink-0 border border-white/5 relative">
                     <img src="/protocol_synapse.png" alt="Clareza Sináptica" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-br from-secondary/20 to-transparent"></div>
                   </div>
@@ -189,13 +256,6 @@ export default function DashboardPage() {
                       <span className="px-3 py-1 bg-secondary/10 text-secondary text-[10px] font-semibold uppercase tracking-[0.15em] rounded-full border border-secondary/20">ATIVO</span>
                     </div>
                     <p className="text-sm text-on-surface-variant opacity-70 mb-6">Supressão de fundo neural engajada para maximizar o rendimento do trabalho profundo.</p>
-                    <div className="mt-auto flex items-center gap-4">
-                      <div className="flex -space-x-2">
-                        <div className="w-6 h-6 rounded-full border border-background bg-surface-bright"></div>
-                        <div className="w-6 h-6 rounded-full border border-background bg-surface-container-high"></div>
-                      </div>
-                      <span className="text-[10px] text-on-surface-variant uppercase tracking-widest opacity-40">2 Sub-Processos</span>
-                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -208,7 +268,7 @@ export default function DashboardPage() {
                 className="group cursor-pointer"
               >
                 <div className="aetheric-glass rounded-[40px] p-8 flex gap-8 items-center transition-all duration-500 group-hover:bg-white/[0.04]">
-                  <div className="w-32 h-32 rounded-3xl overflow-hidden bg-surface-container flex-shrink-0 border border-white/5 grayscale group-hover:grayscale-0 transition-all duration-1000 relative">
+                  <div className="w-32 h-32 rounded-3xl overflow-hidden bg-surface-container flex-shrink-0 border border-white/5 relative">
                     <img src="/protocol_resonance.png" alt="Mudança de Ressonância" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-br from-tertiary/20 to-transparent"></div>
                   </div>
@@ -218,9 +278,6 @@ export default function DashboardPage() {
                       <span className="px-3 py-1 bg-surface-variant text-on-surface-variant text-[10px] font-semibold uppercase tracking-[0.15em] rounded-full border border-white/10">ESPERA</span>
                     </div>
                     <p className="text-sm text-on-surface-variant opacity-70 mb-6">Ajuste de humor ambiente programado para fase de pôr do sol circadiano.</p>
-                    <div className="mt-auto flex items-center gap-4">
-                      <span className="text-[10px] text-on-surface-variant uppercase tracking-widest opacity-40">Programado para as 19:30</span>
-                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -228,6 +285,18 @@ export default function DashboardPage() {
           </section>
         </PageTransition>
       </main>
+
+      {/* Legacy User Onboarding Modal */}
+      {showOnboarding && userId && (
+        <OnboardingModal
+          userId={userId}
+          userRole={userRole}
+          onComplete={() => {
+            setShowOnboarding(false);
+            if (userId) loadStudentMetrics(userId);
+          }}
+        />
+      )}
     </>
   );
 }

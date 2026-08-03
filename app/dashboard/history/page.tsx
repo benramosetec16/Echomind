@@ -68,6 +68,8 @@ export default function HistoryPage() {
   };
 
   useEffect(() => {
+    let channel: any;
+
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -92,10 +94,25 @@ export default function HistoryPage() {
       if (checkinsRes.error) console.error('Error fetching checkins:', checkinsRes.error);
       
       setLoading(false);
+
+      // Realtime subscription
+      channel = supabase
+        .channel('history_realtime')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'aetheric_journal', filter: `user_id=eq.${user.id}` }, (payload) => {
+          setEntries(prev => [payload.new as JournalEntry, ...prev]);
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'emotional_checkins', filter: `user_id=eq.${user.id}` }, (payload) => {
+          setCheckins(prev => [...prev, payload.new as Checkin]);
+        })
+        .subscribe();
     };
 
     fetchData();
-  }, []);
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [supabase]);
 
   // Format date helper
   const formatDate = (dateString: string) => {

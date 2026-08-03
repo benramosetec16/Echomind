@@ -223,8 +223,21 @@ export default function LoginPage() {
                       <option value="aluno" className="bg-surface-container text-on-surface">Aluno</option>
                       <option value="professor" className="bg-surface-container text-on-surface">Professor</option>
                       <option value="orientador" className="bg-surface-container text-on-surface">Orientador</option>
+                      <option value="gestor" className="bg-surface-container text-on-surface">Gestor Institucional</option>
                       <option value="administrador" className="bg-surface-container text-on-surface">Administrador</option>
                     </select>
+                  </div>
+
+                  <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">
+                    Código Institucional / Sala
+                  </label>
+                  <div className="input-underline py-2 mb-6">
+                    <input
+                      name="code"
+                      type="text"
+                      placeholder="Ex: PROF001 ou TURMA-A"
+                      className="w-full bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant/30 uppercase"
+                    />
                   </div>
 
                   <label className="block text-xs uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2 transition-colors group-focus-within:text-secondary">

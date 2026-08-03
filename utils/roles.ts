@@ -1,18 +1,19 @@
 import { createClient } from './supabase/client';
 
-export type UserRole = 'aluno' | 'professor' | 'orientador' | 'administrador';
+export type UserRole = 'aluno' | 'professor' | 'orientador' | 'gestor' | 'administrador';
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   aluno: 'Aluno',
   professor: 'Professor',
   orientador: 'Orientador',
-  administrador: 'Administrador',
+  gestor: 'Gestor Institucional',
+  administrador: 'Administrador da Plataforma',
 };
 
-export const INSTITUTIONAL_ROLES: UserRole[] = ['professor', 'orientador', 'administrador'];
+export const INSTITUTIONAL_ROLES: UserRole[] = ['professor', 'orientador', 'gestor', 'administrador'];
 
 /**
- * Fetches the current user's role from Supabase profiles table.
+ * Fetches the current user's role and profile details from Supabase profiles table.
  * Returns 'aluno' as default if not found.
  */
 export async function getUserRole(): Promise<UserRole> {
@@ -37,8 +38,7 @@ export function hasInstitutionalAccess(role: UserRole): boolean {
 }
 
 /**
- * Updates the current user's role. Only admins can change roles.
- * (For demo purposes, this allows self-role selection in profile.)
+ * Updates the current user's role.
  */
 export async function updateUserRole(role: UserRole): Promise<{ error?: string }> {
   const supabase = createClient();

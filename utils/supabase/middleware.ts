@@ -44,9 +44,9 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Se tem usuário, aplicar restrição de rotas no dashboard
+  // Se tem usuário, aplicar restrição de rotas no dashboard preservando os cargos
   if (user && request.nextUrl.pathname.startsWith('/dashboard')) {
-    // Buscar perfil do usuário para pegar o cargo real e não só do metadata
+    // Buscar perfil do usuário para pegar o cargo real e não alterar o cargo existente
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -61,14 +61,20 @@ export async function updateSession(request: NextRequest) {
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)
     }
-    
-    if (path.startsWith('/dashboard/professor') && role !== 'professor') {
+
+    if (path.startsWith('/dashboard/institution') && role !== 'gestor' && role !== 'administrador') {
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)
     }
     
-    if (path.startsWith('/dashboard/orientador') && role !== 'orientador') {
+    if (path.startsWith('/dashboard/professor') && role !== 'professor' && role !== 'administrador') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+    
+    if (path.startsWith('/dashboard/orientador') && role !== 'orientador' && role !== 'administrador') {
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)
