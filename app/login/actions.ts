@@ -105,7 +105,7 @@ export async function requestPasswordReset(formData: FormData) {
   if (!email) return { error: 'E-mail é obrigatório' }
 
   const { createAdminClient } = await import('../../utils/supabase/admin')
-  const { sendOtpEmail } = await import('../../utils/email')
+  const { sendSystemEmail } = await import('../../utils/email')
 
   const adminAuth = createAdminClient()
 
@@ -133,7 +133,17 @@ export async function requestPasswordReset(formData: FormData) {
 
   // 4. Send email via EmailJS
   try {
-    await sendOtpEmail(email, otp)
+    await sendSystemEmail({
+      to_email: email,
+      title: 'Recuperação de Acesso',
+      badge: 'SEGURANÇA',
+      message: 'Recebemos uma solicitação de recuperação de senha para a sua conta. Utilize o código abaixo para validar sua identidade.',
+      code_label: 'SEU CÓDIGO NEURAL (OTP)',
+      code: otp,
+      code_description: 'Este código expira em 15 minutos e só pode ser utilizado uma vez.',
+      button_text: 'RETORNAR AO LOGIN',
+      button_link: '/login',
+    })
     return { success: true }
   } catch (err: any) {
     return { error: err.message || 'Erro ao enviar o e-mail de recuperação.' }
