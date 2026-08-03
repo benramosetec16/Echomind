@@ -17,6 +17,14 @@ interface GeneratedCode {
   type: string;
 }
 
+interface UserProfile {
+  id: string;
+  full_name: string;
+  role: string;
+  created_at: string;
+  last_login: string;
+}
+
 interface RoleDist {
   label: string;
   count: number;
@@ -43,6 +51,10 @@ export default function AdminDashboard() {
 
   // Painel de Gerenciamento Expandido
   const [selectedInst, setSelectedInst] = useState<Institution | null>(null);
+  const [activeTab, setActiveTab] = useState<'codes' | 'members'>('codes');
+  const [members, setMembers] = useState<UserProfile[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
   const [codeType, setCodeType] = useState<'gestor' | 'professor' | 'orientador' | 'aluno'>('gestor');
   const [gestorEmail, setGestorEmail] = useState('');
   const [generatingCode, setGeneratingCode] = useState(false);
@@ -65,7 +77,19 @@ export default function AdminDashboard() {
   const loadInstitutions = async () => {
     const res = await fetch('/api/admin/institutions');
     const json = await res.json();
+    if (json.error) {
+      console.error('Erro ao carregar instituições:', json.error);
+      return;
+    }
     if (json.institutions) setInstitutions(json.institutions);
+  };
+
+  const loadMembers = async (instId: string) => {
+    setLoadingMembers(true);
+    const res = await fetch(`/api/admin/users?institution_id=${instId}`);
+    const json = await res.json();
+    if (json.users) setMembers(json.users);
+    setLoadingMembers(false);
   };
 
   const loadData = async () => {
@@ -164,7 +188,13 @@ export default function AdminDashboard() {
     });
     const json = await res.json();
     if (json.error) alert('Erro: ' + json.error);
-    else setGeneratedCode({ code: json.code, type: codeType });
+    else {
+      setGeneratedCode({ code: json.code, type: codeType });
+      if (codeType === 'gestor' && gestorEmail) {
+        // Se vinculou um gestor automaticamente, atualiza a lista de membros
+        loadMembers(selectedInst.id);
+      }
+    }
     setGeneratingCode(false);
   };
 
@@ -176,6 +206,12 @@ export default function AdminDashboard() {
   ];
 
   const roleTypeLabel: Record<string, string> = { gestor: 'Gestor', professor: 'Professor', orientador: 'Orientador', aluno: 'Aluno' };
+  const roleColors: Record<string, string> = { 
+    gestor: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30', 
+    professor: 'bg-primary/20 text-primary border-primary/30', 
+    orientador: 'bg-tertiary/20 text-tertiary border-tertiary/30', 
+    aluno: 'bg-secondary/20 text-secondary border-secondary/30' 
+  };
 
   return (
     <>
@@ -242,7 +278,15 @@ export default function AdminDashboard() {
                   institutions.map((inst) => (
                     <div
                       key={inst.id}
-                      onClick={() => setSelectedInst(selectedInst?.id === inst.id ? null : inst)}
+                      onClick={() => {
+                        if (selectedInst?.id === inst.id) {
+                          setSelectedInst(null);
+                        } else {
+                          setSelectedInst(inst);
+                          setActiveTab('codes');
+                          loadMembers(inst.id);
+                        }
+                      }}
                       className={`bg-surface-container/50 border rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all ${selectedInst?.id === inst.id ? 'border-secondary/60 bg-secondary/5' : 'border-white/5 hover:border-white/20'}`}
                     >
                       <div>
@@ -275,100 +319,154 @@ export default function AdminDashboard() {
                 className="max-w-[1200px] mx-auto mb-10"
               >
                 <div className="aetheric-glass rounded-[28px] p-8 border border-secondary/20">
-                  <div className="flex items-center gap-3 mb-6">
-                    <span className="material-symbols-outlined text-secondary">domain</span>
-                    <div>
-                      <h3 className="text-lg font-light text-on-surface">{selectedInst.name}</h3>
-                      <p className="text-[10px] text-on-surface-variant opacity-50 uppercase tracking-wider">Gerenciar Códigos e Vínculos</p>
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-8">
-                    {/* Gerar Código */}
-                    <div className="flex flex-col gap-4">
-                      <h4 className="text-sm font-semibold text-on-surface-variant uppercase tracking-widest">Gerar Código de Acesso</h4>
-
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-secondary text-3xl">domain</span>
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1 block">Tipo de Cargo</label>
-                        <select
-                          value={codeType}
-                          onChange={(e) => { setCodeType(e.target.value as any); setGestorEmail(''); setGeneratedCode(null); }}
-                          className="w-full bg-background/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-on-surface outline-none focus:border-secondary transition-colors"
-                        >
-                          <option value="gestor">Gestor Institucional</option>
-                          <option value="professor">Professor</option>
-                          <option value="orientador">Orientador</option>
-                          <option value="aluno">Aluno</option>
-                        </select>
+                        <h3 className="text-xl font-light text-on-surface">{selectedInst.name}</h3>
+                        <p className="text-[10px] text-on-surface-variant opacity-50 uppercase tracking-wider">Painel de Controle Institucional</p>
                       </div>
-
-                      {codeType === 'gestor' && (
-                        <div>
-                          <label className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1 block">
-                            E-mail do Gestor <span className="opacity-50">(opcional — vincula automaticamente)</span>
-                          </label>
-                          <input
-                            type="email"
-                            value={gestorEmail}
-                            onChange={(e) => setGestorEmail(e.target.value)}
-                            placeholder="gestor@escola.com"
-                            className="w-full bg-background/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-on-surface outline-none focus:border-secondary transition-colors"
-                          />
-                          <p className="text-[10px] text-on-surface-variant opacity-40 mt-1">Se informado, o usuário será movido automaticamente para esta instituição sem precisar usar o código.</p>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={handleGenerateCode}
-                        disabled={generatingCode}
-                        className="w-full py-3 bg-secondary/10 border border-secondary/30 text-secondary font-semibold rounded-xl text-xs uppercase tracking-wider hover:bg-secondary/20 transition-colors disabled:opacity-50"
-                      >
-                        {generatingCode ? 'Gerando...' : `Gerar Código de ${roleTypeLabel[codeType]}`}
-                      </button>
-
-                      <AnimatePresence>
-                        {generatedCode && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="bg-secondary/5 border border-secondary/30 rounded-2xl p-5 text-center"
-                          >
-                            <p className="text-[10px] text-secondary uppercase tracking-widest mb-2">Código {roleTypeLabel[generatedCode.type]} Gerado</p>
-                            <p className="text-3xl font-mono font-bold text-on-surface tracking-[0.3em]">{generatedCode.code}</p>
-                            <p className="text-[10px] text-on-surface-variant opacity-40 mt-2">Compartilhe este código com o usuário. Uso único e permanente.</p>
-                            <button
-                              onClick={() => { navigator.clipboard.writeText(generatedCode.code); }}
-                              className="mt-3 text-[10px] uppercase tracking-wider text-secondary opacity-70 hover:opacity-100 transition-opacity flex items-center gap-1 mx-auto"
-                            >
-                              <span className="material-symbols-outlined text-sm">content_copy</span>
-                              Copiar Código
-                            </button>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
                     </div>
 
-                    {/* Instruções de Onboarding */}
-                    <div className="flex flex-col gap-4">
-                      <h4 className="text-sm font-semibold text-on-surface-variant uppercase tracking-widest">Fluxo de Vinculação</h4>
-                      <div className="flex flex-col gap-3 text-sm text-on-surface-variant">
-                        {[
-                          { icon: 'person_add', label: 'Usuário já cadastrado', desc: 'Gestores, Orientadores, Professores e Alunos que criaram conta sem código podem se vincular após o login informando o código no painel Perfil ou na tela inicial.' },
-                          { icon: 'key', label: 'Código Permanente', desc: 'O código institucional vincula o usuário permanentemente e define seu cargo. Nunca é exigido novamente no login diário.' },
-                          { icon: 'auto_awesome', label: 'Vínculo Automático por E-mail', desc: 'Para Gestores, informe o e-mail acima. O usuário será movido imediatamente para esta instituição sem precisar inserir o código manualmente.' },
-                        ].map(item => (
-                          <div key={item.icon} className="flex gap-3 items-start bg-surface-container/30 rounded-xl p-3">
-                            <span className="material-symbols-outlined text-secondary text-base mt-0.5">{item.icon}</span>
-                            <div>
-                              <p className="text-xs font-semibold text-on-surface mb-0.5">{item.label}</p>
-                              <p className="text-[11px] opacity-60 leading-relaxed">{item.desc}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    <div className="flex bg-background/50 border border-white/5 rounded-xl p-1">
+                      <button 
+                        onClick={() => setActiveTab('codes')}
+                        className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${activeTab === 'codes' ? 'bg-secondary text-background' : 'text-on-surface-variant hover:text-on-surface'}`}
+                      >
+                        Gerar Códigos
+                      </button>
+                      <button 
+                        onClick={() => setActiveTab('members')}
+                        className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${activeTab === 'members' ? 'bg-secondary text-background' : 'text-on-surface-variant hover:text-on-surface'}`}
+                      >
+                        Membros ({members.length})
+                      </button>
                     </div>
                   </div>
+
+                  <AnimatePresence mode="wait">
+                    {activeTab === 'codes' && (
+                      <motion.div key="codes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid md:grid-cols-2 gap-8">
+                        {/* Gerar Código */}
+                        <div className="flex flex-col gap-4">
+                          <h4 className="text-sm font-semibold text-on-surface-variant uppercase tracking-widest">Novo Acesso</h4>
+
+                          <div>
+                            <label className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1 block">Tipo de Cargo</label>
+                            <select
+                              value={codeType}
+                              onChange={(e) => { setCodeType(e.target.value as any); setGestorEmail(''); setGeneratedCode(null); }}
+                              className="w-full bg-background/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-on-surface outline-none focus:border-secondary transition-colors"
+                            >
+                              <option value="gestor">Gestor Institucional</option>
+                              <option value="professor">Professor</option>
+                              <option value="orientador">Orientador</option>
+                              <option value="aluno">Aluno</option>
+                            </select>
+                          </div>
+
+                          {codeType === 'gestor' && (
+                            <div>
+                              <label className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1 block">
+                                E-mail do Gestor <span className="opacity-50">(opcional — vincula automaticamente)</span>
+                              </label>
+                              <input
+                                type="email"
+                                value={gestorEmail}
+                                onChange={(e) => setGestorEmail(e.target.value)}
+                                placeholder="gestor@escola.com"
+                                className="w-full bg-background/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-on-surface outline-none focus:border-secondary transition-colors"
+                              />
+                              <p className="text-[10px] text-on-surface-variant opacity-40 mt-1">Se informado, o usuário será movido imediatamente para esta instituição sem precisar digitar código.</p>
+                            </div>
+                          )}
+
+                          <button
+                            onClick={handleGenerateCode}
+                            disabled={generatingCode}
+                            className="w-full py-3 bg-secondary/10 border border-secondary/30 text-secondary font-semibold rounded-xl text-xs uppercase tracking-wider hover:bg-secondary/20 transition-colors disabled:opacity-50"
+                          >
+                            {generatingCode ? 'Gerando...' : `Gerar Código de ${roleTypeLabel[codeType]}`}
+                          </button>
+
+                          <AnimatePresence>
+                            {generatedCode && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="bg-secondary/5 border border-secondary/30 rounded-2xl p-5 text-center mt-2"
+                              >
+                                <p className="text-[10px] text-secondary uppercase tracking-widest mb-2">Código {roleTypeLabel[generatedCode.type]} Gerado</p>
+                                <p className="text-3xl font-mono font-bold text-on-surface tracking-[0.3em]">{generatedCode.code}</p>
+                                <p className="text-[10px] text-on-surface-variant opacity-40 mt-2">Uso único e permanente. Compartilhe com o novo usuário.</p>
+                                <button
+                                  onClick={() => { navigator.clipboard.writeText(generatedCode.code); }}
+                                  className="mt-3 text-[10px] uppercase tracking-wider text-secondary opacity-70 hover:opacity-100 transition-opacity flex items-center gap-1 mx-auto"
+                                >
+                                  <span className="material-symbols-outlined text-sm">content_copy</span>
+                                  Copiar Código
+                                </button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* Instruções */}
+                        <div className="flex flex-col gap-4">
+                          <h4 className="text-sm font-semibold text-on-surface-variant uppercase tracking-widest">Regras de Vínculo</h4>
+                          <div className="flex flex-col gap-3 text-sm text-on-surface-variant">
+                            {[
+                              { icon: 'person_add', label: 'Cadastro Legado', desc: 'Se o usuário já tem conta, ele será solicitado a digitar este código assim que fizer o próximo login na plataforma.' },
+                              { icon: 'key', label: 'Vínculo Automático', desc: 'Para Gestores que você inseriu o e-mail, eles não precisam do código. Já constam na aba "Membros".' },
+                            ].map(item => (
+                              <div key={item.icon} className="flex gap-3 items-start bg-surface-container/30 rounded-xl p-3">
+                                <span className="material-symbols-outlined text-secondary text-base mt-0.5">{item.icon}</span>
+                                <div>
+                                  <p className="text-xs font-semibold text-on-surface mb-0.5">{item.label}</p>
+                                  <p className="text-[11px] opacity-60 leading-relaxed">{item.desc}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {activeTab === 'members' && (
+                      <motion.div key="members" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="text-sm font-semibold text-on-surface-variant uppercase tracking-widest">Lista de Membros</h4>
+                          <button onClick={() => loadMembers(selectedInst.id)} className="text-xs text-secondary hover:underline flex items-center gap-1">
+                            <span className="material-symbols-outlined text-sm">refresh</span> Atualizar
+                          </button>
+                        </div>
+                        
+                        {loadingMembers ? (
+                          <div className="text-center py-8 text-sm text-on-surface-variant opacity-60">Carregando membros...</div>
+                        ) : members.length === 0 ? (
+                          <div className="text-center py-10 bg-surface-container/30 rounded-2xl border border-white/5">
+                            <span className="material-symbols-outlined text-4xl text-on-surface-variant opacity-30 mb-2">group_off</span>
+                            <p className="text-sm text-on-surface-variant opacity-60">Nenhum membro vinculado a esta instituição ainda.</p>
+                          </div>
+                        ) : (
+                          <div className="grid md:grid-cols-2 gap-4">
+                            {members.map(member => (
+                              <div key={member.id} className="bg-surface-container/40 border border-white/5 rounded-xl p-4 flex justify-between items-center hover:border-white/10 transition-colors">
+                                <div>
+                                  <p className="text-sm font-medium text-on-surface truncate">{member.full_name || 'Usuário Sem Nome'}</p>
+                                  <p className="text-[10px] text-on-surface-variant opacity-50">Entrou em: {new Date(member.created_at).toLocaleDateString('pt-BR')}</p>
+                                </div>
+                                <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md border ${roleColors[member.role] || roleColors['aluno']}`}>
+                                  {roleTypeLabel[member.role] || member.role}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </motion.section>
             )}
