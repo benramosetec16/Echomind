@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import TopBar from '../components/TopBar';
 import PageTransition from '../components/PageTransition';
-import OnboardingModal from '../../components/OnboardingModal';
+import OnboardingModal from '../components/OnboardingModal';
 import { useState, useEffect } from 'react';
 import { createClient } from '../../utils/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -289,8 +289,6 @@ export default function DashboardPage() {
       {/* Legacy User Onboarding Modal */}
       {showOnboarding && userId && (
         <OnboardingModal
-          userId={userId}
-          userRole={userRole}
           onComplete={() => {
             setShowOnboarding(false);
             if (userId) loadStudentMetrics(userId);
