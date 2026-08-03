@@ -1,79 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server'
+import emailjs from '@emailjs/nodejs'
 
-// GET /api/debug/email — testa o EmailJS e retorna o resultado detalhado
 export async function GET(req: NextRequest) {
   const serviceId = 'service_hwdokgj'
   const templateId = 'template_xusbq4m'
   const publicKey = process.env.EMAILJS_PUBLIC_KEY
   const privateKey = process.env.EMAILJS_PRIVATE_KEY
 
-  // 1. Checar variáveis de ambiente
   const envStatus = {
-    EMAILJS_PUBLIC_KEY: publicKey ? `Present (${publicKey.substring(0, 6)}...)` : 'MISSING ❌',
-    EMAILJS_PRIVATE_KEY: privateKey ? `Present (${privateKey.substring(0, 6)}...)` : 'MISSING ❌',
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'Not set (usando fallback localhost)',
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Present ✅' : 'MISSING ❌',
+    EMAILJS_PUBLIC_KEY: publicKey ? `✅ Present (${publicKey.substring(0, 6)}...)` : '❌ MISSING',
+    EMAILJS_PRIVATE_KEY: privateKey ? `✅ Present (${privateKey.substring(0, 6)}...)` : '❌ MISSING (opcional mas recomendado)',
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || '⚠️ Não definido',
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Present' : '❌ MISSING',
     NODE_ENV: process.env.NODE_ENV,
   }
 
   if (!publicKey) {
-    return NextResponse.json({ 
-      error: 'EMAILJS_PUBLIC_KEY está ausente. Verifique as variáveis de ambiente na Vercel e faça Redeploy.',
+    return NextResponse.json({
+      success: false,
+      error: 'EMAILJS_PUBLIC_KEY ausente. Adicione na Vercel e faça Redeploy.',
       envStatus
     }, { status: 500 })
   }
 
-  // 2. Tentar enviar um e-mail de teste para o e-mail do admin
   const testEmail = req.nextUrl.searchParams.get('to') || 'test@example.com'
 
-  const payload = {
-    service_id: serviceId,
-    template_id: templateId,
-    user_id: publicKey,
-    accessToken: privateKey,
-    template_params: {
-      to_email: testEmail,
-      title: 'Teste de Diagnóstico — EchoMind',
-      badge: 'DIAGNÓSTICO',
-      user_name: 'Administrador',
-      message: 'Este é um e-mail de diagnóstico enviado pelo sistema EchoMind para verificar se a integração com EmailJS está funcionando corretamente.',
-      code_label: 'CÓDIGO DE TESTE',
-      code: '123456',
-      code_description: 'Este é apenas um código de teste e não tem validade real.',
-      button_text: 'VOLTAR AO SISTEMA',
-      button_link: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-      security_message: 'Este e-mail foi enviado para fins de diagnóstico técnico.',
-      footer_message: 'EchoMind © Diagnóstico de Sistema'
-    }
-  }
-
   try {
-    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-
-    const responseText = await response.text()
+    const response = await emailjs.send(
+      serviceId,
+      templateId,
+      {
+        to_email: testEmail,
+        title: 'Diagnóstico EchoMind',
+        badge: 'TESTE',
+        user_name: 'Admin',
+        message: 'Este é um e-mail de teste automático do sistema EchoMind para verificar a integração com EmailJS.',
+        code_label: 'CÓDIGO DE VERIFICAÇÃO',
+        code: '999888',
+        code_description: 'Apenas para diagnóstico. Não tem validade.',
+        button_text: 'ACESSAR SISTEMA',
+        button_link: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        security_message: 'E-mail enviado para fins de diagnóstico técnico.',
+        footer_message: 'EchoMind © Diagnóstico'
+      },
+      { publicKey, privateKey }
+    )
 
     return NextResponse.json({
-      success: response.ok,
+      success: true,
       status: response.status,
-      statusText: response.statusText,
-      emailjsResponse: responseText,
+      emailjsText: response.text,
       sentTo: testEmail,
-      envStatus,
-      payloadUsed: {
-        service_id: serviceId,
-        template_id: templateId,
-        user_id: `${publicKey.substring(0, 6)}...`,
-        accessToken: privateKey ? `${privateKey.substring(0, 6)}...` : 'NOT SET',
-      }
+      message: `E-mail enviado! Verifique a caixa de entrada de ${testEmail} (e também o spam).`,
+      envStatus
     })
   } catch (err: any) {
-    return NextResponse.json({ 
-      error: err.message, 
-      envStatus 
+    return NextResponse.json({
+      success: false,
+      error: err?.text || err?.message || JSON.stringify(err),
+      hint: 'Verifique se "Allow non-browser requests" está ativo em EmailJS → Account → Security',
+      envStatus
     }, { status: 500 })
   }
 }
