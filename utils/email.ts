@@ -1,5 +1,3 @@
-import emailjs from '@emailjs/nodejs'
-
 export type EmailTemplateParams = {
   to_email: string;
   title: string;
@@ -36,39 +34,43 @@ export async function sendSystemEmail(params: EmailTemplateParams) {
     formattedButtonLink = `${appUrl}${formattedButtonLink.startsWith('/') ? '' : '/'}${formattedButtonLink}`
   }
 
-  const templateParams = {
-    to_email: params.to_email,
-    title: params.title,
-    badge: params.badge || '',
-    user_name: params.user_name || '',
-    message: params.message,
-    code_label: params.code_label || '',
-    code: params.code || '',
-    code_description: params.code_description || '',
-    button_text: params.button_text || '',
-    button_link: formattedButtonLink,
-    security_message: params.security_message || 'Caso você não tenha solicitado esta ação, desconsidere esta mensagem. Sua conta permanece segura.',
-    footer_message: params.footer_message || 'EchoMind © Todos os direitos reservados.'
+  const payload = {
+    service_id: serviceId,
+    template_id: templateId,
+    user_id: publicKey,
+    accessToken: privateKey,
+    template_params: {
+      to_email: params.to_email,
+      title: params.title,
+      badge: params.badge || '',
+      user_name: params.user_name || '',
+      message: params.message,
+      code_label: params.code_label || '',
+      code: params.code || '',
+      code_description: params.code_description || '',
+      button_text: params.button_text || '',
+      button_link: formattedButtonLink,
+      security_message: params.security_message || 'Caso você não tenha solicitado esta ação, desconsidere esta mensagem. Sua conta permanece segura.',
+      footer_message: params.footer_message || 'EchoMind © Todos os direitos reservados.'
+    }
   }
 
   try {
-    emailjs.init({
-      publicKey: publicKey,
-      privateKey: privateKey,
+    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     })
 
-    const response = await emailjs.send(
-      serviceId,
-      templateId,
-      templateParams
-    )
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(text)
+    }
 
-    console.log(`✅ E-mail enviado com sucesso para ${params.to_email} | Status: ${response.status} ${response.text}`)
+    console.log(`✅ E-mail enviado com sucesso para ${params.to_email}`)
     return true
   } catch (err: any) {
-    console.error('❌ EmailJS erro:', JSON.stringify(err, null, 2))
-    // Formatar mensagem de erro mais clara
-    const message = err?.text || err?.message || JSON.stringify(err)
-    throw new Error(`Falha no envio de e-mail: ${message}`)
+    console.error('❌ EmailJS erro:', err)
+    throw new Error(`Falha no envio de e-mail: ${err.message}`)
   }
 }

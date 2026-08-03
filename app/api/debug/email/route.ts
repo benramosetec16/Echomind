@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import emailjs from '@emailjs/nodejs'
 
 export async function GET(req: NextRequest) {
   const serviceId = 'service_hwdokgj'
@@ -25,35 +24,42 @@ export async function GET(req: NextRequest) {
 
   const testEmail = req.nextUrl.searchParams.get('to') || 'test@example.com'
 
+  const payload = {
+    service_id: serviceId,
+    template_id: templateId,
+    user_id: publicKey,
+    accessToken: privateKey,
+    template_params: {
+      to_email: testEmail,
+      title: 'Diagnóstico EchoMind',
+      badge: 'TESTE',
+      user_name: 'Admin',
+      message: 'Este é um e-mail de teste automático do sistema EchoMind para verificar a integração com EmailJS.',
+      code_label: 'CÓDIGO DE VERIFICAÇÃO',
+      code: '999888',
+      code_description: 'Apenas para diagnóstico. Não tem validade.',
+      button_text: 'ACESSAR SISTEMA',
+      button_link: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      security_message: 'E-mail enviado para fins de diagnóstico técnico.',
+      footer_message: 'EchoMind © Diagnóstico'
+    }
+  }
+
   try {
-    emailjs.init({
-      publicKey: publicKey,
-      privateKey: privateKey,
+    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     })
 
-    const response = await emailjs.send(
-      serviceId,
-      templateId,
-      {
-        to_email: testEmail,
-        title: 'Diagnóstico EchoMind',
-        badge: 'TESTE',
-        user_name: 'Admin',
-        message: 'Este é um e-mail de teste automático do sistema EchoMind para verificar a integração com EmailJS.',
-        code_label: 'CÓDIGO DE VERIFICAÇÃO',
-        code: '999888',
-        code_description: 'Apenas para diagnóstico. Não tem validade.',
-        button_text: 'ACESSAR SISTEMA',
-        button_link: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-        security_message: 'E-mail enviado para fins de diagnóstico técnico.',
-        footer_message: 'EchoMind © Diagnóstico'
-      }
-    )
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(text)
+    }
 
     return NextResponse.json({
       success: true,
       status: response.status,
-      emailjsText: response.text,
       sentTo: testEmail,
       message: `E-mail enviado! Verifique a caixa de entrada de ${testEmail} (e também o spam).`,
       envStatus
@@ -61,9 +67,13 @@ export async function GET(req: NextRequest) {
   } catch (err: any) {
     return NextResponse.json({
       success: false,
-      error: err?.text || err?.message || JSON.stringify(err),
+      error: err?.message || JSON.stringify(err),
       hint: 'Verifique se "Allow non-browser requests" está ativo em EmailJS → Account → Security',
-      envStatus
+      envStatus,
+      sentPayload: {
+        ...payload,
+        accessToken: payload.accessToken ? `${payload.accessToken.substring(0, 8)}... (length: ${payload.accessToken.length})` : 'MISSING'
+      }
     }, { status: 500 })
   }
 }
