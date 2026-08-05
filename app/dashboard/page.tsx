@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '../../utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { getUserRole } from '../../utils/roles';
+import { verifyAndRestoreProfile } from './checkin/actions';
 
 export default function DashboardPage() {
   const [userName, setUserName] = useState<string | null>(null);
@@ -51,32 +52,25 @@ export default function DashboardPage() {
     let channel: any;
 
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserName(user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Viajante');
-        setUserId(user.id);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // Guarantee profile exists via Server Action
+          await verifyAndRestoreProfile();
 
-        let { data: profile } = await supabase
-          .from('profiles')
-          .select('role, institution_id')
-          .eq('id', user.id)
-          .maybeSingle();
+          setUserName(user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Viajante');
+          setUserId(user.id);
 
-        if (!profile) {
-          // Create the missing profile for legacy users
-          const { data: newProfile } = await supabase.from('profiles').insert({
-            id: user.id,
-            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Viajante',
-            role: 'aluno'
-          }).select('role, institution_id').maybeSingle();
-          profile = newProfile;
-        }
+          let { data: profile } = await supabase
+            .from('profiles')
+            .select('role, institution_id')
+            .eq('id', user.id)
+            .maybeSingle();
 
-        if (profile) {
-          if (!profile.institution_id) {
-            setShowOnboarding(true);
+          if (profile) {
+            if (!profile.institution_id) {
+              setShowOnboarding(true);
+            }
           }
-        }
 
         await loadStudentMetrics(user.id);
 

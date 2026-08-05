@@ -97,6 +97,19 @@ export async function transmitAura(payload: { valenceValue: number; texture: str
 
   // 2. ALWAYS Save to Supabase (Journal & Checkin & Biometric Logs must NEVER fail)
   if (user) {
+    // ENSURE PROFILE EXISTS (Bypass RLS for legacy users missing a profile)
+    const { createAdminClient } = await import('../../../utils/supabase/admin');
+    const adminAuth = createAdminClient();
+    const { data: profileExists } = await adminAuth.from('profiles').select('id').eq('id', user.id).maybeSingle();
+    
+    if (!profileExists) {
+        await adminAuth.from('profiles').insert({
+             id: user.id,
+             full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Viajante',
+             role: 'aluno'
+        });
+    }
+
     // Save check-in
     const { error: checkinError } = await supabase.from('emotional_checkins').insert({
       user_id: user.id,
@@ -152,4 +165,23 @@ export async function transmitAura(payload: { valenceValue: number; texture: str
   }
 
   return { success: true, insight: aiResult.insight };
+}
+
+export async function verifyAndRestoreProfile() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false };
+
+  const { createAdminClient } = await import('../../../utils/supabase/admin');
+  const adminAuth = createAdminClient();
+  const { data: profileExists } = await adminAuth.from('profiles').select('id').eq('id', user.id).maybeSingle();
+  
+  if (!profileExists) {
+      await adminAuth.from('profiles').insert({
+           id: user.id,
+           full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Viajante',
+           role: 'aluno'
+      });
+  }
+  return { success: true };
 }
