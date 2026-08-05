@@ -37,6 +37,8 @@ export async function POST(request: Request) {
         systemPrompt = 'Você é o assistente educacional do EchoMind.';
     }
 
+    systemPrompt += '\n\nIMPORTANTE: Responda APENAS com um objeto JSON válido neste formato: { "result": "sua resposta didática longa com formatação markdown aqui...", "youtubeQuery": "um termo de busca bem específico de até 4 palavras para encontrar uma videoaula excelente no youtube sobre este assunto (ou deixe null se não houver necessidade)" }';
+
     const userMessage = context ? `Contexto anterior: ${context}\n\nSolicitação/Conteúdo atual: ${content}` : `Solicitação/Conteúdo: ${content}`;
 
     const chatCompletion = await groq.chat.completions.create({
@@ -46,15 +48,18 @@ export async function POST(request: Request) {
       ],
       model: 'llama-3.3-70b-versatile',
       temperature: 0.4,
+      response_format: { type: 'json_object' }
     });
 
-    const result = chatCompletion.choices[0]?.message?.content;
+    const responseContent = chatCompletion.choices[0]?.message?.content;
     
-    if (!result) {
+    if (!responseContent) {
       throw new Error("Resposta vazia da IA");
     }
 
-    return NextResponse.json({ result });
+    const parsed = JSON.parse(responseContent);
+
+    return NextResponse.json({ result: parsed.result, youtubeQuery: parsed.youtubeQuery });
 
   } catch (error: any) {
     console.error('Erro no módulo de estudos:', error);

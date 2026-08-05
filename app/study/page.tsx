@@ -20,12 +20,14 @@ export default function StudyPage() {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [youtubeQuery, setYoutubeQuery] = useState<string | null>(null);
 
   const handleStudyRequest = async () => {
     if (!content.trim()) return;
     
     setLoading(true);
     setResult(null);
+    setYoutubeQuery(null);
 
     try {
       const res = await fetch('/api/study', {
@@ -38,6 +40,9 @@ export default function StudyPage() {
       if (!res.ok) throw new Error(data.error || 'Erro na requisição');
       
       setResult(data.result);
+      if (data.youtubeQuery) {
+        setYoutubeQuery(data.youtubeQuery);
+      }
     } catch (err) {
       console.error(err);
       setResult('Ocorreu uma falha na sintonia neural. Tente novamente.');
@@ -120,6 +125,26 @@ export default function StudyPage() {
                 <div className="text-on-surface-variant text-sm font-light leading-relaxed whitespace-pre-wrap">
                   {result}
                 </div>
+
+                {youtubeQuery && (
+                  <div className="mt-8 pt-8 border-t border-white/5">
+                    <div className="flex items-center gap-3 mb-6">
+                      <span className="material-symbols-outlined text-[#FF0000]">play_circle</span>
+                      <h3 className="text-xs font-semibold text-on-surface uppercase tracking-[0.2em]">Acervo Recomendado (Vídeo)</h3>
+                    </div>
+                    <div className="relative w-full overflow-hidden rounded-2xl" style={{ paddingTop: '56.25%' }}>
+                      <iframe
+                        className="absolute top-0 left-0 w-full h-full border-0"
+                        src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(youtubeQuery)}`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+                    <p className="text-[10px] text-on-surface-variant opacity-60 mt-3 text-center uppercase tracking-widest">
+                      Termo de busca IA: {youtubeQuery}
+                    </p>
+                  </div>
+                )}
               </motion.div>
             )}
           </div>
