@@ -80,17 +80,33 @@ export default function DashboardPage() {
       }
     };
 
-    const checkRole = async () => {
-      const role = await getUserRole();
-      setUserRole(role);
-      if (role === 'professor') router.replace('/dashboard/professor');
-      else if (role === 'orientador') router.replace('/dashboard/orientador');
-      else if (role === 'gestor') router.replace('/dashboard/institution');
-      else if (role === 'administrador') router.replace('/dashboard/admin');
+    const checkRole = async (user: any) => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, institution_id, onboarding_completed')
+        .eq('id', user.id)
+        .single();
+
+      if (profile) {
+        setUserRole(profile.role);
+        
+        // Wait for onboarding to complete before redirecting
+        if (!profile.onboarding_completed && !profile.institution_id) {
+          return;
+        }
+
+        const role = profile.role;
+        if (role === 'professor') router.replace('/dashboard/professor');
+        else if (role === 'orientador') router.replace('/dashboard/orientador');
+        else if (role === 'gestor') router.replace('/dashboard/institution');
+        else if (role === 'administrador') router.replace('/dashboard/admin');
+      }
     };
 
-    fetchUser();
-    checkRole();
+    fetchUser().then(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) await checkRole(user);
+    });
 
     return () => {
       if (channel) supabase.removeChannel(channel);
@@ -289,9 +305,28 @@ export default function DashboardPage() {
       {/* Legacy User Onboarding Modal */}
       {showOnboarding && userId && (
         <OnboardingModal
-          onComplete={() => {
+          onComplete={async () => {
             setShowOnboarding(false);
-            if (userId) loadStudentMetrics(userId);
+            if (userId) {
+              await loadStudentMetrics(userId);
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                // Re-run checkRole to redirect properly based on the new role
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('role')
+                  .eq('id', user.id)
+                  .single();
+                  
+                if (profile) {
+                   const role = profile.role;
+                   if (role === 'professor') router.replace('/dashboard/professor');
+                   else if (role === 'orientador') router.replace('/dashboard/orientador');
+                   else if (role === 'gestor') router.replace('/dashboard/institution');
+                   else if (role === 'administrador') router.replace('/dashboard/admin');
+                }
+              }
+            }
           }}
         />
       )}

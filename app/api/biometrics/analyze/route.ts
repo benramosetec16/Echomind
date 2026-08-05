@@ -84,6 +84,19 @@ As respostas devem ser informativas, empáticas e não devem fornecer diagnósti
 
     const analysis = chatCompletion.choices[0]?.message?.content || 'Não foi possível gerar análise no momento.';
 
+    if (analysis && analysis !== 'Não foi possível gerar análise no momento.') {
+      // Save the diagnosis to biometric_logs
+      const { error: insertError } = await supabase.from('biometric_logs').insert({
+        user_id: userData.user.id,
+        title: 'Diagnóstico Semanal de IA',
+        description: analysis,
+        type: 'info'
+      });
+      if (insertError) {
+        console.error('Erro ao salvar diagnóstico:', insertError);
+      }
+    }
+
     return NextResponse.json({ analysis });
 
   } catch (error: any) {

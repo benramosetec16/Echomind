@@ -61,6 +61,10 @@ export default function OnboardingModal({
     let targetInstId = selectedInstitution;
     let targetClassId = selectedClassroom;
 
+    const updateData: Record<string, any> = {
+      onboarding_completed: true,
+    };
+
     // Validate institutional code if provided
     if (code.trim()) {
       const cleanCode = code.trim();
@@ -92,13 +96,11 @@ export default function OnboardingModal({
         if (codeData.classroom_id) {
           targetClassId = codeData.classroom_id;
         }
+        if (codeData.type) {
+          updateData.role = codeData.type;
+        }
       }
     }
-
-    // Update user profile without altering role, password, email or ID
-    const updateData: Record<string, any> = {
-      onboarding_completed: true,
-    };
 
     if (targetInstId) updateData.institution_id = targetInstId;
     if (targetClassId) updateData.classroom_id = targetClassId;
