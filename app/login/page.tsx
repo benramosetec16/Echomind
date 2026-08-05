@@ -279,10 +279,19 @@ export default function LoginPage() {
 
                   <div className="group relative">
                     <label className="block text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-1 transition-colors group-focus-within:text-secondary">
-                      Código Institucional / Sala
+                      Código Institucional
                     </label>
                     <div className="input-underline py-2">
-                      <input name="code" type="text" placeholder="Ex: PROF001 ou TURMA-A" className="w-full bg-transparent border-none outline-none text-on-surface text-sm placeholder-on-surface-variant/30 uppercase" />
+                      <input name="institutionCode" type="text" placeholder="Ex: INST-001" className="w-full bg-transparent border-none outline-none text-on-surface text-sm placeholder-on-surface-variant/30 uppercase" />
+                    </div>
+                  </div>
+
+                  <div className="group relative">
+                    <label className="block text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-1 transition-colors group-focus-within:text-secondary">
+                      Código de Sala / Turma
+                    </label>
+                    <div className="input-underline py-2">
+                      <input name="classroomCode" type="text" placeholder="Ex: TURMA-A" className="w-full bg-transparent border-none outline-none text-on-surface text-sm placeholder-on-surface-variant/30 uppercase" />
                     </div>
                   </div>
 

@@ -185,3 +185,38 @@ export async function verifyAndRestoreProfile() {
   }
   return { success: true };
 }
+
+export async function updateUserBindings(data: {
+  institutionId: string | null;
+  classroomId: string | null;
+  role: string | null;
+  guardianName: string | null;
+  guardianPhone: string | null;
+}): Promise<{ success?: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Não autenticado' };
+
+  const { createAdminClient } = await import('../../../utils/supabase/admin');
+  const admin = createAdminClient();
+
+  const updateData: Record<string, any> = {};
+  if (data.institutionId) updateData.institution_id = data.institutionId;
+  if (data.classroomId) updateData.classroom_id = data.classroomId;
+  if (data.role) updateData.role = data.role;
+  if (data.guardianName) updateData.guardian_name = data.guardianName;
+  if (data.guardianPhone) updateData.guardian_phone = data.guardianPhone;
+
+  if (Object.keys(updateData).length === 0) {
+    return { error: 'Nenhum dado para atualizar.' };
+  }
+
+  const { error } = await admin
+    .from('profiles')
+    .update(updateData)
+    .eq('id', user.id);
+
+  if (error) return { error: `Erro ao vincular: ${error.message}` };
+
+  return { success: true };
+}

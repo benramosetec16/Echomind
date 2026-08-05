@@ -34,7 +34,10 @@ export async function signup(formData: FormData) {
   const password = formData.get('password') as string
   const fullName = (formData.get('fullName') as string)?.trim()
   const requestedRole = (formData.get('role') as string) || 'aluno'
-  const code = (formData.get('code') as string)?.trim()?.toUpperCase() || ''
+  const institutionCode = (formData.get('institutionCode') as string)?.trim()?.toUpperCase() || ''
+  const classroomCode = (formData.get('classroomCode') as string)?.trim()?.toUpperCase() || ''
+  // Backward compat: old 'code' field maps to institutionCode
+  const legacyCode = (formData.get('code') as string)?.trim()?.toUpperCase() || ''
   
   let institutionId = (formData.get('institutionId') as string)?.trim() || ''
   let classroomId = (formData.get('classroomId') as string)?.trim() || ''
@@ -46,13 +49,13 @@ export async function signup(formData: FormData) {
     return { error: 'Identity, Keyphrase and Name are required' }
   }
 
-  // If code is provided, validate code within institution
-  if (code) {
-    // 1. Check institutional_codes table
+  // Resolve institution code (or legacy single code)
+  const instCode = institutionCode || legacyCode
+  if (instCode) {
     const { data: codeData } = await supabase
       .from('institutional_codes')
       .select('*')
-      .eq('code', code)
+      .eq('code', instCode)
       .eq('status', 'ativo')
       .maybeSingle()
 
@@ -62,18 +65,20 @@ export async function signup(formData: FormData) {
       if (codeData.type && codeData.type !== 'sala') {
         role = codeData.type
       }
-    } else {
-      // 2. Check classrooms table directly
-      const { data: roomData } = await supabase
-        .from('classrooms')
-        .select('id, institution_id')
-        .eq('code', code)
-        .maybeSingle()
+    }
+  }
 
-      if (roomData) {
-        institutionId = roomData.institution_id
-        classroomId = roomData.id
-      }
+  // Resolve classroom code separately
+  if (classroomCode) {
+    const { data: roomData } = await supabase
+      .from('classrooms')
+      .select('id, institution_id')
+      .eq('code', classroomCode)
+      .maybeSingle()
+
+    if (roomData) {
+      classroomId = roomData.id
+      if (!institutionId) institutionId = roomData.institution_id
     }
   }
 

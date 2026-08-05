@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '../utils/supabase/client';
+import { updateUserBindings } from '../app/dashboard/checkin/actions';
 
 interface Institution {
   id: string;
@@ -105,13 +106,16 @@ export default function OnboardingModal({
     if (guardianName.trim()) updateData.guardian_name = guardianName.trim();
     if (guardianPhone.trim()) updateData.guardian_phone = guardianPhone.trim();
 
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update(updateData)
-      .eq('id', userId);
+    const result = await updateUserBindings({
+      institutionId: updateData.institution_id || null,
+      classroomId: updateData.classroom_id || null,
+      role: updateData.role || null,
+      guardianName: updateData.guardian_name || null,
+      guardianPhone: updateData.guardian_phone || null,
+    });
 
-    if (updateError) {
-      setErrorMsg('Erro ao salvar dados de vincular instituição. Tente novamente.');
+    if (result?.error) {
+      setErrorMsg(result.error);
       setLoading(false);
       return;
     }

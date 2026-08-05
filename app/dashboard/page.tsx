@@ -15,6 +15,8 @@ export default function DashboardPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('aluno');
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [institutionName, setInstitutionName] = useState<string | null>(null);
+  const [classroomName, setClassroomName] = useState<string | null>(null);
 
   const [metrics, setMetrics] = useState({
     latestValence: 75,
@@ -62,13 +64,21 @@ export default function DashboardPage() {
 
           let { data: profile } = await supabase
             .from('profiles')
-            .select('role, institution_id')
+            .select('role, institution_id, classroom_id')
             .eq('id', user.id)
             .maybeSingle();
 
           if (profile) {
             if (!profile.institution_id) {
               setShowOnboarding(true);
+            } else {
+              // Load institution and classroom names for visual confirmation
+              const { data: inst } = await supabase.from('institutions').select('name').eq('id', profile.institution_id).maybeSingle();
+              if (inst) setInstitutionName(inst.name);
+              if (profile.classroom_id) {
+                const { data: cls } = await supabase.from('classrooms').select('name').eq('id', profile.classroom_id).maybeSingle();
+                if (cls) setClassroomName(cls.name);
+              }
             }
           }
 
@@ -148,6 +158,19 @@ export default function DashboardPage() {
               >
                 Seu ecossistema emocional está ressoando em frequências ideais. Prioridade de hoje: manter foco profundo durante janelas cognitivas de alta intensidade.
               </motion.p>
+              {institutionName && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="mt-3 flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-secondary text-base">domain</span>
+                  <span className="text-xs font-semibold text-secondary uppercase tracking-[0.15em]">
+                    {institutionName}{classroomName ? ` — ${classroomName}` : ''}
+                  </span>
+                </motion.div>
+              )}
             </div>
           </section>
 
