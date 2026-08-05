@@ -56,11 +56,21 @@ export default function DashboardPage() {
         setUserName(user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Viajante');
         setUserId(user.id);
 
-        const { data: profile } = await supabase
+        let { data: profile } = await supabase
           .from('profiles')
           .select('role, institution_id')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
+
+        if (!profile) {
+          // Create the missing profile for legacy users
+          const { data: newProfile } = await supabase.from('profiles').insert({
+            id: user.id,
+            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Viajante',
+            role: 'aluno'
+          }).select('role, institution_id').maybeSingle();
+          profile = newProfile;
+        }
 
         if (profile) {
           if (!profile.institution_id) {
@@ -80,12 +90,13 @@ export default function DashboardPage() {
     };
 
     const checkRole = async (user: any) => {
-      const { data: profile } = await supabase
+      let { data: profile } = await supabase
         .from('profiles')
         .select('role, institution_id')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
+      // If missing, let fetchUser handle creation. We just don't crash here.
       if (profile) {
         setUserRole(profile.role);
         
