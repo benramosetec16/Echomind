@@ -105,7 +105,7 @@ export async function transmitAura(payload: { valenceValue: number; texture: str
       thoughts: payload.thoughts
     });
 
-    if (checkinError) console.error('Error saving checkin:', checkinError);
+    if (checkinError) return { error: `Erro Check-in DB: ${checkinError.message}` };
 
     // Save to journal
     const { error: journalError } = await supabase.from('aetheric_journal').insert({
@@ -116,7 +116,7 @@ export async function transmitAura(payload: { valenceValue: number; texture: str
       icon: textureToIcon[payload.texture] || 'auto_awesome'
     });
 
-    if (journalError) console.error('Error saving journal:', journalError);
+    if (journalError) return { error: `Erro Journal DB: ${journalError.message}` };
 
     // Save Biometric Log based on valence
     let logType = 'normal';

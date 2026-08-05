@@ -61,9 +61,7 @@ export default function OnboardingModal({
     let targetInstId = selectedInstitution;
     let targetClassId = selectedClassroom;
 
-    const updateData: Record<string, any> = {
-      onboarding_completed: true,
-    };
+    const updateData: Record<string, any> = {};
 
     // Validate institutional code if provided
     if (code.trim()) {

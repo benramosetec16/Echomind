@@ -58,13 +58,12 @@ export default function DashboardPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role, institution_id, onboarding_completed')
+          .select('role, institution_id')
           .eq('id', user.id)
           .single();
 
         if (profile) {
-          // If legacy user or unassigned, trigger OnboardingModal without altering role or credentials
-          if (!profile.onboarding_completed && !profile.institution_id) {
+          if (!profile.institution_id) {
             setShowOnboarding(true);
           }
         }
@@ -83,15 +82,14 @@ export default function DashboardPage() {
     const checkRole = async (user: any) => {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role, institution_id, onboarding_completed')
+        .select('role, institution_id')
         .eq('id', user.id)
         .single();
 
       if (profile) {
         setUserRole(profile.role);
         
-        // Wait for onboarding to complete before redirecting
-        if (!profile.onboarding_completed && !profile.institution_id) {
+        if (!profile.institution_id) {
           return;
         }
 
