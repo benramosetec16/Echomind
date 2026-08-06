@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
+import { createClient } from '@/utils/supabase/server';
 
 export async function POST(request: Request) {
   try {
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
         systemPrompt = 'Você é um tutor criando uma revisão para provas. Com base no conteúdo fornecido, gere 5 perguntas de revisão com diferentes níveis de dificuldade e, ao final, forneça um gabarito comentado.';
         break;
       case 'schedule':
-        systemPrompt = 'Você é um organizador de estudos produtivo. Crie um cronograma de estudos detalhado e realista com base nas disciplinas/temas fornecidos, aplicando a técnica Pomodoro ou repetição espaçada se adequado. Responda em formato Markdown detalhado.';
+        systemPrompt = 'Você é um organizador de estudos produtivo. Crie um cronograma de estudos detalhado e realista com base nas disciplinas/temas fornecidos, aplicando a técnica Pomodoro ou repetição espaçada se adequado.';
         break;
       case 'qa':
         systemPrompt = 'Você é um assistente acadêmico pronto para responder perguntas específicas. Forneça uma resposta direta, clara e fundamentada para a pergunta do usuário.';
@@ -37,7 +38,22 @@ export async function POST(request: Request) {
         systemPrompt = 'Você é o assistente educacional do EchoMind.';
     }
 
-    systemPrompt += '\n\nIMPORTANTE: Responda APENAS com um objeto JSON válido neste formato: { "result": "sua resposta didática longa com formatação markdown aqui...", "youtubeQuery": "um termo de busca bem específico de até 4 palavras para encontrar uma videoaula excelente no youtube sobre este assunto (ou deixe null se não houver necessidade)" }';
+    systemPrompt += `
+IMPORTANTE: Você deve responder APENAS com um objeto JSON válido.
+Sua resposta deve conter a seguinte estrutura exata:
+{
+  "explicacao": "Uma explicação detalhada (pode usar markdown).",
+  "resumo": "Um resumo conciso do tema.",
+  "conceitos": ["Conceito 1 explicado de forma breve", "Conceito 2..."],
+  "exercicios": ["Exercício 1 para testar conhecimento", "Exercício 2..."],
+  "tags": {
+    "disciplina": "Nome da disciplina, ex: Física, Matemática, Biologia",
+    "assunto": "O tema central, ex: Lei de Hooke",
+    "palavras_chave": ["palavra1", "palavra2", "palavra3"],
+    "nivel": "Fundamental, Médio ou Superior"
+  }
+}
+Não inclua nenhuma introdução ou texto fora do JSON.`;
 
     const userMessage = context ? `Contexto anterior: ${context}\n\nSolicitação/Conteúdo atual: ${content}` : `Solicitação/Conteúdo: ${content}`;
 
@@ -59,7 +75,25 @@ export async function POST(request: Request) {
 
     const parsed = JSON.parse(responseContent);
 
-    return NextResponse.json({ result: parsed.result, youtubeQuery: parsed.youtubeQuery });
+    // Consulta aos vídeos recomendados
+    const supabase = await createClient();
+    
+    let videos = [];
+    if (parsed.tags && parsed.tags.disciplina && parsed.tags.assunto) {
+      const { data, error } = await supabase
+        .from('educational_videos')
+        .select('*')
+        .eq('ativo', true)
+        .or(`disciplina.ilike.%${parsed.tags.disciplina}%,assunto.ilike.%${parsed.tags.assunto}%`)
+        .order('prioridade', { ascending: false })
+        .limit(3);
+
+      if (!error && data) {
+        videos = data;
+      }
+    }
+
+    return NextResponse.json({ ...parsed, videos });
 
   } catch (error: any) {
     console.error('Erro no módulo de estudos:', error);

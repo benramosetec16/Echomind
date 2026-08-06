@@ -19,15 +19,15 @@ export default function StudyPage() {
   const [activeMode, setActiveMode] = useState<StudyMode>('explain');
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
-  const [youtubeQuery, setYoutubeQuery] = useState<string | null>(null);
+  const [result, setResult] = useState<any | null>(null);
+  const [activeVideo, setActiveVideo] = useState<any | null>(null);
 
   const handleStudyRequest = async () => {
     if (!content.trim()) return;
     
     setLoading(true);
     setResult(null);
-    setYoutubeQuery(null);
+    setActiveVideo(null);
 
     try {
       const res = await fetch('/api/study', {
@@ -39,13 +39,13 @@ export default function StudyPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro na requisição');
       
-      setResult(data.result);
-      if (data.youtubeQuery) {
-        setYoutubeQuery(data.youtubeQuery);
+      setResult(data);
+      if (data.videos && data.videos.length > 0) {
+        setActiveVideo(data.videos[0]);
       }
     } catch (err) {
       console.error(err);
-      setResult('Ocorreu uma falha na sintonia neural. Tente novamente.');
+      setResult({ error: 'Ocorreu uma falha na sintonia neural. Tente novamente.' });
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ export default function StudyPage() {
             <div className="mb-10">
               <h2 className="text-3xl font-extralight text-on-surface tracking-tighter mb-4">Apoio Cognitivo</h2>
               <p className="text-sm text-on-surface-variant opacity-80 max-w-2xl">
-                Selecione um protocolo educacional e forneça a matéria base. A IA processará o conteúdo para otimizar a sua retenção neural.
+                Selecione um protocolo educacional e forneça a matéria base. A IA processará o conteúdo para otimizar a sua retenção neural, e sugerirá vídeos curados se disponíveis.
               </p>
             </div>
 
@@ -112,41 +112,151 @@ export default function StudyPage() {
             </div>
 
             {/* Result Area */}
-            {result && (
+            {result && !result.error && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="aetheric-glass rounded-[32px] p-8 mt-12"
+                className="flex flex-col gap-8 mt-12"
               >
-                <div className="flex items-center gap-3 mb-8 border-b border-white/5 pb-4">
-                  <span className="material-symbols-outlined text-secondary">school</span>
-                  <h3 className="text-xs font-semibold text-secondary uppercase tracking-[0.2em]">Retorno Cognitivo</h3>
-                </div>
-                <div className="text-on-surface-variant text-sm font-light leading-relaxed whitespace-pre-wrap">
-                  {result}
+                {/* Meta / Tags */}
+                {result.tags && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <span className="px-3 py-1 bg-secondary/20 text-secondary text-xs rounded-full border border-secondary/30">{result.tags.disciplina}</span>
+                    <span className="px-3 py-1 bg-white/5 text-on-surface-variant text-xs rounded-full border border-white/10">{result.tags.assunto}</span>
+                    <span className="px-3 py-1 bg-white/5 text-on-surface-variant text-xs rounded-full border border-white/10">{result.tags.nivel}</span>
+                  </div>
+                )}
+
+                {/* Explicação */}
+                {result.explicacao && (
+                  <div className="aetheric-glass rounded-[32px] p-8">
+                    <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                      <span className="material-symbols-outlined text-secondary">school</span>
+                      <h3 className="text-xs font-semibold text-secondary uppercase tracking-[0.2em]">Explicação Profunda</h3>
+                    </div>
+                    <div className="text-on-surface-variant text-sm font-light leading-relaxed whitespace-pre-wrap">
+                      {result.explicacao}
+                    </div>
+                  </div>
+                )}
+
+                {/* Resumo e Conceitos */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {result.resumo && (
+                    <div className="aetheric-glass rounded-[32px] p-8">
+                      <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                        <span className="material-symbols-outlined text-secondary">compress</span>
+                        <h3 className="text-xs font-semibold text-secondary uppercase tracking-[0.2em]">Resumo</h3>
+                      </div>
+                      <div className="text-on-surface-variant text-sm font-light leading-relaxed whitespace-pre-wrap">
+                        {result.resumo}
+                      </div>
+                    </div>
+                  )}
+
+                  {result.conceitos && result.conceitos.length > 0 && (
+                    <div className="aetheric-glass rounded-[32px] p-8">
+                      <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                        <span className="material-symbols-outlined text-secondary">lightbulb</span>
+                        <h3 className="text-xs font-semibold text-secondary uppercase tracking-[0.2em]">Conceitos Importantes</h3>
+                      </div>
+                      <ul className="space-y-4">
+                        {result.conceitos.map((conceito: string, i: number) => (
+                          <li key={i} className="flex gap-3 text-sm font-light text-on-surface-variant">
+                            <span className="material-symbols-outlined text-secondary text-[18px] shrink-0">check_circle</span>
+                            <span>{conceito}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
 
-                {youtubeQuery && (
-                  <div className="mt-8 pt-8 border-t border-white/5">
-                    <div className="flex items-center gap-3 mb-6">
-                      <span className="material-symbols-outlined text-[#FF0000]">play_circle</span>
-                      <h3 className="text-xs font-semibold text-on-surface uppercase tracking-[0.2em]">Acervo Recomendado (Vídeo)</h3>
+                {/* Exercícios */}
+                {result.exercicios && result.exercicios.length > 0 && (
+                  <div className="aetheric-glass rounded-[32px] p-8">
+                    <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                      <span className="material-symbols-outlined text-secondary">quiz</span>
+                      <h3 className="text-xs font-semibold text-secondary uppercase tracking-[0.2em]">Exercícios Práticos</h3>
                     </div>
-                    <div className="relative w-full overflow-hidden rounded-2xl" style={{ paddingTop: '56.25%' }}>
-                      <iframe
-                        className="absolute top-0 left-0 w-full h-full border-0"
-                        src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(youtubeQuery)}`}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      ></iframe>
+                    <div className="space-y-4">
+                      {result.exercicios.map((ex: string, i: number) => (
+                        <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/10 text-sm font-light text-on-surface-variant whitespace-pre-wrap">
+                          {ex}
+                        </div>
+                      ))}
                     </div>
-                    <p className="text-[10px] text-on-surface-variant opacity-60 mt-3 text-center uppercase tracking-widest">
-                      Termo de busca IA: {youtubeQuery}
-                    </p>
+                  </div>
+                )}
+
+                {/* Vídeos Curados do EchoMind */}
+                {result.videos && result.videos.length > 0 && (
+                  <div className="aetheric-glass rounded-[32px] p-8">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[#FF0000]">play_circle</span>
+                        <h3 className="text-xs font-semibold text-on-surface uppercase tracking-[0.2em]">Biblioteca Recomendada</h3>
+                      </div>
+                      {result.videos.length > 1 && (
+                        <div className="flex gap-2 overflow-x-auto pb-2">
+                          {result.videos.map((vid: any) => (
+                            <button
+                              key={vid.id}
+                              onClick={() => setActiveVideo(vid)}
+                              className={`px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                                activeVideo?.id === vid.id
+                                  ? 'bg-secondary text-background'
+                                  : 'bg-white/5 text-on-surface hover:bg-white/10 border border-white/10'
+                              }`}
+                            >
+                              {vid.titulo}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {activeVideo && (
+                      <div className="flex flex-col gap-4">
+                        <div className="relative w-full overflow-hidden rounded-2xl bg-black" style={{ paddingTop: '56.25%' }}>
+                          <iframe
+                            className="absolute top-0 left-0 w-full h-full border-0"
+                            src={`https://www.youtube.com/embed/${activeVideo.video_id}?autoplay=0&rel=0`}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          ></iframe>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-medium text-on-surface mb-1">{activeVideo.titulo}</h4>
+                          <p className="text-sm text-on-surface-variant/70">
+                            {activeVideo.canal && <span className="mr-3">{activeVideo.canal}</span>}
+                            {activeVideo.duracao > 0 && <span>{Math.floor(activeVideo.duracao / 60)} min</span>}
+                          </p>
+                          {activeVideo.descricao && (
+                            <p className="mt-4 text-sm text-on-surface-variant font-light whitespace-pre-wrap line-clamp-3 hover:line-clamp-none transition-all">
+                              {activeVideo.descricao}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </motion.div>
             )}
+
+            {result && result.error && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="aetheric-glass rounded-[32px] p-8 mt-12 bg-red-500/10 border-red-500/20"
+              >
+                <div className="text-red-400 text-sm font-light text-center">
+                  {result.error}
+                </div>
+              </motion.div>
+            )}
+
           </div>
         </PageTransition>
       </main>
