@@ -62,18 +62,33 @@ export default function ProfessorDashboard() {
     const roomIds = myRooms ? myRooms.map((r) => r.id) : [];
 
     // 2. Fetch Students of these classrooms or directly linked
-    let studentsQuery = supabase
+    let studentsMap = new Map();
+
+    // Query A: Students directly assigned to this professor
+    const { data: studentsDirect } = await supabase
       .from('profiles')
       .select('id, full_name, classroom_id')
-      .eq('role', 'aluno');
+      .eq('role', 'aluno')
+      .eq('professor_id', currentUserId);
 
-    if (roomIds.length > 0) {
-      studentsQuery = studentsQuery.or(`professor_id.eq.${currentUserId},classroom_id.in.(${roomIds.join(',')})`);
-    } else {
-      studentsQuery = studentsQuery.eq('professor_id', currentUserId);
+    if (studentsDirect) {
+      studentsDirect.forEach(s => studentsMap.set(s.id, s));
     }
 
-    const { data: students } = await studentsQuery;
+    // Query B: Students in the classrooms this professor manages
+    if (roomIds.length > 0) {
+      const { data: studentsClass } = await supabase
+        .from('profiles')
+        .select('id, full_name, classroom_id')
+        .eq('role', 'aluno')
+        .in('classroom_id', roomIds);
+
+      if (studentsClass) {
+        studentsClass.forEach(s => studentsMap.set(s.id, s));
+      }
+    }
+
+    const students = Array.from(studentsMap.values());
 
     if (!students || students.length === 0) {
       setLoading(false);

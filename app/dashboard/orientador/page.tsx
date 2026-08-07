@@ -95,20 +95,36 @@ export default function OrientadorDashboard() {
 
     const roomIds = myRooms ? myRooms.map((r) => r.id) : [];
 
-    // 2. Fetch Orientandos (linked via assigned classrooms)
-    if (roomIds.length === 0) {
-      setWatchList([]);
-      setLoading(false);
-      return;
-    }
+    // 2. Fetch Orientandos (linked directly or via assigned classrooms)
+    let studentsMap = new Map();
 
-    const { data: students } = await supabase
+    // Query A: Students directly assigned to this orientador
+    const { data: studentsDirect } = await supabase
       .from('profiles')
       .select('id, full_name, classroom_id, guardian_name, guardian_phone')
       .eq('role', 'aluno')
-      .in('classroom_id', roomIds);
+      .eq('orientador_id', currentUserId);
 
-    if (!students || students.length === 0) {
+    if (studentsDirect) {
+      studentsDirect.forEach(s => studentsMap.set(s.id, s));
+    }
+
+    // Query B: Students in the classrooms this orientador manages (crucial for legacy users)
+    if (roomIds.length > 0) {
+      const { data: studentsClass } = await supabase
+        .from('profiles')
+        .select('id, full_name, classroom_id, guardian_name, guardian_phone')
+        .eq('role', 'aluno')
+        .in('classroom_id', roomIds);
+
+      if (studentsClass) {
+        studentsClass.forEach(s => studentsMap.set(s.id, s));
+      }
+    }
+
+    const students = Array.from(studentsMap.values());
+
+    if (students.length === 0) {
       setWatchList([]);
       setLoading(false);
       return;

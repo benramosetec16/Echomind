@@ -38,6 +38,16 @@ export async function POST(req: NextRequest) {
   }
   if (codeData.classroom_id) {
     updatePayload.classroom_id = codeData.classroom_id
+    
+    // Fetch classroom orientador to bind directly
+    const { data: cls } = await admin
+      .from('classrooms')
+      .select('orientador_id, professor_id')
+      .eq('id', codeData.classroom_id)
+      .maybeSingle()
+
+    if (cls?.orientador_id) updatePayload.orientador_id = cls.orientador_id
+    if (cls?.professor_id) updatePayload.professor_id = cls.professor_id
   }
 
   const { error: profileError } = await admin
