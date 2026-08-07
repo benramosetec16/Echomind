@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '../../../utils/supabase/client';
 import TopBar from '../../components/TopBar';
 import PageTransition from '../../components/PageTransition';
@@ -64,7 +64,7 @@ export default function OrientadorDashboard() {
 
   const [watchList, setWatchList] = useState<WatchStudent[]>([]);
   const [interventions, setInterventions] = useState<Intervention[]>([]);
-  
+
   // New intervention form
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [intervTitle, setIntervTitle] = useState('');
@@ -84,176 +84,53 @@ export default function OrientadorDashboard() {
     fetchUser();
   }, [supabase]);
 
-  const loadData = async (currentUserId: string) => {
+  // Load all data from the secure API (bypasses RLS via service_role)
+  const loadData = useCallback(async () => {
     setLoading(true);
-
-    // 1. Fetch classrooms assigned to this Orientador
-    const { data: myRooms } = await supabase
-      .from('classrooms')
-      .select('id, name')
-      .eq('orientador_id', currentUserId);
-
-    const roomIds = myRooms ? myRooms.map((r) => r.id) : [];
-
-    // 2. Fetch Orientandos (linked directly or via assigned classrooms)
-    let studentsMap = new Map();
-
-    // Query A: Students directly assigned to this orientador
-    const { data: studentsDirect } = await supabase
-      .from('profiles')
-      .select('id, full_name, classroom_id, guardian_name, guardian_phone')
-      .eq('role', 'aluno')
-      .eq('orientador_id', currentUserId);
-
-    if (studentsDirect) {
-      studentsDirect.forEach(s => studentsMap.set(s.id, s));
-    }
-
-    // Query B: Students in the classrooms this orientador manages (crucial for legacy users)
-    if (roomIds.length > 0) {
-      const { data: studentsClass } = await supabase
-        .from('profiles')
-        .select('id, full_name, classroom_id, guardian_name, guardian_phone')
-        .eq('role', 'aluno')
-        .in('classroom_id', roomIds);
-
-      if (studentsClass) {
-        studentsClass.forEach(s => studentsMap.set(s.id, s));
-      }
-    }
-
-    const students = Array.from(studentsMap.values());
-
-    if (students.length === 0) {
-      setWatchList([]);
-      setLoading(false);
-      return;
-    }
-
-    const studentIds = students.map((s) => s.id);
-
-    // Map Classrooms
-    const classroomIds = [...new Set(students.map((s) => s.classroom_id).filter(Boolean))];
-    let classesMap = new Map();
-    if (classroomIds.length > 0) {
-      const { data: clsData } = await supabase
-        .from('classrooms')
-        .select('id, name')
-        .in('id', classroomIds);
-      if (clsData) {
-        clsData.forEach((c) => classesMap.set(c.id, c.name));
-      }
-    }
-
-    // Fetch Recent Check-ins for these students
-    const { data: checkins } = await supabase
-      .from('emotional_checkins')
-      .select('user_id, valence_value, created_at')
-      .in('user_id', studentIds)
-      .order('created_at', { ascending: false });
-
-    // Fetch biometrics for energy
-    const { data: biometrics } = await supabase
-      .from('biometrics')
-      .select('user_id, energy_level, created_at')
-      .in('user_id', studentIds)
-      .order('created_at', { ascending: false });
-
-    // Fetch Interventions
-    const { data: intervData } = await supabase
-      .from('interventions')
-      .select('*')
-      .eq('orientador_id', currentUserId)
-      .order('created_at', { ascending: false });
-
-    if (intervData) setInterventions(intervData);
-
-    // Fetch Session Requests
-    const { count: sessionRequestsCount } = await supabase
-      .from('messages')
-      .select('*', { count: 'exact', head: true })
-      .eq('receiver_id', currentUserId)
-      .eq('type', 'session_request');
-
-    const formattedStudents: WatchStudent[] = students.map((student) => {
-      const userCheckins = checkins ? checkins.filter((c) => c.user_id === student.id) : [];
-      const userBiometrics = biometrics ? biometrics.filter((b) => b.user_id === student.id) : [];
-
-      let riskLevel: 'Crítico' | 'Moderado' | 'Observação' | 'Baixo' = 'Baixo';
-      let trend: 'decline' | 'stable' | 'improve' = 'stable';
-      let lastCheckinStr = 'Sem registros';
-      let moodAvg = 0;
-      let energyAvg = 0;
-
-      if (userCheckins.length > 0) {
-        const lastDate = new Date(userCheckins[0].created_at);
-        lastCheckinStr = `${lastDate.toLocaleDateString('pt-BR')} ${lastDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-
-        moodAvg = Math.round(userCheckins.reduce((acc, c) => acc + c.valence_value, 0) / userCheckins.length);
-        
-        if (moodAvg < 30 && userCheckins.length >= 3) riskLevel = 'Crítico';
-        else if (moodAvg < 50) riskLevel = 'Moderado';
-        else if (moodAvg < 70) riskLevel = 'Observação';
-
-        if (userCheckins.length > 1) {
-          const latestValence = userCheckins[0].valence_value;
-          const prevValence = userCheckins[1].valence_value;
-          if (latestValence < prevValence - 10) trend = 'decline';
-          else if (latestValence > prevValence + 10) trend = 'improve';
-        }
+    try {
+      const res = await fetch('/api/orientador/students');
+      if (!res.ok) {
+        console.error('[Orientador Dashboard] API error:', res.status);
+        setWatchList([]);
+        setLoading(false);
+        return;
       }
 
-      if (userBiometrics.length > 0) {
-        energyAvg = Math.round(userBiometrics.reduce((acc, b) => acc + (b.energy_level || 50), 0) / userBiometrics.length);
-      }
+      const json = await res.json();
 
-      const nameParts = (student.full_name || 'Aluno').split(' ');
-      const initials = nameParts.length > 1 ? `${nameParts[0][0]}${nameParts[1][0]}` : nameParts[0].substring(0, 2);
+      setWatchList(json.students ?? []);
+      setInterventions(json.interventions ?? []);
 
-      return {
-        id: student.id,
-        initials: initials.toUpperCase(),
-        name: student.full_name || 'Aluno Sem Nome',
-        course: classesMap.get(student.classroom_id) || 'Sala Não Informada',
-        riskLevel,
-        trend,
-        lastCheckin: lastCheckinStr,
-        moodAvg,
-        energyAvg,
-        checkinCount: userCheckins.length + userBiometrics.length,
-        guardianName: student.guardian_name || 'Não informado',
-        guardianPhone: student.guardian_phone || 'Não informado',
-      };
-    });
-
-    setWatchList(formattedStudents);
-
-    setStats({
-      emObservacao: formattedStudents.length,
-      intervencoes: intervData ? intervData.length : 0,
-      riscoElevado: formattedStudents.filter((s) => s.riskLevel === 'Crítico' || s.riskLevel === 'Moderado').length,
-      sessoes: sessionRequestsCount || 0,
-    });
-
+      const students: WatchStudent[] = json.students ?? [];
+      setStats({
+        emObservacao: students.length,
+        intervencoes: json.interventions?.length ?? 0,
+        riscoElevado: students.filter(s => s.riskLevel === 'Crítico' || s.riskLevel === 'Moderado').length,
+        sessoes: json.sessionCount ?? 0,
+      });
+    } catch (err) {
+      console.error('[Orientador Dashboard]', err);
+    }
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
 
-    loadData(userId);
+    loadData();
 
+    // Realtime: recarrega quando há novos check-ins, intervenções ou mensagens
     const channel = supabase
       .channel('orientador_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'emotional_checkins' }, () => loadData(userId))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'interventions' }, () => loadData(userId))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => loadData(userId))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'emotional_checkins' }, loadData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'interventions' }, loadData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, loadData)
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, supabase]);
+  }, [userId, supabase, loadData]);
 
   const handleCreateIntervention = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,13 +138,15 @@ export default function OrientadorDashboard() {
 
     setSubmittingInterv(true);
 
-    const { data: studentProf } = await supabase
+    // Usar a API admin para buscar dados do aluno
+    const supabaseClient = createClient();
+    const { data: studentProf } = await supabaseClient
       .from('profiles')
       .select('institution_id, classroom_id')
       .eq('id', selectedStudentId)
       .single();
 
-    const { error } = await supabase.from('interventions').insert({
+    const { error } = await supabaseClient.from('interventions').insert({
       orientador_id: userId,
       student_id: selectedStudentId,
       institution_id: studentProf?.institution_id,
@@ -283,7 +162,7 @@ export default function OrientadorDashboard() {
       setIntervTitle('');
       setIntervDesc('');
       setSelectedStudentId('');
-      loadData(userId);
+      loadData();
     }
 
     setSubmittingInterv(false);
@@ -379,11 +258,18 @@ export default function OrientadorDashboard() {
               {loading ? (
                 <div className="text-sm text-on-surface-variant opacity-60">Sincronizando frequências...</div>
               ) : watchList.length === 0 ? (
-                <div className="text-sm text-on-surface-variant opacity-60">Nenhum aluno sob sua responsabilidade ainda.</div>
+                <div className="text-sm text-on-surface-variant opacity-60">
+                  Nenhum aluno sob sua responsabilidade ainda. Verifique se você está vinculado a uma sala no painel institucional.
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {watchList.map((student) => (
-                    <div key={student.id} className="bg-surface-container/40 border border-white/5 rounded-2xl p-5">
+                    <motion.div
+                      key={student.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-surface-container/40 border border-white/5 rounded-2xl p-5"
+                    >
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-secondary/10 border border-secondary/20 flex items-center justify-center font-bold text-secondary text-sm">
@@ -418,12 +304,38 @@ export default function OrientadorDashboard() {
                         <p><strong>Último Registro:</strong> {student.lastCheckin}</p>
                         <p><strong>Responsável:</strong> {student.guardianName} ({student.guardianPhone})</p>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               )}
             </div>
           </section>
+
+          {/* Interventions List */}
+          {interventions.length > 0 && (
+            <section className="max-w-[1200px] mx-auto mb-10">
+              <div className="aetheric-glass rounded-[28px] p-8">
+                <h2 className="text-xl font-light text-on-surface mb-6">Histórico de Intervenções</h2>
+                <div className="space-y-3">
+                  {interventions.map(interv => (
+                    <div key={interv.id} className="bg-surface-container/40 border border-white/5 rounded-xl p-4 flex justify-between items-center">
+                      <div>
+                        <p className="text-sm font-medium text-on-surface">{interv.title}</p>
+                        <p className="text-xs text-on-surface-variant mt-1">{interv.description}</p>
+                      </div>
+                      <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${
+                        interv.status === 'concluida' ? 'text-green-400 bg-green-500/10 border-green-500/20' :
+                        interv.status === 'em_andamento' ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' :
+                        'text-on-surface-variant bg-white/5 border-white/10'
+                      }`}>
+                        {interv.status === 'concluida' ? 'Concluída' : interv.status === 'em_andamento' ? 'Em Andamento' : 'Pendente'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
         </PageTransition>
       </main>
     </>
