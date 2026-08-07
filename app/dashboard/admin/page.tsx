@@ -60,7 +60,16 @@ export default function AdminDashboard() {
   const [generatingCode, setGeneratingCode] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<GeneratedCode | null>(null);
 
-  const [stats, setStats] = useState({ activeUsers: 0, activeUsersNew: 0, aiProcessings: 0, uptime: '99.9%', biometricLogs: 0 });
+  const [stats, setStats] = useState({ 
+    activeUsers: 0, 
+    activeUsersNew: 0, 
+    institutions: 0,
+    classrooms: 0,
+    alunos: 0,
+    professores: 0,
+    orientadores: 0,
+    gestores: 0
+  });
   const [roleDist, setRoleDist] = useState<RoleDist[]>([]);
   const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
 
@@ -102,16 +111,28 @@ export default function AdminDashboard() {
     const { data: recentProfiles } = await supabase.from('profiles').select('id, role, created_at').order('created_at', { ascending: false }).limit(5);
     const { data: recentBio } = await supabase.from('biometric_logs').select('id, type, created_at').order('created_at', { ascending: false }).limit(5);
 
+    const { count: classroomsCount } = await supabase.from('classrooms').select('*', { count: 'exact', head: true });
+    const { count: institutionsCount } = await supabase.from('institutions').select('*', { count: 'exact', head: true });
+    
     if (profiles) {
       const total = profiles.length;
       const now = new Date();
       const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const newUsers = profiles.filter(p => new Date(p.created_at) > lastWeek).length;
 
-      setStats({ activeUsers: total, activeUsersNew: newUsers, aiProcessings: (journalCount || 0) + (bioCount || 0), uptime: '99.9%', biometricLogs: bioCount || 0 });
-
       const rolesCount: Record<string, number> = { aluno: 0, professor: 0, orientador: 0, gestor: 0, administrador: 0 };
       profiles.forEach(p => { if (rolesCount[p.role] !== undefined) rolesCount[p.role]++; });
+
+      setStats({ 
+        activeUsers: total, 
+        activeUsersNew: newUsers, 
+        institutions: institutionsCount || 0,
+        classrooms: classroomsCount || 0,
+        alunos: rolesCount.aluno,
+        professores: rolesCount.professor,
+        orientadores: rolesCount.orientador,
+        gestores: rolesCount.gestor
+      });
 
       setRoleDist([
         { label: 'Alunos', count: rolesCount.aluno, color: 'bg-secondary', pct: total > 0 ? (rolesCount.aluno / total) * 100 : 0 },
@@ -200,9 +221,13 @@ export default function AdminDashboard() {
 
   const systemStats = [
     { label: 'Usuários Totais', value: stats.activeUsers, icon: 'group', sub: `+${stats.activeUsersNew} esta semana` },
-    { label: 'Instituições', value: institutions.length, icon: 'domain', sub: 'Ativas' },
-    { label: 'IA Processamentos', value: stats.aiProcessings, icon: 'psychology', sub: 'Total' },
-    { label: 'Uptime do Sistema', value: stats.uptime, icon: 'cloud_done', sub: '30 dias' },
+    { label: 'Instituições', value: stats.institutions, icon: 'domain', sub: 'Ativas' },
+    { label: 'Turmas (Salas)', value: stats.classrooms, icon: 'meeting_room', sub: 'Cadastradas' },
+    { label: 'Alunos', value: stats.alunos, icon: 'school', sub: 'Total' },
+    { label: 'Professores', value: stats.professores, icon: 'cast_for_education', sub: 'Total' },
+    { label: 'Orientadores', value: stats.orientadores, icon: 'psychology', sub: 'Total' },
+    { label: 'Gestores', value: stats.gestores, icon: 'admin_panel_settings', sub: 'Institucionais' },
+    { label: 'Admins', value: stats.activeUsers - (stats.alunos + stats.professores + stats.orientadores + stats.gestores), icon: 'verified_user', sub: 'Sistema' },
   ];
 
   const roleTypeLabel: Record<string, string> = { gestor: 'Gestor', professor: 'Professor', orientador: 'Orientador', aluno: 'Aluno' };

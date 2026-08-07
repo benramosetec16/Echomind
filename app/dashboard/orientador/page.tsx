@@ -11,10 +11,12 @@ interface WatchStudent {
   initials: string;
   name: string;
   course: string;
-  riskLevel: 'Crítico' | 'Moderado' | 'Observação' | 'Normal';
+  riskLevel: 'Crítico' | 'Moderado' | 'Observação' | 'Baixo';
   trend: 'decline' | 'stable' | 'improve';
   lastCheckin: string;
-  mood: number;
+  moodAvg: number;
+  energyAvg: number;
+  checkinCount: number;
   guardianName: string;
   guardianPhone: string;
 }
@@ -31,8 +33,9 @@ interface Intervention {
 const riskColor: Record<string, string> = {
   'Crítico': 'text-red-400 bg-red-500/10 border-red-500/20',
   'Moderado': 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
+  'Elevado': 'text-orange-400 bg-orange-500/10 border-orange-500/20',
   'Observação': 'text-secondary bg-secondary/10 border-secondary/20',
-  'Normal': 'text-green-400 bg-green-400/10 border-green-400/20',
+  'Baixo': 'text-green-400 bg-green-400/10 border-green-400/20',
 };
 
 const trendIcon: Record<string, string> = {
@@ -134,6 +137,13 @@ export default function OrientadorDashboard() {
       .in('user_id', studentIds)
       .order('created_at', { ascending: false });
 
+    // Fetch biometrics for energy
+    const { data: biometrics } = await supabase
+      .from('biometrics')
+      .select('user_id, energy_level, created_at')
+      .in('user_id', studentIds)
+      .order('created_at', { ascending: false });
+
     // Fetch Interventions
     const { data: intervData } = await supabase
       .from('interventions')
@@ -152,26 +162,34 @@ export default function OrientadorDashboard() {
 
     const formattedStudents: WatchStudent[] = students.map((student) => {
       const userCheckins = checkins ? checkins.filter((c) => c.user_id === student.id) : [];
+      const userBiometrics = biometrics ? biometrics.filter((b) => b.user_id === student.id) : [];
 
-      let riskLevel: 'Crítico' | 'Moderado' | 'Observação' | 'Normal' = 'Normal';
+      let riskLevel: 'Crítico' | 'Moderado' | 'Observação' | 'Baixo' = 'Baixo';
       let trend: 'decline' | 'stable' | 'improve' = 'stable';
       let lastCheckinStr = 'Sem registros';
-      let latestValence = 75;
+      let moodAvg = 0;
+      let energyAvg = 0;
 
       if (userCheckins.length > 0) {
-        latestValence = userCheckins[0].valence_value;
         const lastDate = new Date(userCheckins[0].created_at);
         lastCheckinStr = `${lastDate.toLocaleDateString('pt-BR')} ${lastDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
 
-        if (latestValence < 30) riskLevel = 'Crítico';
-        else if (latestValence < 50) riskLevel = 'Moderado';
-        else if (latestValence < 70) riskLevel = 'Observação';
+        moodAvg = Math.round(userCheckins.reduce((acc, c) => acc + c.valence_value, 0) / userCheckins.length);
+        
+        if (moodAvg < 30 && userCheckins.length >= 3) riskLevel = 'Crítico';
+        else if (moodAvg < 50) riskLevel = 'Moderado';
+        else if (moodAvg < 70) riskLevel = 'Observação';
 
         if (userCheckins.length > 1) {
+          const latestValence = userCheckins[0].valence_value;
           const prevValence = userCheckins[1].valence_value;
           if (latestValence < prevValence - 10) trend = 'decline';
           else if (latestValence > prevValence + 10) trend = 'improve';
         }
+      }
+
+      if (userBiometrics.length > 0) {
+        energyAvg = Math.round(userBiometrics.reduce((acc, b) => acc + (b.energy_level || 50), 0) / userBiometrics.length);
       }
 
       const nameParts = (student.full_name || 'Aluno').split(' ');
@@ -185,7 +203,9 @@ export default function OrientadorDashboard() {
         riskLevel,
         trend,
         lastCheckin: lastCheckinStr,
-        mood: latestValence,
+        moodAvg,
+        energyAvg,
+        checkinCount: userCheckins.length + userBiometrics.length,
         guardianName: student.guardian_name || 'Não informado',
         guardianPhone: student.guardian_phone || 'Não informado',
       };
@@ -365,7 +385,22 @@ export default function OrientadorDashboard() {
                       </div>
 
                       <div className="text-xs text-on-surface-variant space-y-1 mt-4 pt-3 border-t border-white/5">
-                        <p><strong>Último Check-in:</strong> {student.lastCheckin}</p>
+                        <div className="grid grid-cols-2 gap-2 mb-2">
+                          <div className="bg-white/5 p-2 rounded-lg flex flex-col items-center">
+                            <span className="text-[10px] uppercase tracking-widest opacity-60">Humor Médio</span>
+                            <span className="text-lg font-semibold text-white">{student.moodAvg}%</span>
+                          </div>
+                          <div className="bg-white/5 p-2 rounded-lg flex flex-col items-center">
+                            <span className="text-[10px] uppercase tracking-widest opacity-60">Energia Média</span>
+                            <span className="text-lg font-semibold text-white">{student.energyAvg}%</span>
+                          </div>
+                          <div className="bg-white/5 p-2 rounded-lg flex flex-col items-center col-span-2">
+                            <span className="text-[10px] uppercase tracking-widest opacity-60">Check-ins Totais</span>
+                            <span className="text-lg font-semibold text-white">{student.checkinCount} registros</span>
+                          </div>
+                        </div>
+                        <p><strong>Evolução (Tendência):</strong> <span className={`material-symbols-outlined text-sm align-middle ${trendColor[student.trend]}`}>{trendIcon[student.trend]}</span></p>
+                        <p><strong>Último Registro:</strong> {student.lastCheckin}</p>
                         <p><strong>Responsável:</strong> {student.guardianName} ({student.guardianPhone})</p>
                       </div>
                     </div>

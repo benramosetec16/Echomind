@@ -8,6 +8,17 @@ import { createClient } from '../../../utils/supabase/client';
 import { getUserRole, ROLE_LABELS, type UserRole } from '../../../utils/roles';
 import { useRouter } from 'next/navigation';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import dynamic from 'next/dynamic';
+
+const PDFDownloadLink = dynamic(
+  () => import('@react-pdf/renderer').then(mod => mod.PDFDownloadLink),
+  { ssr: false, loading: () => <span className="text-xs text-on-surface-variant">Carregando PDF...</span> }
+);
+
+const InstitutionalPDFReportWrapper = dynamic(
+  () => import('../../components/PDFReportWrapper'),
+  { ssr: false }
+);
 
 interface Classroom {
   id: string;
@@ -75,6 +86,10 @@ export default function InstitutionPage() {
   const [newRoomCode, setNewRoomCode] = useState('');
   const [selectedProfId, setSelectedProfId] = useState('');
   const [selectedOrientadorId, setSelectedOrientadorId] = useState('');
+
+  // AI Report
+  const [aiReport, setAiReport] = useState<any>(null);
+  const [loadingReport, setLoadingReport] = useState(false);
 
   const [codeType, setCodeType] = useState<'professor' | 'orientador' | 'aluno' | 'sala'>('aluno');
   const [codeRoomId, setCodeRoomId] = useState('');
@@ -214,6 +229,29 @@ export default function InstitutionPage() {
       if (channel) supabase.removeChannel(channel);
     };
   }, [router, supabase]);
+
+  const generateAIReport = async () => {
+    if (!institutionId) return;
+    setLoadingReport(true);
+    try {
+      const res = await fetch('/api/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ institutionId })
+      });
+      const data = await res.json();
+      if (res.ok && !data.error) {
+        setAiReport(data);
+      } else {
+        alert('Erro ao gerar relatório: ' + (data.error || 'Erro desconhecido.'));
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Falha na comunicação com o servidor.');
+    } finally {
+      setLoadingReport(false);
+    }
+  };
 
   // Create Classroom (via API com service role para evitar bloqueio de RLS)
   const handleCreateClassroom = async (e: React.FormEvent) => {
@@ -372,6 +410,124 @@ export default function InstitutionPage() {
               </div>
             </section>
           )}
+
+          {/* AI Institutional Intelligence Module */}
+          <section className="max-w-[1200px] mx-auto mb-10">
+            <div className="aetheric-glass rounded-[28px] p-8 relative overflow-hidden">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-xl font-light text-on-surface mb-2 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-tertiary">psychology</span>
+                    Inteligência Institucional
+                  </h2>
+                  <p className="text-sm text-on-surface-variant max-w-xl">
+                    Gere análises preventivas globais (NR-1/COPSOQ) da instituição. Os dados individuais são anonimizados.
+                  </p>
+                </div>
+                <button
+                  onClick={generateAIReport}
+                  disabled={loadingReport || students.length === 0}
+                  className="bg-tertiary text-background font-bold px-6 py-3 rounded-full text-xs uppercase tracking-wider hover:bg-white transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {loadingReport ? (
+                    <span className="animate-spin w-4 h-4 border-2 border-background border-t-transparent rounded-full" />
+                  ) : (
+                    <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                  )}
+                  {loadingReport ? 'Analisando...' : 'Gerar Relatório IA'}
+                </button>
+              </div>
+
+              {aiReport && (
+                <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  <div className="p-5 bg-white/5 border border-white/10 rounded-2xl">
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-secondary mb-2">Resumo Executivo</h3>
+                    <p className="text-sm text-on-surface-variant leading-relaxed">{aiReport.resumo_executivo}</p>
+                    <div className="mt-4 flex items-center gap-2">
+                      <span className="text-xs uppercase tracking-wider text-on-surface-variant">Nível de Alerta Geral:</span>
+                      <span className={`px-3 py-1 text-xs font-bold rounded-full border ${
+                        aiReport.nivel_alerta_geral === 'Crítico' ? 'text-red-400 bg-red-500/10 border-red-500/20' :
+                        aiReport.nivel_alerta_geral === 'Elevado' ? 'text-orange-400 bg-orange-500/10 border-orange-500/20' :
+                        aiReport.nivel_alerta_geral === 'Moderado' ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' :
+                        'text-green-400 bg-green-400/10 border-green-400/20'
+                      }`}>
+                        {aiReport.nivel_alerta_geral}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-5 bg-green-500/5 border border-green-500/20 rounded-2xl">
+                      <h3 className="text-sm font-semibold uppercase tracking-wider text-green-400 mb-3 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px]">verified</span> Pontos Positivos
+                      </h3>
+                      <ul className="list-disc pl-5 text-sm text-on-surface-variant space-y-1">
+                        {aiReport.pontos_positivos?.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                      </ul>
+                    </div>
+                    
+                    <div className="p-5 bg-red-500/5 border border-red-500/20 rounded-2xl">
+                      <h3 className="text-sm font-semibold uppercase tracking-wider text-red-400 mb-3 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px]">gpp_bad</span> Pontos Críticos
+                      </h3>
+                      <ul className="list-disc pl-5 text-sm text-on-surface-variant space-y-1">
+                        {aiReport.pontos_criticos?.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-5 bg-yellow-500/5 border border-yellow-500/20 rounded-2xl">
+                      <h3 className="text-sm font-semibold uppercase tracking-wider text-yellow-400 mb-3 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px]">warning</span> Áreas de Atenção
+                      </h3>
+                      <ul className="list-disc pl-5 text-sm text-on-surface-variant space-y-1">
+                        {aiReport.areas_atencao?.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                      </ul>
+                    </div>
+                    
+                    <div className="p-5 bg-primary/5 border border-primary/20 rounded-2xl">
+                      <h3 className="text-sm font-semibold uppercase tracking-wider text-primary mb-3 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px]">lightbulb</span> Recomendações
+                      </h3>
+                      <ul className="list-disc pl-5 text-sm text-on-surface-variant space-y-1">
+                        {aiReport.recomendacoes_preventivas?.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="p-5 bg-white/5 border border-white/10 rounded-2xl">
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-white mb-3 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px]">strategy</span> Estratégias Institucionais
+                    </h3>
+                    <ul className="list-disc pl-5 text-sm text-on-surface-variant space-y-1">
+                      {aiReport.estrategias_institucionais?.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                    </ul>
+                  </div>
+
+                  {/* PDF Download Button */}
+                  <div className="mt-6 flex justify-end">
+                    <PDFDownloadLink
+                      document={
+                        <InstitutionalPDFReportWrapper data={aiReport} institutionName="Instituição" />
+                      }
+                      fileName={`relatorio-echomind-${new Date().toISOString().split('T')[0]}.pdf`}
+                    >
+                      {({ loading: pdfLoading }: { loading: boolean }) => (
+                        <button
+                          disabled={pdfLoading}
+                          className="bg-white/10 border border-white/20 text-on-surface font-semibold px-6 py-3 rounded-full text-xs uppercase tracking-wider hover:bg-white/20 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                          <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                          {pdfLoading ? 'Gerando PDF...' : 'Baixar Relatório PDF'}
+                        </button>
+                      )}
+                    </PDFDownloadLink>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
 
           {/* Classroom Management */}
           <section className="max-w-[1200px] mx-auto mb-10">

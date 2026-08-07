@@ -29,28 +29,52 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Usuário não autenticado." }, { status: 401 });
     }
 
-    // Busca os últimos 7 registros de biometria
+    // Busca os últimos 14 registros de biometria para ter mais base histórica
     const { data: history } = await supabase
       .from("biometrics")
       .select("*")
       .eq("user_id", userData.user.id)
       .order("created_at", { ascending: false })
-      .limit(7);
+      .limit(14);
 
     if (!history || history.length === 0) {
-      return NextResponse.json({ insight: "Não há dados biométricos suficientes para uma análise. Por favor, faça um registro primeiro." });
+      return NextResponse.json({ 
+        resumo: "Não há dados biométricos suficientes para uma análise.",
+        tendencias: "Indefinido",
+        fatores_atencao: [],
+        recomendacoes: ["Por favor, faça um registro biométrico primeiro."],
+        nivel_risco: "Baixo"
+      });
     }
 
-    const prompt = `Analise os seguintes dados biométricos recentes do usuário (últimos registros de humor, horas de sono, energia e batimentos cardíacos):\n\n${JSON.stringify(history, null, 2)}\n\nForneça um insight conciso (máximo 2 parágrafos), empático e acionável sobre o estado geral do usuário e o que ele pode fazer para melhorar sua saúde e bem-estar hoje.`;
+    const systemPrompt = `Você é o EchoMind AI, um sistema de análise institucional.
+Baseie-se no Copenhagen Psychosocial Questionnaire (COPSOQ) e na NR-1 (GRO e PGR) para prevenção.
+NUNCA faça diagnóstico médico. 
+Avalie estes dados biométricos do usuário:
+${JSON.stringify(history, null, 2)}
+
+Analise os padrões de sono, energia e batimentos cardíacos.
+Retorne APENAS JSON no formato:
+{
+  "resumo": "Descrição objetiva e concisa da situação biométrica em 2 parágrafos.",
+  "tendencias": "Ex: melhora na energia, redução do sono, picos de BPM.",
+  "fatores_atencao": ["Possível sobrecarga", "Déficit de sono", "Batimentos anormais no repouso"],
+  "recomendacoes": ["Organização da rotina", "Higiene do sono", "Prática de relaxamento"],
+  "nivel_risco": "Baixo" // Pode ser: Baixo, Moderado, Elevado ou Crítico, baseado no histórico, jamais num único pico.
+}`;
 
     const chatCompletion = await groq.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: "llama-3.3-70b-versatile", // More robust model
-      temperature: 0.7,
-      max_tokens: 400,
+      messages: [{ role: "system", content: systemPrompt }],
+      model: "llama-3.3-70b-versatile",
+      response_format: { type: 'json_object' },
+      temperature: 0.2,
+      max_tokens: 1000,
     });
 
-    return NextResponse.json({ insight: chatCompletion.choices[0]?.message?.content || "Análise retornada em branco." });
+    const responseContent = chatCompletion.choices[0]?.message?.content || "{}";
+    const analise = JSON.parse(responseContent);
+
+    return NextResponse.json(analise);
   } catch (error: any) {
     console.error("Biometrics AI Analysis Error:", error);
     return NextResponse.json({ error: error.message || "Erro desconhecido ao gerar a análise da Groq." }, { status: 500 });

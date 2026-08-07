@@ -8,7 +8,7 @@ import PageTransition from "@/app/components/PageTransition";
 import Link from "next/link";
 
 export default function BiometricsInsights() {
-  const [analysis, setAnalysis] = useState<string>("");
+  const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
 
@@ -55,14 +55,10 @@ export default function BiometricsInsights() {
         throw new Error(result.error || "Falha ao analisar os dados.");
       }
       
-      if (result.insight) {
-        setAnalysis(result.insight);
-      } else if (result.analysis) {
-        setAnalysis(result.analysis);
-      } else if (result.message) {
-        setAnalysis(result.message);
+      if (result.resumo) {
+        setAnalysis(result);
       } else {
-        setAnalysis("Não foi possível carregar os insights neste momento.");
+        setAnalysis({ resumo: "Não foi possível carregar os insights neste momento." });
       }
     } catch (error: any) {
       console.error("Erro ao carregar insights:", error);
@@ -72,46 +68,63 @@ export default function BiometricsInsights() {
     }
   };
 
-  // Helper to parse markdown-like response from our API
   const renderAnalysis = () => {
     if (!analysis) return null;
 
-    const sections = analysis.split('###').filter(s => s.trim().length > 0);
-    
-    if (sections.length < 2) {
+    if (typeof analysis === 'string') {
       return <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{analysis}</p>;
     }
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {sections.map((section, idx) => {
-          const lines = section.trim().split('\n');
-          const title = lines[0].replace(/^\d+\.\s*/, '').trim();
-          const content = lines.slice(1).join('\n').trim();
-
-          let icon = "psychology";
-          let colorClass = "text-secondary";
-
-          if (title.toLowerCase().includes("padrões")) {
-            icon = "pattern"; colorClass = "text-tertiary";
-          } else if (title.toLowerCase().includes("recomenda")) {
-            icon = "lightbulb"; colorClass = "text-primary";
-          } else if (title.toLowerCase().includes("alerta")) {
-            icon = "warning"; colorClass = "text-error";
-          }
-
-          return (
-            <div key={idx} className="glass-panel rounded-3xl p-8 hover:border-white/10 transition-colors">
-              <h3 className={`text-sm uppercase tracking-[0.15em] font-semibold mb-4 flex items-center gap-2 ${colorClass}`}>
-                <span className="material-symbols-outlined text-[18px]">{icon}</span>
-                {title}
-              </h3>
-              <p className="text-on-surface-variant text-sm leading-relaxed whitespace-pre-wrap font-light">
-                {content}
-              </p>
+        <div className="glass-panel rounded-3xl p-8 hover:border-white/10 transition-colors md:col-span-2">
+          <h3 className="text-sm uppercase tracking-[0.15em] font-semibold mb-4 flex items-center justify-between text-secondary">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">psychology</span>
+              RESUMO E TENDÊNCIAS
             </div>
-          );
-        })}
+            <span className={`px-3 py-1 text-xs font-bold rounded-full border ${
+              analysis.nivel_risco === 'Crítico' ? 'text-red-400 bg-red-500/10 border-red-500/20' :
+              analysis.nivel_risco === 'Elevado' ? 'text-orange-400 bg-orange-500/10 border-orange-500/20' :
+              analysis.nivel_risco === 'Moderado' ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' :
+              'text-green-400 bg-green-400/10 border-green-400/20'
+            }`}>
+              Risco: {analysis.nivel_risco || 'Desconhecido'}
+            </span>
+          </h3>
+          <p className="text-on-surface-variant text-sm leading-relaxed whitespace-pre-wrap font-light mb-4">
+            {analysis.resumo}
+          </p>
+          {analysis.tendencias && (
+            <p className="text-on-surface-variant text-sm leading-relaxed whitespace-pre-wrap font-light">
+              <strong>Tendências: </strong>{analysis.tendencias}
+            </p>
+          )}
+        </div>
+
+        <div className="glass-panel rounded-3xl p-8 hover:border-white/10 transition-colors">
+          <h3 className="text-sm uppercase tracking-[0.15em] font-semibold mb-4 flex items-center gap-2 text-error">
+            <span className="material-symbols-outlined text-[18px]">warning</span>
+            FATORES DE ATENÇÃO
+          </h3>
+          <ul className="text-on-surface-variant text-sm font-light space-y-2 list-disc list-inside">
+            {analysis.fatores_atencao?.map((fator: string, idx: number) => (
+              <li key={idx}>{fator}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="glass-panel rounded-3xl p-8 hover:border-white/10 transition-colors">
+          <h3 className="text-sm uppercase tracking-[0.15em] font-semibold mb-4 flex items-center gap-2 text-primary">
+            <span className="material-symbols-outlined text-[18px]">lightbulb</span>
+            RECOMENDAÇÕES PREVENTIVAS
+          </h3>
+          <ul className="text-on-surface-variant text-sm font-light space-y-2 list-disc list-inside">
+            {analysis.recomendacoes?.map((rec: string, idx: number) => (
+              <li key={idx}>{rec}</li>
+            ))}
+          </ul>
+        </div>
       </div>
     );
   };
