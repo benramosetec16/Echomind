@@ -52,12 +52,6 @@ CREATE POLICY "Orientadores can view checkins of their students."
       WHERE student.id = emotional_checkins.user_id
         AND cls.orientador_id = auth.uid()
     )
-    OR
-    EXISTS (
-      SELECT 1 FROM public.profiles student
-      WHERE student.id = emotional_checkins.user_id
-        AND student.orientador_id = auth.uid()
-    )
   );
 
 -- Biometrics
@@ -72,12 +66,6 @@ CREATE POLICY "Orientadores can view biometrics of their students."
       JOIN public.classrooms cls ON cls.id = student.classroom_id
       WHERE student.id = biometrics.user_id
         AND cls.orientador_id = auth.uid()
-    )
-    OR
-    EXISTS (
-      SELECT 1 FROM public.profiles student
-      WHERE student.id = biometrics.user_id
-        AND student.orientador_id = auth.uid()
     )
   );
 

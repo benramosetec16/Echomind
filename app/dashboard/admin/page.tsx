@@ -105,55 +105,54 @@ export default function AdminDashboard() {
     setLoading(true);
     await loadInstitutions();
 
-    const { data: profiles } = await supabase.from('profiles').select('id, role, created_at');
-    const { count: journalCount } = await supabase.from('aetheric_journal').select('*', { count: 'exact', head: true });
-    const { count: bioCount } = await supabase.from('biometric_logs').select('*', { count: 'exact', head: true });
-    const { data: recentProfiles } = await supabase.from('profiles').select('id, role, created_at').order('created_at', { ascending: false }).limit(5);
-    const { data: recentBio } = await supabase.from('biometric_logs').select('id, type, created_at').order('created_at', { ascending: false }).limit(5);
+    try {
+      const res = await fetch('/api/admin/stats');
+      const json = await res.json();
+      
+      if (json.stats) {
+        const { stats: s } = json;
+        setStats({ 
+          activeUsers: s.activeUsers, 
+          activeUsersNew: s.activeUsersNew, 
+          institutions: s.institutions,
+          classrooms: s.classrooms,
+          alunos: s.alunos,
+          professores: s.professores,
+          orientadores: s.orientadores,
+          gestores: s.gestores
+        });
 
-    const { count: classroomsCount } = await supabase.from('classrooms').select('*', { count: 'exact', head: true });
-    const { count: institutionsCount } = await supabase.from('institutions').select('*', { count: 'exact', head: true });
-    
-    if (profiles) {
-      const total = profiles.length;
-      const now = new Date();
-      const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const newUsers = profiles.filter(p => new Date(p.created_at) > lastWeek).length;
+        const total = s.activeUsers;
+        setRoleDist([
+          { label: 'Alunos', count: s.alunos, color: 'bg-secondary', pct: total > 0 ? (s.alunos / total) * 100 : 0 },
+          { label: 'Professores', count: s.professores, color: 'bg-primary', pct: total > 0 ? (s.professores / total) * 100 : 0 },
+          { label: 'Orientadores', count: s.orientadores, color: 'bg-tertiary', pct: total > 0 ? (s.orientadores / total) * 100 : 0 },
+          { label: 'Gestores', count: s.gestores, color: 'bg-yellow-400', pct: total > 0 ? (s.gestores / total) * 100 : 0 },
+          { label: 'Administradores', count: total - (s.alunos + s.professores + s.orientadores + s.gestores), color: 'bg-white/40', pct: total > 0 ? ((total - (s.alunos + s.professores + s.orientadores + s.gestores)) / total) * 100 : 0 },
+        ]);
 
-      const rolesCount: Record<string, number> = { aluno: 0, professor: 0, orientador: 0, gestor: 0, administrador: 0 };
-      profiles.forEach(p => { if (rolesCount[p.role] !== undefined) rolesCount[p.role]++; });
+        const activities: Activity[] = [];
+        const now = new Date();
+        
+        if (s.recentProfiles) {
+          s.recentProfiles.forEach((p: any) => activities.push({ id: p.id, action: 'Novo usuário registrado', detail: `Cargo: ${p.role}`, time: '', icon: 'person_add', created_at: new Date(p.created_at) }));
+        }
+        if (s.recentBio) {
+          s.recentBio.forEach((b: any) => activities.push({ id: b.id, action: 'Alerta biométrico', detail: `Nível: ${b.type}`, time: '', icon: 'warning', created_at: new Date(b.created_at) }));
+        }
 
-      setStats({ 
-        activeUsers: total, 
-        activeUsersNew: newUsers, 
-        institutions: institutionsCount || 0,
-        classrooms: classroomsCount || 0,
-        alunos: rolesCount.aluno,
-        professores: rolesCount.professor,
-        orientadores: rolesCount.orientador,
-        gestores: rolesCount.gestor
-      });
-
-      setRoleDist([
-        { label: 'Alunos', count: rolesCount.aluno, color: 'bg-secondary', pct: total > 0 ? (rolesCount.aluno / total) * 100 : 0 },
-        { label: 'Professores', count: rolesCount.professor, color: 'bg-primary', pct: total > 0 ? (rolesCount.professor / total) * 100 : 0 },
-        { label: 'Orientadores', count: rolesCount.orientador, color: 'bg-tertiary', pct: total > 0 ? (rolesCount.orientador / total) * 100 : 0 },
-        { label: 'Gestores', count: rolesCount.gestor, color: 'bg-yellow-400', pct: total > 0 ? (rolesCount.gestor / total) * 100 : 0 },
-        { label: 'Administradores', count: rolesCount.administrador, color: 'bg-white/40', pct: total > 0 ? (rolesCount.administrador / total) * 100 : 0 },
-      ]);
-
-      const activities: Activity[] = [];
-      if (recentProfiles) recentProfiles.forEach(p => activities.push({ id: p.id, action: 'Novo usuário registrado', detail: `Cargo: ${p.role}`, time: '', icon: 'person_add', created_at: new Date(p.created_at) }));
-      if (recentBio) recentBio.forEach(b => activities.push({ id: b.id, action: 'Alerta biométrico', detail: `Nível: ${b.type}`, time: '', icon: 'warning', created_at: new Date(b.created_at) }));
-
-      activities.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
-      const finalActivities = activities.slice(0, 5).map(a => {
-        const diffMins = Math.floor((now.getTime() - a.created_at.getTime()) / 60000);
-        a.time = diffMins > 60 ? `há ${Math.floor(diffMins / 60)}h` : `há ${diffMins} min`;
-        return a;
-      });
-      setRecentActivity(finalActivities);
+        activities.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
+        const finalActivities = activities.slice(0, 5).map(a => {
+          const diffMins = Math.floor((now.getTime() - a.created_at.getTime()) / 60000);
+          a.time = diffMins > 60 ? `há ${Math.floor(diffMins / 60)}h` : `há ${diffMins} min`;
+          return a;
+        });
+        setRecentActivity(finalActivities);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar stats do admin:", err);
     }
+    
     setLoading(false);
   };
 

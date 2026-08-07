@@ -95,19 +95,18 @@ export default function OrientadorDashboard() {
 
     const roomIds = myRooms ? myRooms.map((r) => r.id) : [];
 
-    // 2. Fetch Orientandos (linked directly or via assigned classrooms)
-    let studentsQuery = supabase
-      .from('profiles')
-      .select('id, full_name, classroom_id, guardian_name, guardian_phone')
-      .eq('role', 'aluno');
-
-    if (roomIds.length > 0) {
-      studentsQuery = studentsQuery.or(`orientador_id.eq.${currentUserId},classroom_id.in.(${roomIds.join(',')})`);
-    } else {
-      studentsQuery = studentsQuery.eq('orientador_id', currentUserId);
+    // 2. Fetch Orientandos (linked via assigned classrooms)
+    if (roomIds.length === 0) {
+      setWatchList([]);
+      setLoading(false);
+      return;
     }
 
-    const { data: students } = await studentsQuery;
+    const { data: students } = await supabase
+      .from('profiles')
+      .select('id, full_name, classroom_id, guardian_name, guardian_phone')
+      .eq('role', 'aluno')
+      .in('classroom_id', roomIds);
 
     if (!students || students.length === 0) {
       setWatchList([]);
