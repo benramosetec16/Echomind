@@ -81,3 +81,42 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: err.message || 'Erro interno' }, { status: 500 })
   }
 }
+
+// PUT /api/institution/classroom — atualizar sala
+export async function PUT(req: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!['gestor', 'administrador'].includes(profile?.role || '')) {
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+    }
+
+    const body = await req.json()
+    const { id, professor_id, orientador_id } = body
+
+    if (!id) return NextResponse.json({ error: 'id é obrigatório' }, { status: 400 })
+
+    const admin = createAdminClient()
+    const { error } = await admin
+      .from('classrooms')
+      .update({
+        professor_id: professor_id || null,
+        orientador_id: orientador_id || null,
+      })
+      .eq('id', id)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Erro interno' }, { status: 500 })
+  }
+}

@@ -87,6 +87,11 @@ export default function InstitutionPage() {
   const [selectedProfId, setSelectedProfId] = useState('');
   const [selectedOrientadorId, setSelectedOrientadorId] = useState('');
 
+  // Edit Classroom state
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+  const [editProfId, setEditProfId] = useState('');
+  const [editOrientadorId, setEditOrientadorId] = useState('');
+
   // AI Report
   const [aiReport, setAiReport] = useState<any>(null);
   const [loadingReport, setLoadingReport] = useState(false);
@@ -279,6 +284,26 @@ export default function InstitutionPage() {
       setSelectedProfId('');
       setSelectedOrientadorId('');
       loadInstitutionalData(institutionId);
+    }
+  };
+
+  // Update Classroom (via API)
+  const handleUpdateClassroom = async (id: string) => {
+    const res = await fetch('/api/institution/classroom', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id,
+        professor_id: editProfId || null,
+        orientador_id: editOrientadorId || null,
+      }),
+    });
+    if (res.ok) {
+      setEditingRoomId(null);
+      if (institutionId) loadInstitutionalData(institutionId);
+    } else {
+      const data = await res.json();
+      alert('Erro ao atualizar sala: ' + data.error);
     }
   };
 
@@ -591,30 +616,74 @@ export default function InstitutionPage() {
 
                   return (
                     <div key={cls.id} className="bg-surface-container/40 border border-white/5 rounded-2xl p-5 relative flex flex-col justify-between">
-                      <div>
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="text-base font-medium text-on-surface">{cls.name}</h4>
-                          <span className="px-2.5 py-1 bg-secondary/10 border border-secondary/30 text-secondary text-[11px] font-mono rounded-full">
-                            {cls.code}
-                          </span>
+                      {editingRoomId === cls.id ? (
+                        <div className="flex flex-col gap-3">
+                          <h4 className="text-base font-medium text-on-surface mb-2">{cls.name}</h4>
+                          <select
+                            value={editProfId}
+                            onChange={(e) => setEditProfId(e.target.value)}
+                            className="bg-background/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-on-surface outline-none"
+                          >
+                            <option value="">Sem Professor</option>
+                            {professors.map((p) => (
+                              <option key={p.id} value={p.id} className="bg-surface text-on-surface">{p.full_name}</option>
+                            ))}
+                          </select>
+                          <select
+                            value={editOrientadorId}
+                            onChange={(e) => setEditOrientadorId(e.target.value)}
+                            className="bg-background/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-on-surface outline-none"
+                          >
+                            <option value="">Sem Orientador</option>
+                            {orientadores.map((o) => (
+                              <option key={o.id} value={o.id} className="bg-surface text-on-surface">{o.full_name}</option>
+                            ))}
+                          </select>
+                          <div className="flex justify-end gap-2 mt-2">
+                            <button onClick={() => setEditingRoomId(null)} className="text-xs text-on-surface-variant hover:text-white">Cancelar</button>
+                            <button onClick={() => handleUpdateClassroom(cls.id)} className="text-xs bg-secondary text-background px-3 py-1.5 rounded-lg font-bold">Salvar</button>
+                          </div>
                         </div>
-                        <p className="text-xs text-on-surface-variant mb-1">
-                          <strong>Prof:</strong> {profName}
-                        </p>
-                        <p className="text-xs text-on-surface-variant mb-1">
-                          <strong>Orientador:</strong> {orientadorName}
-                        </p>
-                        <p className="text-xs text-on-surface-variant">
-                          <strong>Alunos:</strong> {roomStudents.length}
-                        </p>
-                      </div>
+                      ) : (
+                        <>
+                          <div>
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="text-base font-medium text-on-surface">{cls.name}</h4>
+                              <span className="px-2.5 py-1 bg-secondary/10 border border-secondary/30 text-secondary text-[11px] font-mono rounded-full">
+                                {cls.code}
+                              </span>
+                            </div>
+                            <p className="text-xs text-on-surface-variant mb-1">
+                              <strong>Prof:</strong> {profName}
+                            </p>
+                            <p className="text-xs text-on-surface-variant mb-1">
+                              <strong>Orientador:</strong> {orientadorName}
+                            </p>
+                            <p className="text-xs text-on-surface-variant">
+                              <strong>Alunos:</strong> {roomStudents.length}
+                            </p>
+                          </div>
 
-                      <button
-                        onClick={() => handleDeleteClassroom(cls.id)}
-                        className="mt-4 self-end text-red-400 text-xs flex items-center gap-1 hover:underline"
-                      >
-                        <span className="material-symbols-outlined text-sm">delete</span> Remover
-                      </button>
+                          <div className="mt-4 flex justify-end gap-3">
+                            <button
+                              onClick={() => {
+                                setEditingRoomId(cls.id);
+                                setEditProfId(cls.professor_id || '');
+                                setEditOrientadorId(cls.orientador_id || '');
+                              }}
+                              className="text-secondary text-xs flex items-center gap-1 hover:underline"
+                            >
+                              <span className="material-symbols-outlined text-sm">edit</span> Editar
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClassroom(cls.id)}
+                              className="text-red-400 text-xs flex items-center gap-1 hover:underline"
+                            >
+                              <span className="material-symbols-outlined text-sm">delete</span> Remover
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   );
                 })}
