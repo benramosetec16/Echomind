@@ -152,7 +152,7 @@ interface AIReportData {
   estrategias_institucionais: string[];
 }
 
-export const InstitutionalPDFReport = ({ data, institutionName }: { data: AIReportData, institutionName: string }) => {
+export const InstitutionalPDFReport = ({ data, institutionName, title }: { data: AIReportData, institutionName: string, title?: string }) => {
   const getAlertStyle = (nivel: string) => {
     switch(nivel) {
       case 'Crítico': return styles.alertBoxCritico;
@@ -177,7 +177,7 @@ export const InstitutionalPDFReport = ({ data, institutionName }: { data: AIRepo
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.title}>Relatório de Inteligência Institucional</Text>
+          <Text style={styles.title}>{title || 'Relatório de Inteligência Institucional'}</Text>
           <Text style={styles.subtitle}>{institutionName || 'Instituição'} — Gerado em {new Date().toLocaleDateString('pt-BR')}</Text>
         </View>
 

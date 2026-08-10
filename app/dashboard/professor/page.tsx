@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { createClient } from '../../../utils/supabase/client';
 import TopBar from '../../components/TopBar';
@@ -36,6 +36,13 @@ export default function ProfessorDashboard() {
   });
   const [classrooms, setClassrooms] = useState<ClassroomStat[]>([]);
   const [recentAlerts, setRecentAlerts] = useState<AlertStat[]>([]);
+
+  const [recentAlerts, setRecentAlerts] = useState<AlertStat[]>([]);
+
+  // AI Report State
+  const [aiReport, setAiReport] = useState<any>(null);
+  const [loadingReportId, setLoadingReportId] = useState<string | null>(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const supabase = createClient();
 
@@ -226,6 +233,49 @@ export default function ProfessorDashboard() {
     };
   }, [userId, supabase]);
 
+  const handleGenerateReport = async (classroomId: string, classroomName: string) => {
+    setLoadingReportId(classroomId);
+    try {
+      const res = await fetch('/api/report/professor/ia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classroomId })
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Erro ao gerar relatório.');
+      }
+      const data = await res.json();
+      setAiReport({ ...data, classroomName });
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoadingReportId(null);
+    }
+  };
+
+  const downloadProfessorPdf = async () => {
+    if (!aiReport) return;
+    setDownloadingPdf(true);
+    try {
+      const { pdf } = await import('@react-pdf/renderer');
+      const { InstitutionalPDFReport } = await import('../../components/PDFReport');
+      
+      const blob = await pdf(<InstitutionalPDFReport data={aiReport} institutionName={`Turma ${aiReport.classroomName}`} title="Relatório de Inteligência - Professor" />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio-echomind-professor-${new Date().toISOString().split('T')[0]}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro ao gerar PDF: ' + err.message);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   return (
     <>
       <TopBar title="Painel do Professor" />
@@ -278,7 +328,7 @@ export default function ProfessorDashboard() {
                     <div key={room.id} className="bg-surface-container/40 border border-white/5 rounded-2xl p-6">
                       <h3 className="text-lg font-medium text-on-surface mb-4">{room.name}</h3>
 
-                      <div className="space-y-2 text-xs text-on-surface-variant">
+                      <div className="space-y-2 text-xs text-on-surface-variant mb-4">
                         <div className="flex justify-between">
                           <span>Total de Alunos:</span>
                           <strong className="text-on-surface">{room.total}</strong>
@@ -296,6 +346,19 @@ export default function ProfessorDashboard() {
                           <strong className={room.alerts > 0 ? 'text-red-400' : 'text-on-surface'}>{room.alerts}</strong>
                         </div>
                       </div>
+
+                      <button
+                        onClick={() => handleGenerateReport(room.id, room.name)}
+                        disabled={loadingReportId === room.id || room.total === 0}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-secondary/10 text-secondary border border-secondary/30 rounded-xl text-xs font-semibold uppercase tracking-wider hover:bg-secondary/20 transition-colors disabled:opacity-50 mt-auto"
+                      >
+                        {loadingReportId === room.id ? (
+                          <span className="material-symbols-outlined text-sm animate-spin">sync</span>
+                        ) : (
+                          <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>psychology</span>
+                        )}
+                        {loadingReportId === room.id ? 'Analisando...' : 'Relatório IA'}
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -329,6 +392,137 @@ export default function ProfessorDashboard() {
           </section>
         </PageTransition>
       </main>
+
+      {/* AI Report Modal */}
+      <AnimatePresence>
+        {aiReport && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setAiReport(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 md:p-8"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-surface-container border border-white/10 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"
+            >
+              <div className="p-6 md:p-8 border-b border-white/5 flex justify-between items-start bg-surface-container-highest/30">
+                <div>
+                  <span className="text-xs font-semibold text-secondary uppercase tracking-[0.2em] mb-2 block">
+                    Inteligência Pedagógica EchoMind
+                  </span>
+                  <h3 className="text-2xl font-light text-on-surface">Relatório da {aiReport.classroomName}</h3>
+                </div>
+                <button
+                  onClick={() => setAiReport(null)}
+                  className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-on-surface-variant transition-colors"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+
+              <div className="p-6 md:p-8 overflow-y-auto flex-1 custom-scrollbar">
+                <div className="flex flex-col gap-8">
+                  <div className={`p-4 rounded-xl flex items-center gap-4 ${
+                    aiReport.nivel_alerta_geral === 'Crítico' ? 'bg-red-500/10 border border-red-500/30 text-red-400' :
+                    aiReport.nivel_alerta_geral === 'Elevado' ? 'bg-orange-500/10 border border-orange-500/30 text-orange-400' :
+                    aiReport.nivel_alerta_geral === 'Moderado' ? 'bg-yellow-400/10 border border-yellow-400/30 text-yellow-400' :
+                    'bg-green-400/10 border border-green-400/30 text-green-400'
+                  }`}>
+                    <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      {aiReport.nivel_alerta_geral === 'Crítico' ? 'warning' : 'info'}
+                    </span>
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-widest opacity-80 block mb-1">Nível de Alerta da Turma</span>
+                      <span className="text-xl font-medium">{aiReport.nivel_alerta_geral}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-semibold text-on-surface uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-secondary text-lg">summarize</span> Resumo Executivo
+                    </h4>
+                    <p className="text-sm text-on-surface-variant leading-relaxed bg-white/5 p-5 rounded-2xl border border-white/5">
+                      {aiReport.resumo_executivo}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="text-sm font-semibold text-on-surface uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-green-400 text-lg">check_circle</span> Pontos Positivos
+                      </h4>
+                      <ul className="space-y-2">
+                        {aiReport.pontos_positivos?.map((p: string, i: number) => (
+                          <li key={i} className="text-sm text-on-surface-variant flex items-start gap-2">
+                            <span className="text-green-400 mt-0.5">•</span> <span>{p}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-on-surface uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-red-400 text-lg">error</span> Pontos Críticos
+                      </h4>
+                      <ul className="space-y-2">
+                        {aiReport.pontos_criticos?.map((p: string, i: number) => (
+                          <li key={i} className="text-sm text-on-surface-variant flex items-start gap-2">
+                            <span className="text-red-400 mt-0.5">•</span> <span>{p}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-surface-variant/30 p-5 rounded-2xl border border-white/5">
+                      <h4 className="text-sm font-semibold text-on-surface uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-yellow-400 text-lg">visibility</span> Áreas de Atenção
+                      </h4>
+                      <ul className="space-y-2">
+                        {aiReport.areas_atencao?.map((p: string, i: number) => (
+                          <li key={i} className="text-sm text-on-surface-variant flex items-start gap-2">
+                            <span className="text-yellow-400 mt-0.5">•</span> <span>{p}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="bg-surface-variant/30 p-5 rounded-2xl border border-white/5">
+                      <h4 className="text-sm font-semibold text-on-surface uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-secondary text-lg">lightbulb</span> Estratégias Pedagógicas
+                      </h4>
+                      <ul className="space-y-2">
+                        {aiReport.estrategias_institucionais?.map((p: string, i: number) => (
+                          <li key={i} className="text-sm text-on-surface-variant flex items-start gap-2">
+                            <span className="text-secondary mt-0.5">•</span> <span>{p}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end mt-4">
+                    <button
+                      onClick={downloadProfessorPdf}
+                      disabled={downloadingPdf}
+                      className="bg-white/10 border border-white/20 text-on-surface font-semibold px-6 py-3 rounded-full text-xs uppercase tracking-wider hover:bg-white/20 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-sm">
+                        {downloadingPdf ? 'sync' : 'picture_as_pdf'}
+                      </span>
+                      {downloadingPdf ? 'Gerando PDF...' : 'Baixar Relatório PDF'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
