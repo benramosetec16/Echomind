@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import TopBar from '../components/TopBar';
 import PageTransition from '../components/PageTransition';
 import OnboardingModal from '../components/OnboardingModal';
+import GuardianBanner from '../components/GuardianBanner';
 import { useState, useEffect } from 'react';
 import { createClient } from '../../utils/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -17,6 +18,8 @@ export default function DashboardPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [institutionName, setInstitutionName] = useState<string | null>(null);
   const [classroomName, setClassroomName] = useState<string | null>(null);
+  const [showGuardianBanner, setShowGuardianBanner] = useState(false);
+  const [guardianBannerDismissed, setGuardianBannerDismissed] = useState(false);
 
   const [metrics, setMetrics] = useState({
     latestValence: 75,
@@ -64,7 +67,7 @@ export default function DashboardPage() {
 
           let { data: profile } = await supabase
             .from('profiles')
-            .select('role, institution_id, classroom_id')
+            .select('role, institution_id, classroom_id, guardian_phone, guardian_name')
             .eq('id', user.id)
             .maybeSingle();
 
@@ -79,6 +82,11 @@ export default function DashboardPage() {
                 const { data: cls } = await supabase.from('classrooms').select('name').eq('id', profile.classroom_id).maybeSingle();
                 if (cls) setClassroomName(cls.name);
               }
+            }
+
+            // Show guardian banner only for students without phone registered
+            if (profile.role === 'aluno' && !profile.guardian_phone) {
+              setShowGuardianBanner(true);
             }
           }
 
@@ -131,6 +139,17 @@ export default function DashboardPage() {
       <TopBar title="Atmosfera" />
       <main className="pt-32 px-8 md:px-16 pb-24 relative min-h-screen">
         <PageTransition>
+          {/* Guardian Contact Banner */}
+          {showGuardianBanner && !guardianBannerDismissed && userId && (
+            <GuardianBanner
+              userId={userId}
+              onComplete={() => {
+                setShowGuardianBanner(false);
+                setGuardianBannerDismissed(true);
+              }}
+            />
+          )}
+
           {/* Hero Section */}
           <section className="max-w-[1200px] mx-auto mb-16">
             <div className="flex flex-col gap-2">
