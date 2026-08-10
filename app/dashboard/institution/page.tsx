@@ -32,6 +32,8 @@ interface ProfileUser {
   full_name: string;
   role: string;
   classroom_id?: string;
+  guardian_name?: string;
+  guardian_phone?: string;
 }
 
 interface EmotionalCheckin {
@@ -168,7 +170,7 @@ export default function InstitutionPage() {
     // Fetch profiles in institution
     const { data: profData } = await supabase
       .from('profiles')
-      .select('id, full_name, role, classroom_id')
+      .select('id, full_name, role, classroom_id, guardian_name, guardian_phone')
       .eq('institution_id', instId);
 
     if (profData) {

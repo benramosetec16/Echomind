@@ -48,6 +48,12 @@ export default function ProfilePage() {
   // Mock metrics for display
   const [metrics, setMetrics] = useState({ focusLatency: 0.14, syncIntegrity: 99.8, aethericYield: 8.2 });
 
+  // Guardian contact
+  const [guardianName, setGuardianName] = useState('');
+  const [guardianPhone, setGuardianPhone] = useState('');
+  const [savingGuardian, setSavingGuardian] = useState(false);
+  const [guardianMsg, setGuardianMsg] = useState<string | null>(null);
+
   useEffect(() => {
     async function loadProfile() {
       try {
@@ -99,6 +105,10 @@ export default function ProfilePage() {
                syncIntegrity: data.sync_integrity ?? 99.8,
                aethericYield: data.aetheric_yield ?? 8.2,
             });
+
+            // Guardian contact
+            setGuardianName(data.guardian_name ?? '');
+            setGuardianPhone(data.guardian_phone ?? '');
 
             // Load avatar_url from profile row if set
             if (data.avatar_url) {
@@ -217,6 +227,25 @@ export default function ProfilePage() {
     setUserRole(role);
     await updateUserRole(role);
     setRoleLoading(false);
+  };
+
+  // --- Guardian Contact Save ---
+  const handleSaveGuardian = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!guardianName.trim() || !guardianPhone.trim()) return;
+    setSavingGuardian(true);
+    setGuardianMsg(null);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ guardian_name: guardianName.trim(), guardian_phone: guardianPhone.trim() })
+      .eq('id', userId!);
+    if (error) {
+      setGuardianMsg('Erro ao salvar: ' + error.message);
+    } else {
+      setGuardianMsg('Contato salvo com sucesso!');
+      setTimeout(() => setGuardianMsg(null), 3000);
+    }
+    setSavingGuardian(false);
   };
 
   if (loading) {
@@ -464,6 +493,79 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
+              </motion.div>
+
+              {/* Account Settings: Password, Role & Notifications */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                className="lg:col-span-12 glass-panel rounded-3xl p-8"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="material-symbols-outlined text-yellow-400" style={{ fontVariationSettings: "'FILL' 1" }}>contact_phone</span>
+                  <h3 className="text-xl font-medium text-on-surface">Contato do Responsável</h3>
+                  {!guardianPhone && (
+                    <span className="ml-2 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-yellow-400/10 border border-yellow-400/20 text-yellow-400">
+                      Não cadastrado
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-on-surface-variant mb-6 max-w-2xl">
+                  Informe o nome e telefone do seu responsável. Esses dados serão visíveis apenas para o seu orientador e gestor institucional e são utilizados exclusivamente em situações de acompanhamento emocional.
+                </p>
+
+                <form onSubmit={handleSaveGuardian} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2">
+                      Nome do Responsável
+                    </label>
+                    <input
+                      type="text"
+                      value={guardianName}
+                      onChange={e => setGuardianName(e.target.value)}
+                      placeholder="Ex: Maria Silva"
+                      required
+                      className="w-full bg-background/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-on-surface outline-none focus:border-yellow-400/50 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant mb-2">
+                      Telefone / WhatsApp
+                    </label>
+                    <input
+                      type="tel"
+                      value={guardianPhone}
+                      onChange={e => setGuardianPhone(e.target.value)}
+                      placeholder="Ex: (11) 99999-9999"
+                      required
+                      className="w-full bg-background/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-on-surface outline-none focus:border-yellow-400/50 transition-colors"
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end gap-2">
+                    <button
+                      type="submit"
+                      disabled={savingGuardian || !guardianName.trim() || !guardianPhone.trim()}
+                      className="py-3 bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 font-semibold rounded-xl text-xs uppercase tracking-wider hover:bg-yellow-400/20 transition-colors disabled:opacity-50"
+                    >
+                      {savingGuardian ? 'Salvando...' : 'Salvar Contato'}
+                    </button>
+                    {guardianMsg && (
+                      <p className={`text-xs ${guardianMsg.includes('sucesso') ? 'text-secondary' : 'text-red-400'}`}>
+                        {guardianMsg}
+                      </p>
+                    )}
+                  </div>
+                </form>
+
+                {guardianPhone && (
+                  <div className="mt-4 p-3 bg-secondary/5 border border-secondary/20 rounded-xl flex items-center gap-2">
+                    <span className="material-symbols-outlined text-secondary text-sm">check_circle</span>
+                    <span className="text-xs text-on-surface-variant">
+                      Responsável cadastrado: <strong className="text-on-surface">{guardianName || '—'}</strong> — {guardianPhone}
+                    </span>
+                  </div>
+                )}
               </motion.div>
 
               {/* Account Settings: Password, Role & Notifications */}
