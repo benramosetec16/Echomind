@@ -8,17 +8,6 @@ import { createClient } from '../../../utils/supabase/client';
 import { getUserRole, ROLE_LABELS, type UserRole } from '../../../utils/roles';
 import { useRouter } from 'next/navigation';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import dynamic from 'next/dynamic';
-
-const PDFDownloadLink = dynamic(
-  () => import('@react-pdf/renderer').then(mod => mod.PDFDownloadLink),
-  { ssr: false, loading: () => <span className="text-xs text-on-surface-variant">Carregando PDF...</span> }
-);
-
-const InstitutionalPDFReportWrapper = dynamic(
-  () => import('../../components/PDFReportWrapper'),
-  { ssr: false }
-);
 
 interface Classroom {
   id: string;
@@ -95,6 +84,29 @@ export default function InstitutionPage() {
   // AI Report
   const [aiReport, setAiReport] = useState<any>(null);
   const [loadingReport, setLoadingReport] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const downloadGestorPdf = async () => {
+    if (!aiReport) return;
+    setDownloadingPdf(true);
+    try {
+      const { pdf } = await import('@react-pdf/renderer');
+      const { InstitutionalPDFReport } = await import('../../components/PDFReport');
+
+      const blob = await pdf(<InstitutionalPDFReport data={aiReport} institutionName="Instituição" />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio-echomind-${new Date().toISOString().split('T')[0]}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro ao gerar o arquivo PDF: ' + (err.message || 'Erro desconhecido.'));
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   const [codeType, setCodeType] = useState<'professor' | 'orientador' | 'aluno' | 'sala'>('aluno');
   const [codeRoomId, setCodeRoomId] = useState('');
@@ -532,23 +544,18 @@ export default function InstitutionPage() {
 
                   {/* PDF Download Button */}
                   <div className="mt-6 flex justify-end">
-                    <PDFDownloadLink
-                      document={
-                        <InstitutionalPDFReportWrapper data={aiReport} institutionName="Instituição" />
-                      }
-                      fileName={`relatorio-echomind-${new Date().toISOString().split('T')[0]}.pdf`}
+                    <button
+                      onClick={downloadGestorPdf}
+                      disabled={downloadingPdf}
+                      className="bg-white/10 border border-white/20 text-on-surface font-semibold px-6 py-3 rounded-full text-xs uppercase tracking-wider hover:bg-white/20 transition-colors disabled:opacity-50 flex items-center gap-2"
                     >
-                      {({ loading: pdfLoading }: { loading: boolean }) => (
-                        <button
-                          disabled={pdfLoading}
-                          className="bg-white/10 border border-white/20 text-on-surface font-semibold px-6 py-3 rounded-full text-xs uppercase tracking-wider hover:bg-white/20 transition-colors disabled:opacity-50 flex items-center gap-2"
-                        >
-                          <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
-                          {pdfLoading ? 'Gerando PDF...' : 'Baixar Relatório PDF'}
-                        </button>
-                      )}
-                    </PDFDownloadLink>
+                      <span className="material-symbols-outlined text-sm">
+                        {downloadingPdf ? 'sync' : 'picture_as_pdf'}
+                      </span>
+                      {downloadingPdf ? 'Gerando PDF...' : 'Baixar Relatório PDF'}
+                    </button>
                   </div>
+
                 </div>
               )}
             </div>

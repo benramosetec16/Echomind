@@ -132,40 +132,66 @@ export default function OrientadorDashboard() {
     };
   }, [userId, supabase, loadData]);
 
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+
   const handleCreateIntervention = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId || !selectedStudentId || !intervTitle.trim() || !intervDesc.trim()) return;
 
     setSubmittingInterv(true);
 
-    // Usar a API admin para buscar dados do aluno
-    const supabaseClient = createClient();
-    const { data: studentProf } = await supabaseClient
-      .from('profiles')
-      .select('institution_id, classroom_id')
-      .eq('id', selectedStudentId)
-      .single();
+    try {
+      const res = await fetch('/api/orientador/interventions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_id: selectedStudentId,
+          title: intervTitle.trim(),
+          description: intervDesc.trim(),
+          status: 'pendente',
+        }),
+      });
 
-    const { error } = await supabaseClient.from('interventions').insert({
-      orientador_id: userId,
-      student_id: selectedStudentId,
-      institution_id: studentProf?.institution_id,
-      classroom_id: studentProf?.classroom_id,
-      title: intervTitle.trim(),
-      description: intervDesc.trim(),
-      status: 'pendente',
-    });
-
-    if (error) {
-      alert('Erro ao registrar intervenção: ' + error.message);
-    } else {
-      setIntervTitle('');
-      setIntervDesc('');
-      setSelectedStudentId('');
-      loadData();
+      const data = await res.json();
+      if (!res.ok) {
+        alert('Erro ao registrar intervenção: ' + (data.error || 'Erro desconhecido.'));
+      } else {
+        setIntervTitle('');
+        setIntervDesc('');
+        setSelectedStudentId('');
+        loadData();
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro de conexão ao registrar intervenção.');
     }
 
     setSubmittingInterv(false);
+  };
+
+  const handleGenerateOrientadorPdf = async () => {
+    setGeneratingPdf(true);
+    try {
+      const res = await fetch('/api/report/orientador');
+      if (!res.ok) throw new Error('Falha ao obter dados do relatório');
+      const reportData = await res.json();
+
+      const { pdf } = await import('@react-pdf/renderer');
+      const { OrientadorPDFReport } = await import('../../components/PDFReport');
+
+      const blob = await pdf(<OrientadorPDFReport data={reportData} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio-orientacao-${new Date().toISOString().split('T')[0]}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro ao gerar PDF do Orientador: ' + (err.message || 'Erro desconhecido.'));
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   return (
@@ -173,16 +199,28 @@ export default function OrientadorDashboard() {
       <TopBar title="Painel do Orientador" />
       <main className="pt-32 px-8 md:px-16 pb-24 relative min-h-screen">
         <PageTransition>
-          <header className="max-w-[1200px] mx-auto mb-12">
-            <span className="text-xs font-semibold text-secondary uppercase tracking-[0.3em]">
-              Acompanhamento Emocional & Orientação
-            </span>
-            <h1 className="text-5xl font-extralight tracking-tighter text-on-surface mt-1">
-              Olá, Orientador {userName || '...'}.
-            </h1>
-            <p className="text-on-surface-variant max-w-xl mt-2">
-              Alunos sob sua orientação, solicitações de apoio e registro de intervenções em tempo real.
-            </p>
+          <header className="max-w-[1200px] mx-auto mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            <div>
+              <span className="text-xs font-semibold text-secondary uppercase tracking-[0.3em]">
+                Acompanhamento Emocional & Orientação
+              </span>
+              <h1 className="text-5xl font-extralight tracking-tighter text-on-surface mt-1">
+                Olá, Orientador {userName || '...'}.
+              </h1>
+              <p className="text-on-surface-variant max-w-xl mt-2">
+                Alunos sob sua orientação, solicitações de apoio e registro de intervenções em tempo real.
+              </p>
+            </div>
+            <button
+              onClick={handleGenerateOrientadorPdf}
+              disabled={generatingPdf || loading}
+              className="bg-secondary/10 border border-secondary/30 text-secondary hover:bg-secondary/20 font-semibold px-6 py-3 rounded-full text-xs uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-sm">
+                {generatingPdf ? 'sync' : 'picture_as_pdf'}
+              </span>
+              {generatingPdf ? 'Gerando PDF...' : 'Gerar Relatório PDF'}
+            </button>
           </header>
 
           {/* Quick Metrics */}

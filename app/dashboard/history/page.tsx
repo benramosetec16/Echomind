@@ -5,8 +5,6 @@ import { motion } from 'framer-motion';
 import TopBar from '../../components/TopBar';
 import PageTransition from '../../components/PageTransition';
 import { createClient } from '../../../utils/supabase/client';
-import { pdf } from '@react-pdf/renderer';
-import ReportPDF from '../../components/ReportPDF';
 
 interface JournalEntry {
   id: string;
@@ -35,9 +33,13 @@ export default function HistoryPage() {
     try {
       const res = await fetch('/api/report');
       if (!res.ok) {
-        throw new Error('Falha ao obter dados do relatório');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Falha ao obter dados do relatório');
       }
       const data = await res.json();
+
+      const { pdf } = await import('@react-pdf/renderer');
+      const ReportPDF = (await import('../../components/ReportPDF')).default;
 
       const doc = (
         <ReportPDF
@@ -56,16 +58,17 @@ export default function HistoryPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `echomind-relatorio-bem-estar.pdf`;
+      a.download = `echomind-relatorio-bem-estar-${new Date().toISOString().split('T')[0]}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erro ao gerar relatório:', err);
-      alert('Erro ao gerar o relatório. Tente novamente mais tarde.');
+      alert('Erro ao gerar o relatório: ' + (err.message || 'Tente novamente mais tarde.'));
     } finally {
       setReportLoading(false);
     }
   };
+
 
   useEffect(() => {
     let channel: any;
