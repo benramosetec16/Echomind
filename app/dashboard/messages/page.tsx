@@ -14,6 +14,8 @@ interface Message {
   type: string;
   is_read: boolean;
   created_at: string;
+  sender_name?: string;
+  sender_classroom?: string;
 }
 
 export default function MessagesPage() {
@@ -85,22 +87,67 @@ export default function MessagesPage() {
 
     const loadMessages = async () => {
       setLoading(true);
-      const { data } = await supabase
+      const { data: msgs } = await supabase
         .from('messages')
         .select('*')
         .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .order('created_at', { ascending: true });
         
-      if (data) setMessages(data);
+      if (msgs && msgs.length > 0) {
+        // Enriquecer com dados do remetente (apenas se eu for o receiver)
+        const senderIds = [...new Set(msgs.filter(m => m.sender_id !== userId).map(m => m.sender_id))];
+        
+        let enrichedMsgs = msgs as Message[];
+        
+        if (senderIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, role, classroom_id')
+            .in('id', senderIds);
+            
+          const { data: classrooms } = await supabase
+            .from('classrooms')
+            .select('id, name');
+            
+          const profMap = new Map(profiles?.map(p => [p.id, p]));
+          const roomMap = new Map(classrooms?.map(c => [c.id, c.name]));
+          
+          enrichedMsgs = msgs.map(msg => {
+            if (msg.sender_id !== userId) {
+              const prof = profMap.get(msg.sender_id);
+              if (prof) {
+                const roomName = prof.classroom_id ? roomMap.get(prof.classroom_id) : undefined;
+                return {
+                  ...msg,
+                  sender_name: prof.full_name,
+                  sender_classroom: roomName
+                };
+              }
+            }
+            return msg;
+          });
+        }
+        setMessages(enrichedMsgs);
+      }
       setLoading(false);
     };
 
     loadMessages();
 
     const channel = supabase.channel('messages_channel')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        const newMsg = payload.new as Message;
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
+        let newMsg = payload.new as Message;
         if (newMsg.sender_id === userId || newMsg.receiver_id === userId) {
+          if (newMsg.sender_id !== userId) {
+            const { data: prof } = await supabase.from('profiles').select('full_name, classroom_id').eq('id', newMsg.sender_id).single();
+            if (prof) {
+              newMsg.sender_name = prof.full_name;
+              if (prof.classroom_id) {
+                const { data: room } = await supabase.from('classrooms').select('name').eq('id', prof.classroom_id).single();
+                if (room) newMsg.sender_classroom = room.name;
+              }
+            }
+          }
           setMessages(prev => [...prev, newMsg]);
         }
       })
@@ -179,6 +226,12 @@ export default function MessagesPage() {
                       const isMe = msg.sender_id === userId;
                       return (
                         <div key={msg.id} className={`flex flex-col max-w-[80%] ${isMe ? 'self-end items-end' : 'self-start items-start'}`}>
+                          {/* Sender Info for non-me messages */}
+                          {!isMe && msg.sender_name && (
+                            <span className="text-[10px] text-on-surface-variant font-medium mb-1 pl-1">
+                              {msg.sender_name} {msg.sender_classroom ? `• Sala: ${msg.sender_classroom}` : ''}
+                            </span>
+                          )}
                           <div className={`p-4 rounded-[20px] ${isMe ? 'bg-secondary/20 border border-secondary/30 text-on-surface rounded-br-sm' : 'bg-surface-container border border-white/5 text-on-surface-variant rounded-bl-sm'} ${msg.type === 'session_request' ? 'border-yellow-400/50 bg-yellow-400/10 text-yellow-100' : ''}`}>
                             <p className="text-sm">{msg.content}</p>
                           </div>

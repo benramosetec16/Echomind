@@ -372,6 +372,15 @@ export default function InstitutionPage() {
     else if (institutionId) loadInstitutionalData(institutionId);
   };
 
+  // Revoke Member
+  const handleRevokeMember = async (id: string, name: string) => {
+    if (!confirm(`Deseja realmente revogar o vínculo de ${name} com a instituição? Eles perderão acesso a todas as salas.`)) return;
+    const res = await fetch(`/api/institution/members?id=${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) alert('Erro ao revogar membro: ' + data.error);
+    else if (institutionId) loadInstitutionalData(institutionId);
+  };
+
   return (
     <>
       <TopBar title="Gestão Institucional" />
@@ -803,6 +812,73 @@ export default function InstitutionPage() {
               </div>
             </div>
           </section>
+
+          {/* Members Management */}
+          <section className="max-w-[1200px] mx-auto mb-10">
+            <div className="aetheric-glass rounded-[28px] p-8">
+              <h2 className="text-xl font-light text-on-surface mb-6">Membros da Instituição</h2>
+              
+              <div className="flex flex-col gap-8">
+                {/* Orientadores & Professores */}
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-secondary mb-4 border-b border-white/5 pb-2">Corpo Docente e Orientação</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[...orientadores, ...professors].map(m => (
+                      <div key={m.id} className="bg-surface-container/40 border border-white/5 rounded-2xl p-4 flex justify-between items-center hover:border-white/10 transition-colors">
+                        <div className="min-w-0 flex-1 pr-3">
+                          <p className="text-sm font-medium text-on-surface truncate">{m.full_name}</p>
+                          <span className={`text-[10px] font-semibold uppercase tracking-wider ${m.role === 'orientador' ? 'text-tertiary' : 'text-primary'}`}>
+                            {m.role === 'orientador' ? 'Orientador' : 'Professor'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleRevokeMember(m.id, m.full_name)}
+                          className="text-red-400 hover:text-red-300 p-2 rounded-xl hover:bg-red-500/10 transition-colors shrink-0"
+                          title="Revogar Vínculo Institucional"
+                        >
+                          <span className="material-symbols-outlined text-sm">person_remove</span>
+                        </button>
+                      </div>
+                    ))}
+                    {[...orientadores, ...professors].length === 0 && (
+                      <p className="text-sm text-on-surface-variant opacity-60">Nenhum professor ou orientador vinculado.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Alunos */}
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-secondary mb-4 border-b border-white/5 pb-2">Alunos Matriculados</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {students.map(m => {
+                      const room = classrooms.find(c => c.id === m.classroom_id);
+                      return (
+                        <div key={m.id} className="bg-surface-container/40 border border-white/5 rounded-2xl p-4 flex justify-between items-center hover:border-white/10 transition-colors">
+                          <div className="min-w-0 flex-1 pr-3">
+                            <p className="text-sm font-medium text-on-surface truncate">{m.full_name}</p>
+                            <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">
+                              {room ? `Sala: ${room.name}` : 'Sem sala definida'}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleRevokeMember(m.id, m.full_name)}
+                            className="text-red-400 hover:text-red-300 p-2 rounded-xl hover:bg-red-500/10 transition-colors shrink-0"
+                            title="Revogar Vínculo Institucional"
+                          >
+                            <span className="material-symbols-outlined text-sm">person_remove</span>
+                          </button>
+                        </div>
+                      )
+                    })}
+                    {students.length === 0 && (
+                      <p className="text-sm text-on-surface-variant opacity-60">Nenhum aluno vinculado.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
         </PageTransition>
       </main>
     </>

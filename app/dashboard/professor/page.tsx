@@ -37,8 +37,6 @@ export default function ProfessorDashboard() {
   const [classrooms, setClassrooms] = useState<ClassroomStat[]>([]);
   const [recentAlerts, setRecentAlerts] = useState<AlertStat[]>([]);
 
-  const [recentAlerts, setRecentAlerts] = useState<AlertStat[]>([]);
-
   // AI Report State
   const [aiReport, setAiReport] = useState<any>(null);
   const [loadingReportId, setLoadingReportId] = useState<string | null>(null);
