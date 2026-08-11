@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
     const studentIds = students.map(s => s.id);
 
     if (studentIds.length === 0) {
-      return NextResponse.json({ students: [], checkins: [], biometrics: [] });
+      return NextResponse.json({ students: [], checkins: [], biometrics: [], interventions: [], sessionCount: 0, classrooms: myRooms?.map(r => r.name) ?? [] });
     }
 
     // 3. Buscar check-ins emocionais dos alunos
@@ -150,6 +150,7 @@ export async function GET(req: NextRequest) {
       students: enrichedStudents,
       interventions: interventions ?? [],
       sessionCount: sessionCount ?? 0,
+      classrooms: myRooms?.map(r => r.name) ?? [],
     });
 
   } catch (err: any) {

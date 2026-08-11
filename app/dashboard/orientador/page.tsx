@@ -65,9 +65,14 @@ export default function OrientadorDashboard() {
   const [watchList, setWatchList] = useState<WatchStudent[]>([]);
   const [interventions, setInterventions] = useState<Intervention[]>([]);
 
+  const [classrooms, setClassrooms] = useState<string[]>([]);
+
   // Multiclass Filter
   const [selectedClassroom, setSelectedClassroom] = useState<string>('All');
-  const uniqueClassrooms = Array.from(new Set(watchList.map(s => s.course)));
+  const uniqueClassrooms = Array.from(new Set([
+    ...watchList.map(s => s.course),
+    ...classrooms
+  ]));
   const filteredWatchList = selectedClassroom === 'All' ? watchList : watchList.filter(s => s.course === selectedClassroom);
 
   // New intervention form
@@ -110,6 +115,7 @@ export default function OrientadorDashboard() {
 
       setWatchList(json.students ?? []);
       setInterventions(json.interventions ?? []);
+      setClassrooms(json.classrooms ?? []);
 
       const students: WatchStudent[] = json.students ?? [];
       setStats({

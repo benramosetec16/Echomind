@@ -95,10 +95,8 @@ export default function ProfessorDashboard() {
 
     const students = Array.from(studentsMap.values());
 
-    if (!students || students.length === 0) {
-      setLoading(false);
-      return;
-    }
+    // We don't return early here anymore because the professor might have empty classrooms
+    // that still need to be displayed.
 
     const studentIds = students.map((s) => s.id);
     const studentMap = new Map(students.map((s) => [s.id, s]));
@@ -120,8 +118,12 @@ export default function ProfessorDashboard() {
       .eq('is_dismissed', false)
       .order('created_at', { ascending: false });
 
-    // 5. Fetch Classrooms info
-    const classroomIds = [...new Set(students.map((s) => s.classroom_id).filter(Boolean))];
+    // 5. Fetch Classrooms info (combine student's rooms and myRooms)
+    const classroomIds = [...new Set([
+      ...students.map((s) => s.classroom_id).filter(Boolean),
+      ...(myRooms ? myRooms.map(r => r.id) : [])
+    ])];
+    
     let classesData: any[] = [];
     if (classroomIds.length > 0) {
       const { data: clsData } = await supabase
