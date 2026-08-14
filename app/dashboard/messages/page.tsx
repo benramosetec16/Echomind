@@ -60,21 +60,6 @@ export default function MessagesPage() {
             }
           }
 
-          // Fallback: buscar qualquer orientador/gestor na mesma instituição se ainda não encontrado
-          if (!targetOrientador && profile.institution_id) {
-            const { data: instStaff } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('institution_id', profile.institution_id)
-              .in('role', ['orientador', 'gestor'])
-              .limit(1)
-              .maybeSingle();
-              
-            if (instStaff?.id) {
-              targetOrientador = instStaff.id;
-            }
-          }
-
           setOrientadorId(targetOrientador);
         }
       }
@@ -181,11 +166,15 @@ export default function MessagesPage() {
   };
 
   const requestSession = async () => {
-    if (!userId || !orientadorId) return;
+    if (!userId) return;
+    if (!orientadorId) {
+      alert("Não foi possível localizar um orientador responsável pela sua turma.");
+      return;
+    }
     await supabase.from('messages').insert({
       sender_id: userId,
       receiver_id: orientadorId,
-      content: 'SOLICITAÇÃO DE SESSÃO: Gostaria de agendar uma sessão de apoio.',
+      content: 'Solicitação de sessão: O aluno solicitou uma sessão de acompanhamento através do EchoMind.',
       type: 'session_request'
     });
   };

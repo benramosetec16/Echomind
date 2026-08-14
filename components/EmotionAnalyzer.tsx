@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { createClient } from '../utils/supabase/client';
 
 interface AnaliseEmocional {
   emocao_principal: string;
@@ -87,6 +88,9 @@ export default function EmotionAnalyzer() {
   const [analise, setAnalise] = useState<AnaliseEmocional | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isRequestingSession, setIsRequestingSession] = useState(false);
+  const [sessionStatus, setSessionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [sessionStatusMsg, setSessionStatusMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,6 +99,8 @@ export default function EmotionAnalyzer() {
     setLoading(true);
     setError(null);
     setAnalise(null);
+    setSessionStatus('idle');
+    setSessionStatusMsg(null);
 
     try {
       const res = await fetch('/api/analyze', {
@@ -110,8 +116,9 @@ export default function EmotionAnalyzer() {
       }
 
       setAnalise(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Ocorreu um erro ao processar sua solicitação.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -121,11 +128,118 @@ export default function EmotionAnalyzer() {
     setAnalise(null);
     setTexto('');
     setError(null);
+    setIsRequestingSession(false);
+    setSessionStatus('idle');
+    setSessionStatusMsg(null);
   };
 
-  const handleActionClick = () => {
-    if (analise?.action === 'request_session') {
-      router.push('/dashboard/messages');
+  const handleActionClick = async () => {
+    if (isRequestingSession) return;
+    if (analise?.action !== 'request_session') return;
+
+    setIsRequestingSession(true);
+    setSessionStatus('idle');
+    setSessionStatusMsg(null);
+
+    try {
+      const supabase = createClient();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        setSessionStatus('error');
+        setSessionStatusMsg('Você precisa estar autenticado para solicitar uma sessão.');
+        setIsRequestingSession(false);
+        return;
+      }
+
+      // 1. Buscar perfil do aluno
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, role, institution_id, classroom_id, orientador_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        console.error('[Solicitar Sessão] Erro ao carregar perfil do aluno:', profileError);
+        setSessionStatus('error');
+        setSessionStatusMsg('Não foi possível carregar seu perfil institucional.');
+        setIsRequestingSession(false);
+        return;
+      }
+
+      // 2. Validações de vínculos institucionais reais
+      if (!profile.institution_id) {
+        setSessionStatus('error');
+        setSessionStatusMsg('Você não possui uma instituição vinculada ao seu perfil.');
+        setIsRequestingSession(false);
+        return;
+      }
+
+      let targetOrientador = profile.orientador_id;
+
+      // Se não tem orientador direto no perfil, buscar pela Sala do aluno
+      if (!targetOrientador && profile.classroom_id) {
+        const { data: classroom, error: classError } = await supabase
+          .from('classrooms')
+          .select('orientador_id')
+          .eq('id', profile.classroom_id)
+          .maybeSingle();
+
+        if (classError) {
+          console.error('[Solicitar Sessão] Erro ao consultar sala do aluno:', classError);
+        }
+
+        if (classroom?.orientador_id) {
+          targetOrientador = classroom.orientador_id;
+        }
+      }
+
+      if (!profile.classroom_id && !profile.orientador_id) {
+        setSessionStatus('error');
+        setSessionStatusMsg('Você não possui uma turma vinculada ao seu perfil.');
+        setIsRequestingSession(false);
+        return;
+      }
+
+      if (!targetOrientador) {
+        console.error('[Solicitar Sessão] Aluno/Turma sem orientador associado.');
+        setSessionStatus('error');
+        setSessionStatusMsg('Não foi possível localizar um orientador responsável pela sua turma.');
+        setIsRequestingSession(false);
+        return;
+      }
+
+      // 3. Criar solicitação de sessão na tabela existente messages
+      const { error: insertError } = await supabase
+        .from('messages')
+        .insert({
+          sender_id: user.id,
+          receiver_id: targetOrientador,
+          content: 'Solicitação de sessão: O aluno solicitou uma sessão de acompanhamento através do EchoMind.',
+          type: 'session_request'
+        });
+
+      if (insertError) {
+        console.error('[Solicitar Sessão] Erro no Supabase ao gravar solicitação:', insertError);
+        setSessionStatus('error');
+        setSessionStatusMsg('Não foi possível enviar a solicitação. Tente novamente.');
+        setIsRequestingSession(false);
+        return;
+      }
+
+      // 4. Confirmação e Redirecionamento
+      setSessionStatus('success');
+      setSessionStatusMsg('Solicitação enviada. Sua solicitação foi encaminhada para o orientador responsável.');
+
+      setTimeout(() => {
+        router.push('/dashboard/messages');
+      }, 1500);
+
+    } catch (err: unknown) {
+      console.error('[Solicitar Sessão] Erro inesperado:', err);
+      setSessionStatus('error');
+      setSessionStatusMsg('Não foi possível enviar a solicitação. Tente novamente.');
+      setIsRequestingSession(false);
     }
   };
 
@@ -316,13 +430,50 @@ export default function EmotionAnalyzer() {
                 <p className="text-sm text-on-surface leading-relaxed mb-6">{analise.recommendation || analise.recomendacao}</p>
                 
                 {analise.action && analise.action === 'request_session' && (
-                  <button
-                    onClick={handleActionClick}
-                    className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-on-surface text-xs font-semibold uppercase tracking-[0.15em] hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">forum</span>
-                    {analise.action_label || 'Solicitar uma sessão'}
-                  </button>
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={handleActionClick}
+                      disabled={isRequestingSession || sessionStatus === 'success'}
+                      className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-on-surface text-xs font-semibold uppercase tracking-[0.15em] hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                    >
+                      {isRequestingSession ? (
+                        <>
+                          <span className="material-symbols-outlined text-[18px] animate-spin">sync</span>
+                          Enviando solicitação...
+                        </>
+                      ) : sessionStatus === 'success' ? (
+                        <>
+                          <span className="material-symbols-outlined text-[18px] text-secondary">check_circle</span>
+                          Solicitação Encaminhada
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-[18px]">forum</span>
+                          {analise.action_label || 'Solicitar uma sessão'}
+                        </>
+                      )}
+                    </button>
+
+                    <AnimatePresence>
+                      {sessionStatusMsg && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          className={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
+                            sessionStatus === 'success'
+                              ? 'bg-secondary/10 border-secondary/30 text-secondary'
+                              : 'bg-error/10 border-error/30 text-error'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-sm mt-0.5 flex-shrink-0">
+                            {sessionStatus === 'success' ? 'verified' : 'error'}
+                          </span>
+                          <span className="leading-relaxed">{sessionStatusMsg}</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 )}
               </motion.div>
             </div>
