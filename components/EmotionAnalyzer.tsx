@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 interface AnaliseEmocional {
   emocao_principal: string;
@@ -9,8 +10,17 @@ interface AnaliseEmocional {
   nivel_estresse: number;
   nivel_energia: number;
   nivel_motivacao: number;
-  resumo: string;
-  recomendacao: string;
+  response?: string;
+  summary?: string;
+  resumo?: string;
+  indicators?: string[];
+  recommendation?: string;
+  recomendacao?: string;
+  recommendation_type?: string;
+  action?: string;
+  action_label?: string;
+  severity?: string;
+  needs_attention?: boolean;
 }
 
 const getLevelColor = (level: number, reverse: boolean = false): string => {
@@ -72,6 +82,7 @@ function MetricBar({
 }
 
 export default function EmotionAnalyzer() {
+  const router = useRouter();
   const [texto, setTexto] = useState('');
   const [analise, setAnalise] = useState<AnaliseEmocional | null>(null);
   const [loading, setLoading] = useState(false);
@@ -110,6 +121,12 @@ export default function EmotionAnalyzer() {
     setAnalise(null);
     setTexto('');
     setError(null);
+  };
+
+  const handleActionClick = () => {
+    if (analise?.action === 'request_session') {
+      router.push('/dashboard/messages');
+    }
   };
 
   return (
@@ -229,11 +246,26 @@ export default function EmotionAnalyzer() {
               </div>
             </motion.div>
 
+            {/* AI Response Acolhedora */}
+            {analise.response && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.5 }}
+                className="bg-secondary/10 border border-secondary/30 rounded-2xl p-6"
+              >
+                <div className="flex gap-4">
+                  <span className="material-symbols-outlined text-secondary text-2xl flex-shrink-0">volunteer_activism</span>
+                  <p className="text-sm text-on-surface leading-relaxed">{analise.response}</p>
+                </div>
+              </motion.div>
+            )}
+
             {/* Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <MetricBar label="Estresse" value={analise.nivel_estresse} icon="bolt" reverse delay={0.1} />
-              <MetricBar label="Energia" value={analise.nivel_energia} icon="battery_charging_full" delay={0.2} />
-              <MetricBar label="Motivação" value={analise.nivel_motivacao} icon="local_fire_department" delay={0.3} />
+              <MetricBar label="Estresse" value={analise.nivel_estresse} icon="bolt" reverse delay={0.2} />
+              <MetricBar label="Energia" value={analise.nivel_energia} icon="battery_charging_full" delay={0.3} />
+              <MetricBar label="Motivação" value={analise.nivel_motivacao} icon="local_fire_department" delay={0.4} />
             </div>
 
             {/* Summary & Recommendation */}
@@ -241,7 +273,7 @@ export default function EmotionAnalyzer() {
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
                 className="glass-panel rounded-2xl p-6"
               >
                 <div className="flex items-center gap-2 mb-4">
@@ -250,22 +282,48 @@ export default function EmotionAnalyzer() {
                     Resumo
                   </span>
                 </div>
-                <p className="text-sm text-on-surface leading-relaxed">{analise.resumo}</p>
+                <p className="text-sm text-on-surface leading-relaxed mb-4">{analise.summary || analise.resumo}</p>
+                
+                {analise.indicators && analise.indicators.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-white/10">
+                    <span className="text-xs font-semibold uppercase tracking-[0.1em] text-on-surface-variant mb-2 block">Indicadores</span>
+                    <ul className="flex flex-col gap-2">
+                      {analise.indicators.map((ind, i) => (
+                        <li key={i} className="text-xs text-on-surface-variant/80 flex items-start gap-2">
+                          <span className="material-symbols-outlined text-[14px] text-tertiary">check</span>
+                          {ind}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
-                className="glass-panel rounded-2xl p-6 border-l border-l-secondary/30"
+                transition={{ delay: 0.6, duration: 0.5 }}
+                className={`glass-panel rounded-2xl p-6 border-l ${analise.needs_attention ? 'border-l-error/50' : 'border-l-secondary/30'}`}
               >
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="material-symbols-outlined text-secondary text-base">lightbulb</span>
-                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-secondary">
+                  <span className={`material-symbols-outlined text-base ${analise.needs_attention ? 'text-error' : 'text-secondary'}`}>
+                    {analise.needs_attention ? 'warning' : 'lightbulb'}
+                  </span>
+                  <span className={`text-xs font-semibold uppercase tracking-[0.12em] ${analise.needs_attention ? 'text-error' : 'text-secondary'}`}>
                     Recomendação
                   </span>
                 </div>
-                <p className="text-sm text-on-surface leading-relaxed">{analise.recomendacao}</p>
+                <p className="text-sm text-on-surface leading-relaxed mb-6">{analise.recommendation || analise.recomendacao}</p>
+                
+                {analise.action && analise.action === 'request_session' && (
+                  <button
+                    onClick={handleActionClick}
+                    className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-on-surface text-xs font-semibold uppercase tracking-[0.15em] hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">forum</span>
+                    {analise.action_label || 'Solicitar uma sessão'}
+                  </button>
+                )}
               </motion.div>
             </div>
 
@@ -273,8 +331,8 @@ export default function EmotionAnalyzer() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
-              className="flex justify-center"
+              transition={{ delay: 0.8 }}
+              className="flex justify-center mt-4"
             >
               <button
                 onClick={reset}

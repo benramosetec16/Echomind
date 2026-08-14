@@ -21,6 +21,8 @@ export default function StudyPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any | null>(null);
   const [activeVideo, setActiveVideo] = useState<any | null>(null);
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState<Record<number, boolean>>({});
 
   const handleStudyRequest = async () => {
     if (!content.trim()) return;
@@ -28,6 +30,8 @@ export default function StudyPage() {
     setLoading(true);
     setResult(null);
     setActiveVideo(null);
+    setQuizAnswers({});
+    setQuizSubmitted({});
 
     try {
       const res = await fetch('/api/study', {
@@ -172,19 +176,89 @@ export default function StudyPage() {
                   )}
                 </div>
 
-                {/* Exercícios */}
-                {result.exercicios && result.exercicios.length > 0 && (
+                {/* Quiz Interativo */}
+                {result.quiz && result.quiz.length > 0 && (
                   <div className="aetheric-glass rounded-[32px] p-8">
                     <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
                       <span className="material-symbols-outlined text-secondary">quiz</span>
-                      <h3 className="text-xs font-semibold text-secondary uppercase tracking-[0.2em]">Exercícios Práticos</h3>
+                      <h3 className="text-xs font-semibold text-secondary uppercase tracking-[0.2em]">Quiz de Fixação</h3>
                     </div>
-                    <div className="space-y-4">
-                      {result.exercicios.map((ex: string, i: number) => (
-                        <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/10 text-sm font-light text-on-surface-variant whitespace-pre-wrap">
-                          {ex}
-                        </div>
-                      ))}
+                    <div className="space-y-8">
+                      {result.quiz.map((q: any, i: number) => {
+                        const isSubmitted = quizSubmitted[i];
+                        const isCorrect = quizAnswers[i] === q.resposta_correta;
+                        
+                        return (
+                          <div key={i} className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 relative">
+                            <div className="absolute top-4 right-4 px-2 py-1 bg-white/5 rounded-md text-[10px] text-on-surface-variant font-mono uppercase">
+                              Nível {q.nivel}
+                            </div>
+                            <h4 className="text-sm text-on-surface font-medium mb-4 pr-16 leading-relaxed">
+                              {i + 1}. {q.pergunta}
+                            </h4>
+                            
+                            <div className="space-y-2 mb-4 flex flex-col">
+                              {q.opcoes.map((opcao: string, j: number) => {
+                                const isSelected = quizAnswers[i] === opcao;
+                                let btnClass = "w-full text-left p-4 rounded-xl text-sm font-light transition-all border ";
+                                
+                                if (!isSubmitted) {
+                                  btnClass += isSelected 
+                                    ? "bg-secondary/20 border-secondary/50 text-secondary" 
+                                    : "bg-surface-container-lowest border-white/5 text-on-surface-variant hover:border-white/20 hover:bg-white/5";
+                                } else {
+                                  if (opcao === q.resposta_correta) {
+                                    btnClass += "bg-emerald-500/20 border-emerald-500/50 text-emerald-400";
+                                  } else if (isSelected && opcao !== q.resposta_correta) {
+                                    btnClass += "bg-red-500/10 border-red-500/30 text-red-400";
+                                  } else {
+                                    btnClass += "bg-surface-container-lowest border-white/5 text-on-surface-variant/50 opacity-50";
+                                  }
+                                }
+                                
+                                return (
+                                  <button
+                                    key={j}
+                                    disabled={isSubmitted}
+                                    onClick={() => setQuizAnswers({ ...quizAnswers, [i]: opcao })}
+                                    className={btnClass}
+                                  >
+                                    {opcao}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            
+                            {!isSubmitted ? (
+                              <button
+                                disabled={!quizAnswers[i]}
+                                onClick={() => setQuizSubmitted({ ...quizSubmitted, [i]: true })}
+                                className="px-6 py-2 bg-secondary text-background text-xs font-bold uppercase tracking-widest rounded-full disabled:opacity-30 disabled:cursor-not-allowed hover:bg-secondary/90 transition-all"
+                              >
+                                Responder
+                              </button>
+                            ) : (
+                              <motion.div 
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className={`mt-4 p-4 rounded-xl border ${isCorrect ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-tertiary/10 border-tertiary/20'}`}
+                              >
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className={`material-symbols-outlined text-[18px] ${isCorrect ? 'text-emerald-400' : 'text-tertiary'}`}>
+                                    {isCorrect ? 'check_circle' : 'lightbulb'}
+                                  </span>
+                                  <span className={`text-xs font-semibold uppercase tracking-widest ${isCorrect ? 'text-emerald-400' : 'text-tertiary'}`}>
+                                    {isCorrect ? 'Correto!' : 'Resposta Incorreta'}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-on-surface-variant leading-relaxed">
+                                  {q.explicacao_resposta}
+                                </p>
+                              </motion.div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

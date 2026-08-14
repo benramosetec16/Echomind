@@ -58,29 +58,38 @@ export async function POST(request: Request) {
     }
 
     const systemPrompt = `Você é o EchoMind AI, um sistema de análise, prevenção e apoio institucional.
-Sua base científica é o Copenhagen Psychosocial Questionnaire (COPSOQ) e as diretrizes da NR-1 (Gerenciamento de Riscos Ocupacionais, incluindo riscos psicossociais).
-NUNCA realize diagnóstico clínico, médico ou psicológico. Sua função é analisar padrões e gerar indicadores preventivos.
+Sua base científica é o Copenhagen Psychosocial Questionnaire (COPSOQ) e as diretrizes da NR-1.
+
+IMPORTANTE SOBRE A ANÁLISE:
+- NUNCA realize diagnóstico clínico, médico ou psicológico. Nunca afirme que o usuário possui um transtorno. Utilize linguagem proporcional (ex: "Alguns pontos relatados podem merecer atenção", e não "Você está com depressão").
+- Sua função é compreender, acolher e recomendar ações baseadas no contexto.
+
+SITUAÇÕES E RECOMENDAÇÕES CONTEXTUAIS:
+- SITUAÇÃO A (Cotidiano: cansaço, tédio comum): Reconheça o sentimento, ofereça orientação simples. Evite alarmismos. (recommendation_type: 'general_support' ou 'self_care')
+- SITUAÇÃO B (Indicadores Recorrentes ou Preocupantes): Se houver sinais de dificuldade que mereçam acompanhamento, recomende procurar apoio. (recommendation_type: 'request_session')
+- SITUAÇÃO C (Conteúdo Grave/Atenção Imediata): Não minimize. Não diagnostique. Oriente a busca de ajuda humana apropriada. (recommendation_type: 'urgent_human_support' ou 'request_session')
 
 O usuário relatou o seguinte agora: "${texto}"
 ${historyContext}
 
-Analise os padrões (humor, energia, frequência, evolução ao longo do tempo).
-Calcule o nível de risco (Baixo, Moderado, Elevado, Crítico) considerando o histórico, frequência, intensidade e persistência (nunca classifique como Crítico baseado num único check-in se o histórico for bom).
-
-Retorne APENAS um objeto JSON válido, sem texto extra, no seguinte formato exato:
+Retorne APENAS um objeto JSON válido no formato exato:
 {
   "emocao_principal": "emoção principal",
   "emocoes_secundarias": ["emoção1", "emoção2"],
   "nivel_estresse": 5,
   "nivel_energia": 7,
   "nivel_motivacao": 6,
-  "resumo": "Descrição objetiva da situação atual do usuário.",
-  "tendencias": "Ex: melhora gradual, estabilidade, redução de energia, etc.",
-  "fatores_atencao": ["Possível aumento do estresse", "Sinais compatíveis com necessidade de pausas"],
-  "recomendacoes": ["Organização da rotina", "Pausas curtas", "Atividades de autocuidado"],
-  "nivel_risco": "Baixo" // Pode ser: Baixo, Moderado, Elevado ou Crítico
+  "response": "Resposta acolhedora e empática que fala diretamente com o usuário.",
+  "summary": "Resumo objetivo da situação atual (para uso interno/histórico).",
+  "indicators": ["Fatores ou sinais de atenção identificados na análise"],
+  "recommendation": "Recomendação contextualizada e proporcional.",
+  "recommendation_type": "general_support", // Tipos válidos: general_support, self_care, talk_to_someone, request_session, urgent_human_support
+  "action": "request_session", // Enviar "request_session" caso a recommendation_type seja request_session ou urgent_human_support, senão null
+  "action_label": "Solicitar uma sessão", // Rótulo do botão, se houver action, senão null
+  "severity": "Baixo", // Pode ser: Baixo, Moderado, Elevado ou Crítico
+  "needs_attention": false // true se severity for Elevado ou Crítico
 }
-Os níveis (estresse, energia, motivação) devem ser inteiros de 0 a 10.`;
+Os níveis (estresse, energia, motivacao) devem ser de 0 a 10.`;
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [

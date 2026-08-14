@@ -20,13 +20,13 @@ export async function POST(request: Request) {
     
     switch(action) {
       case 'explain':
-        systemPrompt = 'Você é um tutor avançado focado em didática e neurociência. Explique o conceito solicitado de forma clara, utilizando analogias precisas. Divida sua explicação em tópicos lógicos.';
+        systemPrompt = 'Você é um tutor avançado focado em didática profunda. Explique o conteúdo de maneira completa, organizada e progressiva. Não pule etapas importantes.';
         break;
       case 'summarize':
-        systemPrompt = 'Você é um tutor avançado. Resuma o texto fornecido, destacando os pontos principais, palavras-chave e a ideia central. Seja objetivo e conciso.';
+        systemPrompt = 'Você é um tutor avançado. Resuma o texto fornecido, mantendo a clareza e estrutura lógica.';
         break;
       case 'review':
-        systemPrompt = 'Você é um tutor criando uma revisão para provas. Com base no conteúdo fornecido, gere 5 perguntas de revisão com diferentes níveis de dificuldade e, ao final, forneça um gabarito comentado.';
+        systemPrompt = 'Você é um tutor criando uma revisão focada no entendimento. Gere a explicação e a revisão consolidada.';
         break;
       case 'schedule':
         systemPrompt = 'Você é um organizador de estudos produtivo. Crie um cronograma de estudos detalhado e realista com base nas disciplinas/temas fornecidos, aplicando a técnica Pomodoro ou repetição espaçada se adequado.';
@@ -39,21 +39,43 @@ export async function POST(request: Request) {
     }
 
     systemPrompt += `
+ESTRUTURA DA EXPLICAÇÃO OBRIGATÓRIA:
+Sempre que possível (e especialmente para a ação 'explain'), estruture sua "explicacao" usando os seguintes tópicos em Markdown:
+1. O que é (conceito inicial simples)
+2. Como funciona (explicação profunda/conceitual)
+3. Elementos importantes (principais conceitos)
+4. Fórmulas (quando existirem, explicando cada variável)
+5. Exemplo resolvido (mostrar passo a passo)
+6. Erros comuns (onde estudantes costumam errar)
+
+QUIZ OBRIGATÓRIO (MÚLTIPLA ESCOLHA):
+Gere perguntas (min 1, max 4) baseadas EXCLUSIVAMENTE no conteúdo que você acabou de explicar.
+Aumente a dificuldade gradualmente (Ex: Nível 1: Compreensão básica, Nível 2: Aplicação).
+NÃO crie perguntas sobre informações que não foram apresentadas na explicação.
+
 IMPORTANTE: Você deve responder APENAS com um objeto JSON válido.
 Sua resposta deve conter a seguinte estrutura exata:
 {
-  "explicacao": "Uma explicação detalhada (pode usar markdown).",
-  "resumo": "Um resumo conciso do tema.",
+  "explicacao": "Explicação detalhada estruturada com markdown (usar os tópicos).",
+  "resumo": "Um resumo consolidado do tema.",
   "conceitos": ["Conceito 1 explicado de forma breve", "Conceito 2..."],
-  "exercicios": ["Exercício 1 para testar conhecimento", "Exercício 2..."],
+  "quiz": [
+    {
+      "pergunta": "Texto da pergunta",
+      "opcoes": ["Opção 1", "Opção 2", "Opção 3", "Opção 4"],
+      "resposta_correta": "O texto exato da opção correta (deve ser idêntico a um item do array opcoes)",
+      "explicacao_resposta": "Feedback construtivo explicando por que esta é a resposta correta e apontando para a parte da explicação original.",
+      "nivel": 1
+    }
+  ],
   "tags": {
-    "disciplina": "Nome da disciplina, ex: Física, Matemática, Biologia",
-    "assunto": "O tema central, ex: Lei de Hooke",
+    "disciplina": "Nome da disciplina, ex: Física, Matemática, História",
+    "assunto": "O tema central",
     "palavras_chave": ["palavra1", "palavra2", "palavra3"],
     "nivel": "Fundamental, Médio ou Superior"
   }
 }
-Não inclua nenhuma introdução ou texto fora do JSON.`;
+Não inclua nenhuma introdução ou texto fora do JSON. Certifique-se de que o campo 'quiz' substitui o antigo campo 'exercicios'.`;
 
     const userMessage = context ? `Contexto anterior: ${context}\n\nSolicitação/Conteúdo atual: ${content}` : `Solicitação/Conteúdo: ${content}`;
 
