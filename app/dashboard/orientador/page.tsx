@@ -60,6 +60,8 @@ export default function OrientadorDashboard() {
     intervencoes: 0,
     riscoElevado: 0,
     sessoes: 0,
+    sessoesPendentes: 0,
+    sessoesConcluldas: 0,
   });
 
   const [watchList, setWatchList] = useState<WatchStudent[]>([]);
@@ -123,6 +125,8 @@ export default function OrientadorDashboard() {
         intervencoes: json.interventions?.length ?? 0,
         riscoElevado: students.filter(s => s.riskLevel === 'Crítico' || s.riskLevel === 'Moderado').length,
         sessoes: json.sessionCount ?? 0,
+        sessoesPendentes: json.sessionPendingCount ?? 0,
+        sessoesConcluldas: json.sessionConcludedCount ?? 0,
       });
     } catch (err) {
       console.error('[Orientador Dashboard]', err);
@@ -341,8 +345,21 @@ export default function OrientadorDashboard() {
               <h3 className="text-3xl font-light text-secondary mt-2">{loading ? '...' : stats.intervencoes}</h3>
             </div>
             <div className="aetheric-glass rounded-[24px] p-6">
-              <span className="text-xs uppercase tracking-wider text-on-surface-variant">Pedidos de Sessão</span>
-              <h3 className="text-3xl font-light text-yellow-400 mt-2">{loading ? '...' : stats.sessoes}</h3>
+              <span className="text-xs uppercase tracking-wider text-on-surface-variant">Sessões</span>
+              {loading ? (
+                <h3 className="text-3xl font-light text-yellow-400 mt-2">...</h3>
+              ) : (
+                <div className="mt-2 flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-yellow-400 uppercase tracking-wider">Pendentes</span>
+                    <span className="text-2xl font-light text-yellow-400">{stats.sessoesPendentes}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-green-400 uppercase tracking-wider">Concluídas</span>
+                    <span className="text-xl font-light text-green-400">{stats.sessoesConcluldas}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 

@@ -85,12 +85,20 @@ export async function GET(req: NextRequest) {
       .eq('orientador_id', user.id)
       .order('created_at', { ascending: false });
 
-    // 6. Contar pedidos de sessão
-    const { count: sessionCount } = await admin
+    // 6. Contar pedidos de sessão (pendentes e concluídas separadamente)
+    const { count: sessionPendingCount } = await admin
       .from('messages')
       .select('*', { count: 'exact', head: true })
       .eq('receiver_id', user.id)
-      .eq('type', 'session_request');
+      .eq('type', 'session_request')
+      .eq('session_status', 'pendente');
+
+    const { count: sessionConcludedCount } = await admin
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('receiver_id', user.id)
+      .eq('type', 'session_request')
+      .eq('session_status', 'concluida');
 
     // 7. Enriquecer alunos com dados calculados
     const enrichedStudents = students.map(student => {
@@ -149,7 +157,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       students: enrichedStudents,
       interventions: interventions ?? [],
-      sessionCount: sessionCount ?? 0,
+      sessionCount: (sessionPendingCount ?? 0) + (sessionConcludedCount ?? 0),
+      sessionPendingCount: sessionPendingCount ?? 0,
+      sessionConcludedCount: sessionConcludedCount ?? 0,
       classrooms: myRooms?.map(r => r.name) ?? [],
     });
 

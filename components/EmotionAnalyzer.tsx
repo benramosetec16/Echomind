@@ -216,7 +216,8 @@ export default function EmotionAnalyzer() {
           sender_id: user.id,
           receiver_id: targetOrientador,
           content: 'Solicitação de sessão: O aluno solicitou uma sessão de acompanhamento através do EchoMind.',
-          type: 'session_request'
+          type: 'session_request',
+          session_status: 'pendente'
         });
 
       if (insertError) {
