@@ -91,7 +91,7 @@ Não cite dados individuais. Retorne APENAS um objeto JSON válido, no seguinte 
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'system', content: systemPrompt }],
-      model: 'llama-3.1-70b-versatile',
+      model: 'llama-3.1-8b-instant',
       response_format: { type: 'json_object' },
       temperature: 0.2,
       max_tokens: 1500,

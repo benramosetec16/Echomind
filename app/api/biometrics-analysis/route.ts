@@ -65,7 +65,7 @@ Retorne APENAS JSON no formato:
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "system", content: systemPrompt }],
-      model: "llama-3.1-70b-versatile",
+      model: "llama-3.1-8b-instant",
       response_format: { type: 'json_object' },
       temperature: 0.2,
       max_tokens: 1000,

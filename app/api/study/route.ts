@@ -84,7 +84,7 @@ Não inclua nenhuma introdução ou texto fora do JSON. Certifique-se de que o c
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
       ],
-      model: 'llama-3.1-70b-versatile',
+      model: 'llama-3.1-8b-instant',
       temperature: 0.4,
       response_format: { type: 'json_object' }
     });

@@ -78,7 +78,7 @@ export async function transmitAura(payload: { valenceValue: number; texture: str
           { role: 'system', content: 'You only reply in valid JSON.' },
           { role: 'user', content: prompt }
         ],
-        model: 'llama-3.1-70b-versatile',
+        model: 'llama-3.1-8b-instant',
         temperature: 0.7,
         response_format: { type: 'json_object' }
       });
