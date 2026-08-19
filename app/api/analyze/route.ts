@@ -96,7 +96,7 @@ Os níveis (estresse, energia, motivacao) devem ser de 0 a 10.`;
         { role: 'system', content: systemPrompt },
         { role: 'user', content: 'Gere a análise em JSON com base nos dados fornecidos.' },
       ],
-      model: 'llama-3.1-8b-instant',
+      model: 'openai/gpt-oss-20b',
       response_format: { type: 'json_object' },
       temperature: 0.2,
     });
