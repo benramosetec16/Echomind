@@ -87,9 +87,19 @@ export default function Sidebar() {
   return (
     <nav className="fixed left-0 top-0 h-full w-20 hover:w-64 transition-all duration-500 ease-in-out z-50 bg-background/80 backdrop-blur-xl border-r border-white/5 flex flex-col items-center py-8 gap-6 overflow-hidden group">
       <div className="mb-10 mt-4 flex items-center justify-center w-full px-6">
-        <span className="material-symbols-outlined text-primary text-3xl hidden group-hover:block mr-3">auto_awesome</span>
-        <span className="font-display text-4xl font-extralight text-primary tracking-tighter block group-hover:hidden">E</span>
-        <span className="font-display text-4xl font-extralight text-primary tracking-tighter hidden group-hover:block">EchoMind</span>
+        {/* Logo collapsed: small square icon */}
+        <img
+          src="/echomind-logo.png"
+          alt="EchoMind"
+          className="w-10 h-10 object-contain block group-hover:hidden flex-shrink-0"
+        />
+        {/* Logo expanded: wider version */}
+        <img
+          src="/echomind-logo.png"
+          alt="EchoMind"
+          className="w-10 h-10 object-contain hidden group-hover:block flex-shrink-0"
+        />
+        <span className="font-display text-2xl font-extralight text-primary tracking-tighter hidden group-hover:block ml-3">EchoMind</span>
       </div>
 
       <div className="flex flex-col gap-4 w-full px-4">

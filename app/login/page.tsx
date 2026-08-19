@@ -193,6 +193,18 @@ export default function LoginPage() {
         className="relative z-10 w-full max-w-[420px] mx-auto min-h-screen flex flex-col items-center justify-center px-6"
       >
         <header className="text-center mb-8 mt-12">
+          <motion.div
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 2.0, duration: 0.8 }}
+            className="flex justify-center mb-4"
+          >
+            <img
+              src="/echomind-logo.png"
+              alt="EchoMind"
+              className="w-20 h-20 object-contain"
+            />
+          </motion.div>
           <motion.h1 
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
