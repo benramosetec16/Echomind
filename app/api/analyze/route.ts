@@ -43,6 +43,7 @@ export async function POST(request: Request) {
 
     const { data: userData, error: authError } = await supabase.auth.getUser();
     let historyContext = 'Nenhum histórico anterior disponível.';
+    let responseStyleModifier = '';
     
     if (!authError && userData?.user) {
       const { data: history } = await supabase
@@ -55,9 +56,24 @@ export async function POST(request: Request) {
       if (history && history.length > 0) {
         historyContext = `Histórico dos últimos ${history.length} check-ins do usuário:\n${JSON.stringify(history, null, 2)}`;
       }
+
+      // Accessibility preference
+      const { data: prefs } = await supabase
+        .from('accessibility_preferences')
+        .select('response_style')
+        .eq('user_id', userData.user.id)
+        .single();
+        
+      if (prefs) {
+        if (prefs.response_style === 'objective') {
+          responseStyleModifier = '\n\nPREFERÊNCIA DO USUÁRIO: O usuário prefere respostas extremamente objetivas e diretas. Não utilize linguagem metafórica, seja claro e conciso.';
+        } else if (prefs.response_style === 'detailed') {
+          responseStyleModifier = '\n\nPREFERÊNCIA DO USUÁRIO: O usuário prefere respostas altamente explicativas e detalhadas, desenvolvendo mais a empatia e o contexto.';
+        }
+      }
     }
 
-    const systemPrompt = `Você é o EchoMind AI, um sistema de análise, prevenção e apoio institucional.
+    const systemPrompt = `Você é o EchoMind AI, um sistema de análise, prevenção e apoio institucional.${responseStyleModifier}
 Sua base científica é o Copenhagen Psychosocial Questionnaire (COPSOQ) e as diretrizes da NR-1.
 
 IMPORTANTE SOBRE A ANÁLISE:

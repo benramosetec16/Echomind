@@ -38,6 +38,29 @@ export async function POST(request: Request) {
         systemPrompt = 'Você é o assistente educacional do EchoMind.';
     }
 
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    let studyStyleModifier = '';
+    
+    if (session?.user) {
+      const { data: prefs } = await supabase
+        .from('accessibility_preferences')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+        
+      if (prefs) {
+        if (prefs.study_explanation_style === 'detailed') {
+          studyStyleModifier = '\n\nPREFERÊNCIA DO USUÁRIO: O usuário prefere explicações altamente detalhadas e ricas em contexto. Não economize palavras, explique os pormenores.';
+        } else if (prefs.study_explanation_style === 'step_by_step') {
+          studyStyleModifier = '\n\nPREFERÊNCIA DO USUÁRIO: O usuário prefere conteúdo altamente estruturado. Divida TODA a explicação em pequenos passos numerados lógicos, um conceito por vez.';
+        } else if (prefs.study_explanation_style === 'simplified') {
+          studyStyleModifier = '\n\nPREFERÊNCIA DO USUÁRIO: O usuário prefere explicações diretas e simplificadas. Remova jargões desnecessários, seja conciso e apresente apenas a essência necessária para a compreensão básica.';
+        }
+      }
+    }
+
     systemPrompt += `
 ESTRUTURA DA EXPLICAÇÃO OBRIGATÓRIA:
 Sempre que possível (e especialmente para a ação 'explain'), estruture sua "explicacao" usando os seguintes tópicos em Markdown:
@@ -75,7 +98,7 @@ Sua resposta deve conter a seguinte estrutura exata:
     "nivel": "Fundamental, Médio ou Superior"
   }
 }
-Não inclua nenhuma introdução ou texto fora do JSON. Certifique-se de que o campo 'quiz' substitui o antigo campo 'exercicios'.`;
+Não inclua nenhuma introdução ou texto fora do JSON. Certifique-se de que o campo 'quiz' substitui o antigo campo 'exercicios'.${studyStyleModifier}`;
 
     const userMessage = context ? `Contexto anterior: ${context}\n\nSolicitação/Conteúdo atual: ${content}` : `Solicitação/Conteúdo: ${content}`;
 
@@ -98,7 +121,6 @@ Não inclua nenhuma introdução ou texto fora do JSON. Certifique-se de que o c
     const parsed = JSON.parse(responseContent);
 
     // Consulta aos vídeos recomendados
-    const supabase = await createClient();
     
     let videos = [];
     if (parsed.tags && parsed.tags.disciplina && parsed.tags.assunto) {
