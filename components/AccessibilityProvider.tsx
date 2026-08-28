@@ -74,7 +74,7 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     
     // Font Size
     root.classList.remove('font-small', 'font-medium', 'font-large', 'font-x-large');
-    root.classList.add(ont-);
+    root.classList.add(`font-${prefs.font_size}`);
   };
 
   const updatePreferences = async (newPrefs: Partial<Omit<AccessibilityPreferences, 'user_id'>>) => {
