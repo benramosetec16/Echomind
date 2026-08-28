@@ -159,9 +159,53 @@ export default function AccessibilityPage() {
             </div>
           </div>
           
+          {/* Libras Section */}
+          <div className="bg-surface/50 border border-secondary/10 rounded-3xl p-6 md:p-8 backdrop-blur-md">
+            <h2 className="text-xl font-medium mb-2 flex items-center gap-2">
+              <span className="material-symbols-outlined text-secondary">sign_language</span>
+              Libras — Recurso Experimental
+            </h2>
+            <p className="text-sm text-on-surface/50 mb-6">
+              Reconhecimento de sinais por camera para interagir com o EchoMind em Libras.
+            </p>
+
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-4 rounded-2xl bg-secondary/5 border border-secondary/15">
+                <span className="material-symbols-outlined text-secondary text-lg mt-0.5 shrink-0">videocam</span>
+                <div>
+                  <h3 className="text-sm font-medium text-on-surface mb-1">Como usar</h3>
+                  <p className="text-xs text-on-surface/50 leading-relaxed">
+                    No check-in, abaixo do campo de texto, clique em <strong className="text-secondary/80">Usar Libras</strong>. A camera sera ativada para capturar seu sinal. O resultado sempre sera apresentado para sua confirmacao antes de ser registrado.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-2xl bg-tertiary/5 border border-tertiary/15">
+                <span className="material-symbols-outlined text-tertiary text-lg mt-0.5 shrink-0">science</span>
+                <div>
+                  <h3 className="text-sm font-medium text-on-surface mb-1">Tecnologia experimental</h3>
+                  <p className="text-xs text-on-surface/50 leading-relaxed">
+                    Este recurso utiliza deteccao de maos em tempo real (processada localmente no dispositivo) e interpretacao assistida por IA. O reconhecimento de Libras e experimental e pode nao identificar todos os sinais com precisao. Nenhuma imagem e armazenada.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-2xl bg-white/3 border border-white/8">
+                <span className="material-symbols-outlined text-on-surface-variant text-lg mt-0.5 shrink-0">lock</span>
+                <div>
+                  <h3 className="text-sm font-medium text-on-surface mb-1">Privacidade</h3>
+                  <p className="text-xs text-on-surface/50 leading-relaxed">
+                    A camera e ativada somente quando voce escolher usar o recurso. Os frames capturados sao descartados apos o reconhecimento e nunca sao armazenados permanentemente.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {saving && (
-            <p className="text-center text-sm text-on-surface/50 animate-pulse">Salvando preferências...</p>
+            <p className="text-center text-sm text-on-surface/50 animate-pulse">Salvando preferencias...</p>
           )}
+
 
         </main>
       </div>

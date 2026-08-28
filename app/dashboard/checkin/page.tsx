@@ -7,6 +7,7 @@ import PageTransition from '../../components/PageTransition';
 import { transmitAura } from './actions';
 import { AlertCircle, Sparkles } from 'lucide-react';
 import { createClient } from '../../../utils/supabase/client';
+import { LibrasCapture } from '../../../components/libras';
 
 
 const states = [
@@ -34,6 +35,7 @@ export default function CheckinPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showLibrasCapture, setShowLibrasCapture] = useState(false);
 
   const glow1Ref = useRef<HTMLDivElement>(null);
   const glow2Ref = useRef<HTMLDivElement>(null);
@@ -291,7 +293,36 @@ export default function CheckinPage() {
                       </div>
                     </div>
                   </motion.div>
+
+                  {/* Libras entry button */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.2 }}
+                    className="flex justify-center mt-4"
+                  >
+                    <button
+                      onClick={() => setShowLibrasCapture(true)}
+                      className="flex items-center gap-2 px-5 py-2 rounded-full border border-secondary/20 text-[10px] font-semibold uppercase tracking-[0.2em] text-secondary/60 hover:border-secondary/40 hover:text-secondary hover:bg-secondary/5 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-sm">sign_language</span>
+                      Usar Libras
+                    </button>
+                  </motion.div>
                 </section>
+
+                {/* Libras capture overlay */}
+                <AnimatePresence>
+                  {showLibrasCapture && (
+                    <LibrasCapture
+                      onConfirm={(text) => {
+                        setThoughts(text);
+                        setShowLibrasCapture(false);
+                      }}
+                      onClose={() => setShowLibrasCapture(false)}
+                    />
+                  )}
+                </AnimatePresence>
 
                 {errorMsg && (
                   <motion.div 
