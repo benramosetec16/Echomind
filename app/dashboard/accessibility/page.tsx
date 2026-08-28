@@ -1,4 +1,4 @@
-﻿
+
 'use client';
 
 import { useState } from 'react';
@@ -276,6 +276,78 @@ export default function AccessibilityPage() {
                   <button
                     key={style.val}
                     onClick={() => handleChange('response_style', style.val)}
+                    className={`p-4 rounded-2xl border text-left transition-all duration-200 ${
+                      isActive
+                        ? 'border-secondary/50 bg-secondary/8'
+                        : 'border-white/8 hover:border-white/15'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`material-symbols-outlined text-base ${
+                            isActive ? 'text-secondary' : 'text-on-surface-variant opacity-40'
+                          }`}
+                        >
+                          {style.icon}
+                        </span>
+                        <span
+                          className={`text-sm font-medium ${
+                            isActive ? 'text-secondary' : 'text-on-surface opacity-60'
+                          }`}
+                        >
+                          {style.label}
+                        </span>
+                      </div>
+                      {isActive && (
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-secondary opacity-70">
+                          Ativo
+                        </span>
+                      )}
+                    </div>
+                    <p
+                      className={`text-xs leading-relaxed ${
+                        isActive ? 'text-on-surface opacity-60' : 'text-on-surface-variant opacity-35'
+                      }`}
+                    >
+                      {style.desc}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Check-in Settings */}
+          <section className="bg-surface/50 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-md">
+            <h2 className="text-base font-semibold mb-1 flex items-center gap-2 text-on-surface">
+              <span className="material-symbols-outlined text-secondary text-xl">mood</span>
+              Estilo do Check-in
+            </h2>
+            <p className="text-xs text-on-surface-variant opacity-50 mb-6">
+              Como você prefere responder como está se sentindo?
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                {
+                  val: 'standard',
+                  label: 'Deslizante (Padrão)',
+                  icon: 'linear_scale',
+                  desc: 'Utiliza uma barra deslizante para selecionar o nível da emoção.',
+                },
+                {
+                  val: 'visual',
+                  label: 'Seleção Visual',
+                  icon: 'sentiment_satisfied',
+                  desc: 'Apresenta botões com rostos e palavras diretas (ex: Infeliz, Neutro, Sereno).',
+                },
+              ].map((style) => {
+                const isActive = preferences.checkin_style === style.val;
+                return (
+                  <button
+                    key={style.val}
+                    onClick={() => handleChange('checkin_style', style.val)}
                     className={`p-4 rounded-2xl border text-left transition-all duration-200 ${
                       isActive
                         ? 'border-secondary/50 bg-secondary/8'

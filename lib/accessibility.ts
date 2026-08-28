@@ -9,6 +9,7 @@ export type AccessibilityPreferences = {
   simplified_interface: boolean;
   study_explanation_style: 'standard' | 'detailed' | 'step_by_step' | 'simplified';
   response_style: 'standard' | 'objective' | 'detailed';
+  checkin_style: 'standard' | 'visual';
 };
 
 export const defaultPreferences: Omit<AccessibilityPreferences, 'user_id'> = {
@@ -18,6 +19,7 @@ export const defaultPreferences: Omit<AccessibilityPreferences, 'user_id'> = {
   simplified_interface: false,
   study_explanation_style: 'standard',
   response_style: 'standard',
+  checkin_style: 'standard',
 };
 
 export async function getAccessibilityPreferences(userId: string): Promise<AccessibilityPreferences | null> {

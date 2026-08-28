@@ -8,6 +8,7 @@ import { transmitAura } from './actions';
 import { AlertCircle, Sparkles } from 'lucide-react';
 import { createClient } from '../../../utils/supabase/client';
 import { LibrasCapture } from '../../../components/libras';
+import { useAccessibility } from '@/components/AccessibilityProvider';
 
 
 const states = [
@@ -39,6 +40,9 @@ export default function CheckinPage() {
 
   const glow1Ref = useRef<HTMLDivElement>(null);
   const glow2Ref = useRef<HTMLDivElement>(null);
+
+  const { preferences } = useAccessibility();
+  const isVisualCheckin = preferences.checkin_style === 'visual';
 
   const currentState = states.reduce((prev, curr) => 
     valenceValue >= curr.threshold ? curr : prev
@@ -188,25 +192,62 @@ export default function CheckinPage() {
                     Como você está, de verdade?
                   </motion.h2>
 
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="w-full glass-panel rounded-full p-8 mb-4 relative"
-                  >
-                    <div className="flex justify-between items-center mb-6 px-2">
-                      <span className="text-xs font-semibold text-on-surface-variant opacity-50 uppercase tracking-[0.15em]">INFELIZ</span>
-                      <span className="text-xs font-semibold text-on-surface-variant opacity-50 uppercase tracking-[0.15em]">SERENO</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="100" 
-                      value={valenceValue}
-                      onChange={(e) => setValenceValue(parseInt(e.target.value))}
-                      className="w-full h-[2px] bg-white/10 rounded-lg appearance-none cursor-pointer accent-secondary"
-                    />
-                  </motion.div>
+                  {isVisualCheckin ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="w-full flex flex-wrap justify-center gap-4 mb-4"
+                    >
+                      {[
+                        { val: 0, icon: 'sentiment_very_dissatisfied', label: 'Muito Mal' },
+                        { val: 25, icon: 'sentiment_dissatisfied', label: 'Infeliz' },
+                        { val: 50, icon: 'sentiment_neutral', label: 'Neutro' },
+                        { val: 75, icon: 'sentiment_satisfied', label: 'Bem' },
+                        { val: 100, icon: 'sentiment_very_satisfied', label: 'Excelente' },
+                      ].map((item) => {
+                        const isSelected = Math.abs(valenceValue - item.val) < 15;
+                        return (
+                          <button
+                            key={item.val}
+                            onClick={() => setValenceValue(item.val)}
+                            className={`flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all duration-300 ${
+                              isSelected
+                                ? 'border-secondary bg-secondary/10 text-secondary scale-110 shadow-[0_0_20px_rgba(159,207,213,0.15)]'
+                                : 'border-white/10 hover:border-white/20 text-on-surface-variant opacity-60 hover:opacity-100 hover:bg-white/5'
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-4xl">
+                              {item.icon}
+                            </span>
+                            <span className="text-xs font-semibold uppercase tracking-wider">
+                              {item.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.3 }}
+                      className="w-full glass-panel rounded-full p-8 mb-4 relative"
+                    >
+                      <div className="flex justify-between items-center mb-6 px-2">
+                        <span className="text-xs font-semibold text-on-surface-variant opacity-50 uppercase tracking-[0.15em]">INFELIZ</span>
+                        <span className="text-xs font-semibold text-on-surface-variant opacity-50 uppercase tracking-[0.15em]">SERENO</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        value={valenceValue}
+                        onChange={(e) => setValenceValue(parseInt(e.target.value))}
+                        className="w-full h-[2px] bg-white/10 rounded-lg appearance-none cursor-pointer accent-secondary"
+                      />
+                    </motion.div>
+                  )}
                   <motion.p 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}

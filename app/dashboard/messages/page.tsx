@@ -18,6 +18,7 @@ interface Message {
   created_at: string;
   sender_name?: string;
   sender_classroom?: string;
+  sender_response_style?: string;
 }
 
 export default function MessagesPage() {
@@ -87,15 +88,22 @@ export default function MessagesPage() {
       .from('classrooms')
       .select('id, name');
 
+    const { data: preferences } = await supabase
+      .from('accessibility_preferences')
+      .select('user_id, response_style')
+      .in('user_id', senderIds);
+
     const profMap = new Map(profiles?.map(p => [p.id, p]));
     const roomMap = new Map(classrooms?.map(c => [c.id, c.name]));
+    const prefMap = new Map(preferences?.map(p => [p.user_id, p.response_style]));
 
     return msgs.map(msg => {
       if (msg.sender_id !== currentUserId) {
         const prof = profMap.get(msg.sender_id);
         if (prof) {
           const roomName = prof.classroom_id ? roomMap.get(prof.classroom_id) : undefined;
-          return { ...msg, sender_name: prof.full_name, sender_classroom: roomName };
+          const pref = prefMap.get(msg.sender_id);
+          return { ...msg, sender_name: prof.full_name, sender_classroom: roomName, sender_response_style: pref };
         }
       }
       return msg;
@@ -415,6 +423,11 @@ export default function MessagesPage() {
                           {!isMe && msg.sender_name && (
                             <span className="text-[10px] text-on-surface-variant font-medium mb-1 pl-1">
                               {msg.sender_name} {msg.sender_classroom ? `• Sala: ${msg.sender_classroom}` : ''}
+                            </span>
+                          )}
+                          {!isMe && msg.sender_response_style && msg.sender_response_style !== 'standard' && (
+                            <span className="text-[9px] uppercase tracking-widest text-secondary/70 mb-1 ml-1 bg-secondary/10 px-2 py-0.5 rounded-full border border-secondary/20">
+                              Prefere comunicação: {msg.sender_response_style === 'objective' ? 'Objetiva' : 'Detalhada'}
                             </span>
                           )}
                           <div className={`p-4 rounded-[20px] ${isMe ? 'bg-secondary/20 border border-secondary/30 text-on-surface rounded-br-sm' : 'bg-surface-container border border-white/5 text-on-surface-variant rounded-bl-sm'}`}>
