@@ -71,6 +71,13 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     } else {
       root.classList.remove('reduced-motion');
     }
+
+    // Simplified Interface
+    if (prefs.simplified_interface) {
+      root.classList.add('simplified-interface');
+    } else {
+      root.classList.remove('simplified-interface');
+    }
     
     // Font Size
     root.classList.remove('font-small', 'font-medium', 'font-large', 'font-x-large');

@@ -155,26 +155,69 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* Accessibility Classes */
+
+/* High Contrast — uses project's actual --color-* hex tokens */
 :root.high-contrast {
-  --background: 0 0% 0%;
-  --foreground: 0 0% 100%;
-  --card: 0 0% 5%;
-  --card-foreground: 0 0% 100%;
-  --border: 0 0% 100%;
-  --primary: 0 0% 100%;
-  --primary-foreground: 0 0% 0%;
-  --muted: 0 0% 20%;
-  --muted-foreground: 0 0% 100%;
+  --color-background: #000000;
+  --color-surface: #0a0a0a;
+  --color-surface-container-lowest: #000000;
+  --color-surface-container-low: #0f0f0f;
+  --color-surface-container: #141414;
+  --color-surface-container-high: #1a1a1a;
+  --color-surface-container-highest: #1f1f1f;
+  --color-on-surface: #ffffff;
+  --color-on-surface-variant: #f0f0f0;
+  --color-primary: #ffffff;
+  --color-secondary: #7fffff;
+  --color-tertiary: #d4c0ff;
+  --color-outline: #ffffff;
+  --color-outline-variant: #888888;
 }
 
+:root.high-contrast .glass-panel {
+  background: rgba(0, 0, 0, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+:root.high-contrast .aetheric-glass {
+  background: rgba(0, 0, 0, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Font Size */
 :root.font-small { font-size: 14px; }
 :root.font-medium { font-size: 16px; }
 :root.font-large { font-size: 18px; }
 :root.font-x-large { font-size: 20px; }
 
+/* Reduced Motion */
 :root.reduced-motion * {
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
+}
+
+/* Simplified Interface — removes decorative effects, keeps content */
+:root.simplified-interface .glass-panel {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(18, 20, 20, 0.97) !important;
+}
+
+:root.simplified-interface .aetheric-glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(12, 15, 15, 0.97) !important;
+}
+
+/* Hide decorative blur glows on simplified mode */
+:root.simplified-interface [data-decorative="true"] {
+  display: none !important;
+}
+
+:root.simplified-interface .pulse-effect,
+:root.simplified-interface .pulse-slow {
+  animation: none !important;
+  opacity: 0.3 !important;
 }
 
