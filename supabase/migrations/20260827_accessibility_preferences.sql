@@ -8,6 +8,7 @@ create table public.accessibility_preferences (
   simplified_interface boolean default false,
   study_explanation_style text default 'standard' check (study_explanation_style in ('standard', 'detailed', 'step_by_step', 'simplified')),
   response_style text default 'standard' check (response_style in ('standard', 'objective', 'detailed')),
+  checkin_style text default 'standard' check (checkin_style in ('standard', 'visual')),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
