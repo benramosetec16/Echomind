@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
 
@@ -142,7 +142,7 @@ export default function LibrasHandTracker({
 
         // Process loop
         const processFrame = async () => {
-          if (!video || video.readyState < 2) {
+          if (!video || video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
             animFrameRef.current = requestAnimationFrame(processFrame);
             return;
           }

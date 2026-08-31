@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -45,18 +45,23 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
     setErrorType(null);
     setErrorMessage(undefined);
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('NotSupportedError');
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
         audio: false,
       });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+
+      if (!stream.active || stream.getVideoTracks().length === 0) {
+        throw new Error('NotReadableError');
       }
+
+      streamRef.current = stream;
       setState('ready');
     } catch (err: any) {
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError' || err.name === 'SecurityError') {
         setErrorType('permission_denied');
       } else {
         setErrorType('camera_unavailable');
@@ -69,6 +74,25 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
   useEffect(() => {
     return () => stopCamera();
   }, [stopCamera]);
+
+  // Handle video stream attachment when state becomes ready
+  useEffect(() => {
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    
+    if ((state === 'ready' || state === 'capturing') && video && stream) {
+      if (video.srcObject !== stream) {
+        video.srcObject = stream;
+        video.onloadedmetadata = async () => {
+          try {
+            await video.play();
+          } catch (e) {
+            console.warn("Video autoplay prevented:", e);
+          }
+        };
+      }
+    }
+  }, [state]);
 
   const handleLandmarksUpdate = useCallback((landmarks: any[][] | null) => {
     landmarksRef.current = landmarks;
