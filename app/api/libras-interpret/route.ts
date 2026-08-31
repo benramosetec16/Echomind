@@ -95,7 +95,7 @@ Retorne EXATAMENTE neste formato JSON:
             content: contentPrompt,
           },
         ],
-        model: 'llama3-70b-8192',
+        model: 'llama-3.1-70b-versatile',
         response_format: { type: 'json_object' },
         temperature: 0.1,
         max_tokens: 200,
@@ -133,7 +133,7 @@ Retorne EXATAMENTE neste formato JSON:
   } catch (error: any) {
     console.error('Erro em /api/libras-interpret:', error);
     return NextResponse.json<LibrasInterpretResult>(
-      { recognized: false, text: null, confidence: null, error: 'Falha no processamento. Tente novamente.' },
+      { recognized: false, text: null, confidence: null, error: `Erro Interno: ${error.message || 'Falha no processamento'}` },
       { status: 500 }
     );
   }
