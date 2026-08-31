@@ -120,7 +120,6 @@ ${JSON.stringify(landmarks)}`;
             },
           ],
           model: 'openai/gpt-oss-20b',
-          response_format: { type: 'json_object' },
           temperature: 0.1,
           max_tokens: 200,
         });
@@ -137,9 +136,8 @@ ${JSON.stringify(landmarks)}`;
           { role: 'user', content: userContent },
         ],
         model: 'openai/gpt-oss-20b',
-        response_format: { type: 'json_object' },
         temperature: 0.1,
-        max_tokens: 200,
+        max_tokens: 300,
       });
       responseContent = completion.choices[0]?.message?.content ?? null;
       console.log('[libras-interpret] text response:', responseContent);
@@ -154,7 +152,11 @@ ${JSON.stringify(landmarks)}`;
 
     let parsed: LibrasInterpretResult;
     try {
-      const clean = responseContent.replace(/```json/gi, '').replace(/```/g, '').trim();
+      // Strip markdown fences
+      let clean = responseContent.replace(/```json/gi, '').replace(/```/g, '').trim();
+      // Extract first JSON object found in the string (handles models that add extra text)
+      const jsonMatch = clean.match(/\{[\s\S]*\}/);
+      if (jsonMatch) clean = jsonMatch[0];
       parsed = JSON.parse(clean) as LibrasInterpretResult;
     } catch {
       console.error('[libras-interpret] JSON parse failed. Raw:', responseContent);
