@@ -3,7 +3,14 @@ import { Groq } from 'groq-sdk';
 
 export const maxDuration = 30;
 
-// GET /api/libras-interpret → returns available models for diagnostics
+export interface LibrasInterpretResult {
+  recognized: boolean;
+  text: string | null;
+  confidence: 'high' | 'medium' | 'low' | null;
+  error?: string;
+}
+
+// GET → diagnostic: lista modelos disponíveis na conta Groq
 export async function GET() {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
@@ -21,111 +28,30 @@ export async function GET() {
   }
 }
 
-export interface LibrasInterpretResult {
-  recognized: boolean;
-  text: string | null;
-  confidence: 'high' | 'medium' | 'low' | null;
-  error?: string;
-}
-
-// Models tried in order — first success wins, decommissioned ones are skipped automatically
-const TEXT_MODELS = [
-  'openai/gpt-oss-20b',
-  'openai/gpt-oss-120b',
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
-];
-
-const VISION_MODELS = [
-  'meta-llama/llama-4-scout-17b-16e-instruct',
-  'llama-3.2-90b-vision-preview',
-  'llama-3.2-11b-vision-preview',
-];
-
 const systemPrompt = `Voce e um sistema especializado em reconhecimento experimental de Libras (Lingua Brasileira de Sinais).
 
-REGRAS ABSOLUTAS:
-1. NUNCA invente uma interpretacao. Se nao conseguir identificar um sinal com seguranca, retorne recognized: false.
-2. Se a imagem estiver escura, desfocada, sem maos visiveis ou com movimento impossivel de analisar, retorne recognized: false.
-3. Reconheca que Libras envolve configuracao das maos, movimento, orientacao, localizacao e expressao facial.
-4. Seja honesto sobre o nivel de confianca.
-5. Retorne APENAS JSON valido, sem texto adicional, sem markdown, sem backticks.
+CONTEXTO: Libras usa configuracao das maos, movimentos, orientacao das palmas e localizacao para comunicar.
 
-Retorne EXATAMENTE neste formato JSON:
-{
-  "recognized": boolean,
-  "text": string ou null,
-  "confidence": "high" | "medium" | "low" | null
-}`;
+REGRAS:
+1. Analise os dados fornecidos e tente identificar o sinal de Libras.
+2. Se nao conseguir identificar com razoavel confianca, retorne recognized: false.
+3. Retorne SOMENTE o JSON abaixo, sem texto adicional, sem markdown, sem backticks.
 
-async function tryTextModels(groq: Groq, userContent: string): Promise<string | null> {
-  for (const model of TEXT_MODELS) {
-    try {
-      const completion = await groq.chat.completions.create({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userContent },
-        ],
-        model,
-        response_format: { type: 'json_object' },
-        temperature: 0.1,
-        max_tokens: 200,
-      });
-      const content = completion.choices[0]?.message?.content ?? null;
-      if (content) {
-        console.log(`Text model used: ${model}`);
-        return content;
-      }
-    } catch (e: any) {
-      console.warn(`Text model ${model} failed: ${e?.message}`);
-      // Continue to next model
-    }
-  }
-  return null;
-}
-
-async function tryVisionModels(groq: Groq, imageBase64: string): Promise<string | null> {
-  for (const model of VISION_MODELS) {
-    try {
-      const completion = await (groq.chat.completions.create as any)({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Analise esta imagem e identifique se ha um sinal em Libras sendo realizado. Se conseguir identificar com confianca, informe o que foi sinalizado em portugues brasileiro. Se nao conseguir, retorne recognized: false.',
-              },
-              { type: 'image_url', image_url: { url: imageBase64 } },
-            ],
-          },
-        ],
-        model,
-        response_format: { type: 'json_object' },
-        temperature: 0.1,
-        max_tokens: 200,
-      });
-      const content = completion.choices[0]?.message?.content ?? null;
-      if (content) {
-        console.log(`Vision model used: ${model}`);
-        return content;
-      }
-    } catch (e: any) {
-      console.warn(`Vision model ${model} failed: ${e?.message}`);
-    }
-  }
-  return null;
-}
+FORMATO DE RESPOSTA OBRIGATORIO:
+{"recognized": true, "text": "palavra em portugues", "confidence": "high"}
+ou
+{"recognized": false, "text": null, "confidence": null}`;
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { imageBase64, landmarks } = body;
 
-    if (!imageBase64 && !landmarks) {
+    console.log('[libras-interpret] received - hasImage:', !!imageBase64, 'landmarksFrames:', Array.isArray(landmarks) ? landmarks.length : 0);
+
+    if (!imageBase64 && (!landmarks || !Array.isArray(landmarks) || landmarks.length === 0)) {
       return NextResponse.json<LibrasInterpretResult>(
-        { recognized: false, text: null, confidence: null, error: 'Nenhum dado de entrada fornecido.' },
+        { recognized: false, text: null, confidence: null, error: 'Nenhum dado capturado. Certifique-se de que suas maos estao visiveis na camera durante a gravacao.' },
         { status: 400 }
       );
     }
@@ -140,70 +66,115 @@ export async function POST(request: Request) {
 
     const groq = new Groq({ apiKey });
 
-    let responseContent: string | null = null;
+    // Build prompt from landmarks (most reliable data source)
+    let userContent: any = '';
+    let useVision = false;
 
-    // 1. Try vision models first (richer signal)
-    if (imageBase64) {
-      responseContent = await tryVisionModels(groq, imageBase64);
+    if (landmarks && Array.isArray(landmarks) && landmarks.length > 0) {
+      // Use landmarks as text description — works with any text model
+      const isSequence = Array.isArray(landmarks[0]) && Array.isArray(landmarks[0][0]);
+
+      if (isSequence) {
+        // Describe movement by comparing first and last frames
+        const firstFrame = landmarks[0];
+        const lastFrame = landmarks[landmarks.length - 1];
+        const midFrame = landmarks[Math.floor(landmarks.length / 2)];
+
+        userContent = `Analise a sequencia de movimentos das maos em Libras.
+Total de frames gravados: ${landmarks.length}
+
+Frame inicial (posicao de partida):
+${JSON.stringify(firstFrame)}
+
+Frame do meio (transicao):
+${JSON.stringify(midFrame)}
+
+Frame final (posicao de chegada):
+${JSON.stringify(lastFrame)}
+
+Com base na trajetoria e configuracao das maos nesses 3 momentos-chave, identifique o sinal em Libras.
+Se nao for possivel identificar com confianca, retorne recognized: false.`;
+      } else {
+        userContent = `Identifique o sinal em Libras com base nos landmarks das maos (MediaPipe, coordenadas normalizadas 0-1, 21 pontos por mao):
+${JSON.stringify(landmarks)}`;
+      }
+    } else if (imageBase64) {
+      // Fall back to vision if we have an image but no landmarks
+      useVision = true;
     }
 
-    // 2. Fall back to text models with landmark data
-    if (!responseContent && landmarks) {
-      const isSequence =
-        Array.isArray(landmarks) &&
-        landmarks.length > 0 &&
-        Array.isArray(landmarks[0]) &&
-        Array.isArray(landmarks[0][0]);
+    let responseContent: string | null = null;
 
-      const contentPrompt = isSequence
-        ? `Analise esta sequencia temporal de landmarks de maos gravada ao longo de alguns segundos (cada item do array principal representa um frame com ate 21 pontos do MediaPipe, coordenadas normalizadas 0-1). Tente identificar qual o movimento e o sinal em Libras sendo realizado. Se nao for possivel determinar com confianca, retorne recognized: false.\n\nSequencia Temporal de Landmarks:\n${JSON.stringify(landmarks)}`
-        : `Analise estes dados de landmarks de maos (MediaPipe Hands - 21 pontos por mao, coordenadas normalizadas 0-1) e tente identificar um sinal em Libras. Se nao for possivel determinar com confianca, retorne recognized: false.\n\nLandmarks:\n${JSON.stringify(landmarks)}`;
-
-      responseContent = await tryTextModels(groq, contentPrompt);
+    if (useVision && imageBase64) {
+      // Vision call — imageBase64 is already a data URI
+      try {
+        const completion = await (groq.chat.completions.create as any)({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Analise a imagem e identifique o sinal em Libras sendo realizado. Retorne o JSON.' },
+                { type: 'image_url', image_url: { url: imageBase64 } },
+              ],
+            },
+          ],
+          model: 'openai/gpt-oss-20b',
+          response_format: { type: 'json_object' },
+          temperature: 0.1,
+          max_tokens: 200,
+        });
+        responseContent = completion.choices[0]?.message?.content ?? null;
+        console.log('[libras-interpret] vision response:', responseContent);
+      } catch (e: any) {
+        console.warn('[libras-interpret] vision failed:', e?.message);
+      }
+    } else {
+      // Text call with landmarks
+      const completion = await groq.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent },
+        ],
+        model: 'openai/gpt-oss-20b',
+        response_format: { type: 'json_object' },
+        temperature: 0.1,
+        max_tokens: 200,
+      });
+      responseContent = completion.choices[0]?.message?.content ?? null;
+      console.log('[libras-interpret] text response:', responseContent);
     }
 
     if (!responseContent) {
       return NextResponse.json<LibrasInterpretResult>({
-        recognized: false,
-        text: null,
-        confidence: null,
-        error: 'Todos os modelos de IA estao indisponiveis. Tente novamente em alguns minutos.',
+        recognized: false, text: null, confidence: null,
+        error: 'Resposta vazia do modelo. Tente novamente.',
       });
     }
 
     let parsed: LibrasInterpretResult;
     try {
-      const cleanContent = responseContent
-        .replace(/```json/gi, '')
-        .replace(/```/g, '')
-        .trim();
-      parsed = JSON.parse(cleanContent) as LibrasInterpretResult;
+      const clean = responseContent.replace(/```json/gi, '').replace(/```/g, '').trim();
+      parsed = JSON.parse(clean) as LibrasInterpretResult;
     } catch {
-      console.error('JSON parse failed. Raw LLM output:', responseContent);
+      console.error('[libras-interpret] JSON parse failed. Raw:', responseContent);
       return NextResponse.json<LibrasInterpretResult>({
-        recognized: false,
-        text: null,
-        confidence: null,
-        error: 'Erro ao interpretar a resposta da IA. Tente novamente.',
+        recognized: false, text: null, confidence: null,
+        error: 'Erro ao interpretar resposta da IA.',
       });
     }
 
-    // Low confidence = treat as not recognized
     if (parsed.confidence === 'low') {
       parsed.recognized = false;
       parsed.text = null;
     }
 
     return NextResponse.json<LibrasInterpretResult>(parsed, { status: 200 });
+
   } catch (error: any) {
-    console.error('Erro em /api/libras-interpret:', error);
+    console.error('[libras-interpret] Erro:', error);
     return NextResponse.json<LibrasInterpretResult>(
-      {
-        recognized: false,
-        text: null,
-        confidence: null,
-        error: `Erro Interno: ${error.message || 'Falha no processamento'}`,
-      },
+      { recognized: false, text: null, confidence: null, error: `Erro Interno: ${error.message || 'Falha no processamento'}` },
       { status: 500 }
     );
   }

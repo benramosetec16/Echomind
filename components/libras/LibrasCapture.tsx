@@ -121,15 +121,11 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
   }, []);
 
   const handleStartRecording = useCallback(() => {
-    if (!hasHands) {
-      setErrorType('no_hands');
-      setState('error');
-      return;
-    }
+    // Start recording regardless of hand detection — user will position hands during recording
     sequenceRef.current = [];
     isRecordingRef.current = true;
     setState('recording');
-  }, [hasHands]);
+  }, []);
 
   const handleStopRecording = useCallback(async () => {
     if (!isRecordingRef.current) return;
