@@ -77,24 +77,15 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
     return () => stopCamera();
   }, [stopCamera]);
 
-  // Handle video stream attachment when state becomes ready
-  useEffect(() => {
-    const video = videoRef.current;
-    const stream = streamRef.current;
-    
-    if ((state === 'ready' || state === 'recording') && video && stream) {
-      if (video.srcObject !== stream) {
-        video.srcObject = stream;
-        video.onloadedmetadata = async () => {
-          try {
-            await video.play();
-          } catch (e) {
-            console.warn("Video autoplay prevented:", e);
-          }
-        };
+  // Callback ref to attach stream as soon as the <video> element mounts
+  const handleVideoMount = useCallback((node: HTMLVideoElement | null) => {
+    videoRef.current = node; // Keep ref updated for LibrasHandTracker
+    if (node && streamRef.current) {
+      if (node.srcObject !== streamRef.current) {
+        node.srcObject = streamRef.current;
       }
     }
-  }, [state]);
+  }, []);
 
   const handleLandmarksUpdate = useCallback((landmarks: any[][] | null) => {
     landmarksRef.current = landmarks;
@@ -308,7 +299,7 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
                 {/* Camera area */}
                 <div className="relative bg-black mx-6 mt-6 rounded-2xl overflow-hidden" style={{ aspectRatio: '4/3' }}>
                   <video
-                    ref={videoRef}
+                    ref={handleVideoMount}
                     autoPlay
                     playsInline
                     muted
@@ -372,6 +363,14 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
                     Cancelar
                   </button>
                 </div>
+
+                {/* MediaPipe tracker — mounted alongside video so refs are ready */}
+                <LibrasHandTracker
+                  videoRef={videoRef}
+                  canvasRef={canvasRef}
+                  onLandmarksUpdate={handleLandmarksUpdate}
+                  isActive={isVideoActive}
+                />
               </motion.div>
             )}
 
@@ -418,14 +417,6 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
 
           </AnimatePresence>
         </div>
-
-        {/* MediaPipe tracker — invisible side-effect component */}
-        <LibrasHandTracker
-          videoRef={videoRef}
-          canvasRef={canvasRef}
-          onLandmarksUpdate={handleLandmarksUpdate}
-          isActive={isVideoActive}
-        />
       </motion.div>
     </motion.div>
   );
