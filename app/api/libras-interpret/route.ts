@@ -110,7 +110,17 @@ Retorne EXATAMENTE neste formato JSON:
       });
     }
 
-    const parsed = JSON.parse(responseContent) as LibrasInterpretResult;
+    let parsed: LibrasInterpretResult;
+    try {
+      const cleanContent = responseContent.replace(/```json/gi, '').replace(/```/g, '').trim();
+      parsed = JSON.parse(cleanContent) as LibrasInterpretResult;
+    } catch (e) {
+      console.error('Failed to parse JSON from LLM:', responseContent);
+      return NextResponse.json<LibrasInterpretResult>({
+        recognized: false, text: null, confidence: null,
+        error: 'Erro ao interpretar a resposta da IA. Tente novamente.',
+      });
+    }
 
     // Safety: low confidence = not recognized
     if (parsed.confidence === 'low') {

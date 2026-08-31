@@ -136,7 +136,18 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
     isRecordingRef.current = false;
 
     const imageBase64 = captureFrame();
-    const landmarksSequence = sequenceRef.current;
+    const fullSequence = sequenceRef.current;
+    
+    // Downsample sequence to max 10 frames to avoid token limits in the backend LLM
+    const landmarksSequence = [];
+    if (fullSequence.length > 0) {
+      const step = Math.max(1, Math.floor(fullSequence.length / 10));
+      for (let i = 0; i < fullSequence.length; i += step) {
+        if (landmarksSequence.length < 10) {
+          landmarksSequence.push(fullSequence[i]);
+        }
+      }
+    }
 
     setState('recognizing');
     stopCamera();
