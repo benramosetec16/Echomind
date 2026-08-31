@@ -95,7 +95,7 @@ Retorne EXATAMENTE neste formato JSON:
             content: contentPrompt,
           },
         ],
-        model: 'llama-3.1-70b-versatile',
+        model: 'mixtral-8x7b-32768',
         response_format: { type: 'json_object' },
         temperature: 0.1,
         max_tokens: 200,
