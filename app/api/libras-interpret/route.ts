@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Groq } from 'groq-sdk';
 
 export const maxDuration = 30;
@@ -81,12 +81,18 @@ Retorne EXATAMENTE neste formato JSON:
     }
 
     if (!responseContent && landmarks) {
+      const isSequence = Array.isArray(landmarks) && landmarks.length > 0 && Array.isArray(landmarks[0]) && Array.isArray(landmarks[0][0]);
+      
+      const contentPrompt = isSequence 
+        ? `Analise esta sequencia temporal de landmarks de maos gravada ao longo de alguns segundos (cada item do array principal representa um frame com ate 21 pontos do MediaPipe, coordenadas normalizadas 0-1). Tente identificar qual o movimento e o sinal em Libras sendo realizado. Se nao for possivel determinar com confianca o movimento/sinal, retorne recognized: false.\n\nSequencia Temporal de Landmarks:\n${JSON.stringify(landmarks)}`
+        : `Analise estes dados de landmarks de maos (MediaPipe Hands - 21 pontos por mao, coordenadas normalizadas 0-1) e tente identificar um sinal em Libras. Se nao for possivel determinar com confianca, retorne recognized: false.\n\nLandmarks:\n${JSON.stringify(landmarks)}`;
+
       const fallbackCompletion = await groq.chat.completions.create({
         messages: [
           { role: 'system', content: systemPrompt },
           {
             role: 'user',
-            content: `Analise estes dados de landmarks de maos (MediaPipe Hands - 21 pontos por mao, coordenadas normalizadas 0-1) e tente identificar um sinal em Libras. Se nao for possivel determinar com confianca, retorne recognized: false.\n\nLandmarks:\n${JSON.stringify(landmarks, null, 2)}`,
+            content: contentPrompt,
           },
         ],
         model: 'openai/gpt-oss-20b',

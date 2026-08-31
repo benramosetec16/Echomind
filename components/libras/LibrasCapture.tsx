@@ -10,7 +10,7 @@ type CaptureState =
   | 'idle'
   | 'requesting_permission'
   | 'ready'
-  | 'capturing'
+  | 'recording'
   | 'recognizing'
   | 'confirmed'
   | 'error';
@@ -32,6 +32,8 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const landmarksRef = useRef<any[][] | null>(null);
+  const isRecordingRef = useRef(false);
+  const sequenceRef = useRef<any[]>([]);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -80,7 +82,7 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
     const video = videoRef.current;
     const stream = streamRef.current;
     
-    if ((state === 'ready' || state === 'capturing') && video && stream) {
+    if ((state === 'ready' || state === 'recording') && video && stream) {
       if (video.srcObject !== stream) {
         video.srcObject = stream;
         video.onloadedmetadata = async () => {
@@ -97,6 +99,19 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
   const handleLandmarksUpdate = useCallback((landmarks: any[][] | null) => {
     landmarksRef.current = landmarks;
     setHasHands(landmarks !== null && landmarks.length > 0);
+    
+    if (isRecordingRef.current && landmarks && landmarks.length > 0) {
+      const rounded = landmarks.map(hand => 
+        hand.map(point => ({
+          x: Number(point.x.toFixed(3)),
+          y: Number(point.y.toFixed(3)),
+          z: Number(point.z.toFixed(3))
+        }))
+      );
+      if (sequenceRef.current.length < 150) {
+        sequenceRef.current.push(rounded);
+      }
+    }
   }, []);
 
   const captureFrame = useCallback((): string | null => {
@@ -114,18 +129,23 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
     return captureCanvas.toDataURL('image/jpeg', 0.85);
   }, []);
 
-  const handleCapture = useCallback(async () => {
+  const handleStartRecording = useCallback(() => {
     if (!hasHands) {
       setErrorType('no_hands');
       setState('error');
       return;
     }
+    sequenceRef.current = [];
+    isRecordingRef.current = true;
+    setState('recording');
+  }, [hasHands]);
 
-    setState('capturing');
-    await new Promise((r) => setTimeout(r, 100)); // brief pause for visual feedback
+  const handleStopRecording = useCallback(async () => {
+    if (!isRecordingRef.current) return;
+    isRecordingRef.current = false;
 
     const imageBase64 = captureFrame();
-    const landmarks = landmarksRef.current;
+    const landmarksSequence = sequenceRef.current;
 
     setState('recognizing');
     stopCamera();
@@ -134,7 +154,7 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
       const res = await fetch('/api/libras-interpret', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64, landmarks }),
+        body: JSON.stringify({ imageBase64, landmarks: landmarksSequence }),
       });
 
       const data = await res.json();
@@ -159,7 +179,7 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
       setErrorType('processing_error');
       setState('error');
     }
-  }, [hasHands, captureFrame, stopCamera]);
+  }, [captureFrame, stopCamera]);
 
   const handleRetry = useCallback(() => {
     setRecognizedText(null);
@@ -184,7 +204,7 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
     onClose();
   }, [stopCamera, onClose]);
 
-  const isVideoActive = state === 'ready' || state === 'capturing';
+  const isVideoActive = state === 'ready' || state === 'recording';
 
   return (
     // Overlay backdrop
@@ -278,8 +298,8 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
               </motion.div>
             )}
 
-            {/* READY / CAPTURING — camera feed */}
-            {(state === 'ready' || state === 'capturing') && (
+            {/* READY / RECORDING — camera feed */}
+            {(state === 'ready' || state === 'recording') && (
               <motion.div
                 key="camera"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -289,6 +309,7 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
                 <div className="relative bg-black mx-6 mt-6 rounded-2xl overflow-hidden" style={{ aspectRatio: '4/3' }}>
                   <video
                     ref={videoRef}
+                    autoPlay
                     playsInline
                     muted
                     className="w-full h-full object-cover"
@@ -308,33 +329,42 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
                     </span>
                   </div>
 
-                  {/* Capturing flash */}
-                  {state === 'capturing' && (
-                    <div className="absolute inset-0 bg-white/10 animate-pulse rounded-2xl" />
+                  {/* Recording indicator */}
+                  {state === 'recording' && (
+                    <div className="absolute inset-0 border-4 border-red-500/80 rounded-2xl pointer-events-none transition-all" />
                   )}
                 </div>
 
                 {/* Instruction */}
                 <p className="text-xs text-on-surface-variant opacity-40 text-center mt-3 px-6">
-                  Posicione as maos no centro, realize o sinal e clique em Capturar
+                  {state === 'recording' 
+                    ? 'Gravando... realize o sinal e clique em Parar' 
+                    : 'Posicione as maos no centro e clique em Gravar'}
                 </p>
 
-                {/* Capture button */}
+                {/* Capture buttons */}
                 <div className="flex items-center justify-center gap-4 px-6 py-6">
-                  <button
-                    onClick={handleCapture}
-                    disabled={state === 'capturing'}
-                    className={`flex items-center gap-2 px-8 py-3.5 rounded-full text-xs font-semibold uppercase tracking-[0.2em] transition-all border ${
-                      hasHands
-                        ? 'border-secondary/40 text-secondary bg-secondary/10 hover:border-secondary hover:bg-secondary/20 hover:shadow-[0_0_25px_rgba(159,207,213,0.2)]'
-                        : 'border-white/10 text-on-surface-variant opacity-40 cursor-not-allowed'
-                    } disabled:opacity-50`}
-                  >
-                    <span className="material-symbols-outlined text-base">
-                      {state === 'capturing' ? 'hourglass_empty' : 'camera'}
-                    </span>
-                    {state === 'capturing' ? 'Capturando...' : 'Capturar sinal'}
-                  </button>
+                  {state === 'ready' ? (
+                    <button
+                      onClick={handleStartRecording}
+                      className={`flex items-center gap-2 px-8 py-3.5 rounded-full text-xs font-semibold uppercase tracking-[0.2em] transition-all border ${
+                        hasHands
+                          ? 'border-secondary/40 text-secondary bg-secondary/10 hover:border-secondary hover:bg-secondary/20 hover:shadow-[0_0_25px_rgba(159,207,213,0.2)]'
+                          : 'border-white/10 text-on-surface-variant opacity-40 cursor-not-allowed'
+                      } disabled:opacity-50`}
+                    >
+                      <span className="material-symbols-outlined text-base">videocam</span>
+                      Gravar sinal
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleStopRecording}
+                      className="flex items-center gap-2 px-8 py-3.5 rounded-full text-xs font-semibold uppercase tracking-[0.2em] transition-all border border-red-500/50 text-red-500 bg-red-500/10 hover:border-red-500 hover:bg-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                    >
+                      <span className="material-symbols-outlined text-base">stop_circle</span>
+                      Parar gravação
+                    </button>
+                  )}
                   <button
                     onClick={handleClose}
                     className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant opacity-30 hover:opacity-60 transition-opacity"
