@@ -3,6 +3,24 @@ import { Groq } from 'groq-sdk';
 
 export const maxDuration = 30;
 
+// GET /api/libras-interpret → returns available models for diagnostics
+export async function GET() {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: 'GROQ_API_KEY nao configurada' }, { status: 500 });
+  }
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    const data = await res.json();
+    const models = (data.data ?? []).map((m: any) => m.id).sort();
+    return NextResponse.json({ total: models.length, models });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
+
 export interface LibrasInterpretResult {
   recognized: boolean;
   text: string | null;
