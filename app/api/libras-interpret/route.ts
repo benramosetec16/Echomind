@@ -98,14 +98,14 @@ ou se nao conseguir identificar:
               ],
             },
           ],
-          model: 'openai/gpt-oss-20b',
+          model: 'llama-3.2-11b-vision-preview',
           temperature: 0.1,
           max_tokens: 150,
         });
         rawResponse = completion.choices[0]?.message?.content ?? null;
         console.log('[libras] vision raw:', rawResponse);
       } catch (e: any) {
-        console.warn('[libras] vision failed:', e?.message);
+        console.warn('[libras] vision failed:', e?.status, e?.error?.error?.message || e?.message || e);
       }
     }
 
@@ -138,14 +138,14 @@ Identifique o sinal e retorne o JSON.`;
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt },
           ],
-          model: 'openai/gpt-oss-20b',
+          model: 'llama-3.3-70b-versatile',
           temperature: 0.1,
           max_tokens: 150,
         });
         rawResponse = completion.choices[0]?.message?.content ?? null;
         console.log('[libras] text raw:', rawResponse);
       } catch (e: any) {
-        console.warn('[libras] text failed:', e?.message);
+        console.warn('[libras] text failed:', e?.status, e?.error?.error?.message || e?.message || e);
       }
     }
 
