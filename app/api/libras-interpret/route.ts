@@ -39,7 +39,13 @@ function extractJson(raw: string): { recognized: boolean; text: string | null; c
   }
 }
 
-/** Verifica se um erro da Groq indica que o modelo não existe / não está disponível. */
+/**
+ * Verifica se um erro da Groq indica que o modelo não existe / foi depreciado.
+ * Erros 404 ou mensagens específicas indicam que o modelo não está disponível —
+ * nesse caso, devemos tentar o próximo modelo da lista.
+ * Outros erros (400, 500, timeout) indicam que o modelo existe mas falhou — 
+ * ainda contamos como "modelo disponível".
+ */
 function isModelNotFoundError(e: any): boolean {
   const status = e?.status ?? e?.statusCode;
   if (status === 404) return true;
@@ -50,7 +56,8 @@ function isModelNotFoundError(e: any): boolean {
     msg.includes('model_not_found') ||
     msg.includes('deprecated') ||
     msg.includes('deactivated') ||
-    msg.includes('not available')
+    msg.includes('not available') ||
+    msg.includes('no longer supported')
   );
 }
 
@@ -116,11 +123,15 @@ ou se nao conseguir identificar:
 {"recognized": false, "text": null, "confidence": null}`;
 
     let rawResponse: string | null = null;
-    // Rastreia se ao menos UM modelo foi tentado e falhou por indisponibilidade
-    let allTriedModelsUnavailable = true;
+
+    // Conta quantos modelos foram realmente encontrados (não retornaram 404)
+    // para distinguir NO_AI_MODEL de AI_PROCESSING_FAILED no final.
+    let modelsFound = 0;
 
     // ── ESTRATÉGIA 1: Visão com imagem ────────────────────────────────────────
-    // Modelos de visão disponíveis na Groq (do mais recente ao mais antigo como fallback)
+    // Tenta todos os modelos de visão na ordem. Avança para o próximo SEMPRE que
+    // o erro for de modelo não encontrado/depreciado (404). Para outros erros
+    // (400, 500, timeout), registra que o modelo estava acessível e continua.
     const visionModels = [
       'meta-llama/llama-4-scout-17b-16e-instruct',
       'meta-llama/llama-4-maverick-17b-128e-instruct',
@@ -130,6 +141,7 @@ ou se nao conseguir identificar:
 
     if (hasImage) {
       for (const visionModel of visionModels) {
+        if (rawResponse) break; // já tem resposta — para o loop
         console.log('[libras] tentando visao com modelo:', visionModel);
         try {
           const completion = await (groq.chat.completions.create as any)({
@@ -154,82 +166,99 @@ ou se nao conseguir identificar:
             max_tokens: 150,
           });
           rawResponse = completion.choices[0]?.message?.content ?? null;
+          modelsFound++;
           console.log('[libras] visao OK — modelo:', visionModel, '| resposta bruta:', rawResponse);
-          allTriedModelsUnavailable = false; // modelo funcionou
-          break; // sucesso — sai do loop
+          // Não quebra aqui pois o break no topo do loop vai parar na próxima iteração
         } catch (e: any) {
           const notFound = isModelNotFoundError(e);
+          const errMsg = e?.error?.error?.message || e?.message || String(e);
           console.warn(
             '[libras] visao falhou — modelo:', visionModel,
             '| indisponivel:', notFound,
             '| status:', e?.status,
-            '| erro:', e?.error?.error?.message || e?.message || String(e)
+            '| erro:', errMsg
           );
           if (!notFound) {
-            // Modelo existe mas falhou durante processamento — não tenta os próximos modelos de visão
-            allTriedModelsUnavailable = false;
-            break;
+            // Modelo existe mas a chamada falhou — conta como "modelo encontrado"
+            // mas continua tentando os próximos (pode ser incompatibilidade de formato)
+            modelsFound++;
           }
-          // Modelo não encontrado — tenta o próximo da lista
+          // Se notFound === true, simplesmente passa para o próximo modelo
         }
       }
     }
 
     // ── ESTRATÉGIA 2: Texto com landmarks (fallback) ───────────────────────────
+    // Executa se ainda não há resposta e há landmarks disponíveis.
+    // Tenta múltiplos modelos de texto como fallback.
+    const textModels = [
+      'llama-3.3-70b-versatile',
+      'llama-3.1-70b-versatile',
+      'llama-3.1-8b-instant',
+      'gemma2-9b-it',
+    ];
+
     if (!rawResponse && hasLandmarks) {
-      const textModel = 'llama-3.3-70b-versatile';
-      console.log('[libras] tentando texto com landmarks — modelo:', textModel);
-      try {
-        const frames = landmarks as any[];
-        const firstHand = frames[0]?.[0];
-        const lastHand = frames[frames.length - 1]?.[0];
+      const frames = landmarks as any[];
+      const firstHand = frames[0]?.[0];
+      const lastHand = frames[frames.length - 1]?.[0];
 
-        const describeHand = (hand: any[]) => {
-          if (!hand || !Array.isArray(hand)) return 'sem dados';
-          const wrist = hand[0];
-          const indexTip = hand[8];
-          const thumbTip = hand[4];
-          const pinkyTip = hand[20];
-          return `pulso(${wrist?.x?.toFixed(2)},${wrist?.y?.toFixed(2)}) polegar(${thumbTip?.x?.toFixed(2)},${thumbTip?.y?.toFixed(2)}) indicador(${indexTip?.x?.toFixed(2)},${indexTip?.y?.toFixed(2)}) mindinho(${pinkyTip?.x?.toFixed(2)},${pinkyTip?.y?.toFixed(2)})`;
-        };
+      const describeHand = (hand: any[]) => {
+        if (!hand || !Array.isArray(hand)) return 'sem dados';
+        const wrist = hand[0];
+        const indexTip = hand[8];
+        const thumbTip = hand[4];
+        const pinkyTip = hand[20];
+        return `pulso(${wrist?.x?.toFixed(2)},${wrist?.y?.toFixed(2)}) polegar(${thumbTip?.x?.toFixed(2)},${thumbTip?.y?.toFixed(2)}) indicador(${indexTip?.x?.toFixed(2)},${indexTip?.y?.toFixed(2)}) mindinho(${pinkyTip?.x?.toFixed(2)},${pinkyTip?.y?.toFixed(2)})`;
+      };
 
-        const prompt = `Sinal em Libras — ${frames.length} frames capturados.
+      const prompt = `Sinal em Libras — ${frames.length} frames capturados.
 Posicao inicial da mao: ${describeHand(firstHand)}
 Posicao final da mao: ${describeHand(lastHand)}
 Identifique o sinal e retorne o JSON.`;
 
-        const completion = await groq.chat.completions.create({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt },
-          ],
-          model: textModel,
-          temperature: 0.1,
-          max_tokens: 150,
-        });
-        rawResponse = completion.choices[0]?.message?.content ?? null;
-        console.log('[libras] texto OK — modelo:', textModel, '| resposta bruta:', rawResponse);
-        allTriedModelsUnavailable = false;
-      } catch (e: any) {
-        const notFound = isModelNotFoundError(e);
-        console.error(
-          '[libras] texto falhou — modelo:', textModel,
-          '| indisponivel:', notFound,
-          '| status:', e?.status,
-          '| erro:', e?.error?.error?.message || e?.message || String(e)
-        );
-        if (!notFound) {
-          allTriedModelsUnavailable = false;
+      for (const textModel of textModels) {
+        if (rawResponse) break;
+        console.log('[libras] tentando texto com landmarks — modelo:', textModel);
+        try {
+          const completion = await groq.chat.completions.create({
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: prompt },
+            ],
+            model: textModel,
+            temperature: 0.1,
+            max_tokens: 150,
+          });
+          rawResponse = completion.choices[0]?.message?.content ?? null;
+          modelsFound++;
+          console.log('[libras] texto OK — modelo:', textModel, '| resposta bruta:', rawResponse);
+        } catch (e: any) {
+          const notFound = isModelNotFoundError(e);
+          const errMsg = e?.error?.error?.message || e?.message || String(e);
+          console.warn(
+            '[libras] texto falhou — modelo:', textModel,
+            '| indisponivel:', notFound,
+            '| status:', e?.status,
+            '| erro:', errMsg
+          );
+          if (!notFound) {
+            modelsFound++;
+          }
+          // Continua para o próximo modelo de texto
         }
       }
     }
 
     // ── Nenhuma estratégia retornou resposta ──────────────────────────────────
     if (!rawResponse) {
-      const errorType: LibrasErrorType = allTriedModelsUnavailable
-        ? 'NO_AI_MODEL'
-        : 'AI_PROCESSING_FAILED';
-      console.log('[libras] sem resposta — errorType:', errorType, '| allUnavailable:', allTriedModelsUnavailable);
+      // Se nenhum modelo sequer foi encontrado → plataforma sem modelos disponíveis
+      // Se algum foi encontrado mas falhou → falha de processamento
+      const errorType: LibrasErrorType = modelsFound === 0 ? 'NO_AI_MODEL' : 'AI_PROCESSING_FAILED';
+      console.log(
+        '[libras] sem resposta — modelsFound:', modelsFound,
+        '| errorType:', errorType
+      );
       return NextResponse.json<LibrasErrorResponse>({ success: false, errorType }, { status: 503 });
     }
 
@@ -245,11 +274,16 @@ Identifique o sinal e retorne o JSON.`;
 
     console.log('[libras] parsed:', JSON.stringify(parsed));
 
-    // Confiança baixa — não reconhecido
-    if (!parsed.recognized || parsed.confidence === 'low' || !parsed.text) {
-      const errorType: LibrasErrorType = parsed.confidence === 'low' ? 'LOW_CONFIDENCE' : 'NOT_RECOGNIZED';
-      console.log('[libras] sinal nao reconhecido — errorType:', errorType);
-      return NextResponse.json<LibrasErrorResponse>({ success: false, errorType }, { status: 200 });
+    // Confiança baixa — não reconhecido com segurança
+    if (parsed.confidence === 'low') {
+      console.log('[libras] confianca baixa — retornando LOW_CONFIDENCE');
+      return NextResponse.json<LibrasErrorResponse>({ success: false, errorType: 'LOW_CONFIDENCE' }, { status: 200 });
+    }
+
+    // Não reconhecido
+    if (!parsed.recognized || !parsed.text) {
+      console.log('[libras] sinal nao reconhecido — retornando NOT_RECOGNIZED');
+      return NextResponse.json<LibrasErrorResponse>({ success: false, errorType: 'NOT_RECOGNIZED' }, { status: 200 });
     }
 
     // Sucesso!
