@@ -41,24 +41,34 @@ function extractJson(raw: string): { recognized: boolean; text: string | null; c
 
 /**
  * Verifica se um erro da Groq indica que o modelo não existe / foi depreciado.
- * Erros 404 ou mensagens específicas indicam que o modelo não está disponível —
- * nesse caso, devemos tentar o próximo modelo da lista.
- * Outros erros (400, 500, timeout) indicam que o modelo existe mas falhou — 
- * ainda contamos como "modelo disponível".
+ * CONSERVADOR: apenas status 404 real ou mensagens estritamente sobre modelo não encontrado.
+ * Erros 401 (auth), 403 (forbidden), 429 (rate limit), 400 (bad request), 500 (server error)
+ * NÃO são tratados como modelo indisponível — o modelo existe, algo mais falhou.
  */
 function isModelNotFoundError(e: any): boolean {
   const status = e?.status ?? e?.statusCode;
+  // Apenas 404 genuíno — qualquer outro status significa que o endpoint respondeu
   if (status === 404) return true;
   const msg: string = (e?.error?.error?.message ?? e?.message ?? '').toLowerCase();
   return (
     msg.includes('model not found') ||
     msg.includes('does not exist') ||
     msg.includes('model_not_found') ||
-    msg.includes('deprecated') ||
-    msg.includes('deactivated') ||
-    msg.includes('not available') ||
-    msg.includes('no longer supported')
+    msg.includes('does not exist') ||
+    msg.includes('no such model')
   );
+}
+
+/** Loga o tipo de erro de forma clara para facilitar diagnóstico nos logs da Vercel. */
+function classifyGroqError(e: any): string {
+  const status = e?.status ?? e?.statusCode;
+  const msg = e?.error?.error?.message || e?.message || String(e);
+  if (status === 401) return `AUTH_ERROR (401) — verifique GROQ_API_KEY: ${msg}`;
+  if (status === 403) return `FORBIDDEN (403) — plano sem acesso ao modelo: ${msg}`;
+  if (status === 429) return `RATE_LIMIT (429) — limite de requisicoes atingido: ${msg}`;
+  if (status === 400) return `BAD_REQUEST (400) — formato invalido: ${msg}`;
+  if (status === 404) return `MODEL_NOT_FOUND (404): ${msg}`;
+  return `ERRO_${status ?? 'desconhecido'}: ${msg}`;
 }
 
 // ─── GET — diagnóstico: lista modelos disponíveis ─────────────────────────────
@@ -171,12 +181,10 @@ ou se nao conseguir identificar:
           // Não quebra aqui pois o break no topo do loop vai parar na próxima iteração
         } catch (e: any) {
           const notFound = isModelNotFoundError(e);
-          const errMsg = e?.error?.error?.message || e?.message || String(e);
           console.warn(
             '[libras] visao falhou — modelo:', visionModel,
             '| indisponivel:', notFound,
-            '| status:', e?.status,
-            '| erro:', errMsg
+            '| erro_detalhado:', classifyGroqError(e)
           );
           if (!notFound) {
             // Modelo existe mas a chamada falhou — conta como "modelo encontrado"
@@ -235,12 +243,10 @@ Identifique o sinal e retorne o JSON.`;
           console.log('[libras] texto OK — modelo:', textModel, '| resposta bruta:', rawResponse);
         } catch (e: any) {
           const notFound = isModelNotFoundError(e);
-          const errMsg = e?.error?.error?.message || e?.message || String(e);
           console.warn(
             '[libras] texto falhou — modelo:', textModel,
             '| indisponivel:', notFound,
-            '| status:', e?.status,
-            '| erro:', errMsg
+            '| erro_detalhado:', classifyGroqError(e)
           );
           if (!notFound) {
             modelsFound++;
