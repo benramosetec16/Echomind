@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { motion } from 'framer-motion';
 
@@ -9,7 +9,9 @@ export type LibrasErrorType =
   | 'not_recognized'
   | 'processing_error'
   | 'no_hands'
-  | 'poor_lighting';
+  | 'poor_lighting'
+  | 'no_ai_model'
+  | 'ai_failed';
 
 interface LibrasErrorProps {
   type: LibrasErrorType;
@@ -58,6 +60,18 @@ const errorConfig: Record<LibrasErrorType, { icon: string; title: string; messag
     icon: 'light_mode',
     title: 'Iluminacao insuficiente',
     message: 'A iluminacao esta baixa para um reconhecimento preciso. Aproxime-se de uma fonte de luz e tente novamente.',
+    retryLabel: 'Tentar novamente',
+  },
+  no_ai_model: {
+    icon: 'smart_toy',
+    title: 'Reconhecimento indisponivel',
+    message: 'Nao foi possivel concluir o reconhecimento das maos porque nenhum modelo de IA esta disponivel no momento. Tente novamente em alguns instantes.',
+    retryLabel: 'Tentar novamente',
+  },
+  ai_failed: {
+    icon: 'warning_amber',
+    title: 'Falha no reconhecimento',
+    message: 'Conseguimos capturar sua camera e suas maos, mas nao foi possivel processar o reconhecimento com a IA. Tente novamente.',
     retryLabel: 'Tentar novamente',
   },
 };

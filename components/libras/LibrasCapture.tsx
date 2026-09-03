@@ -157,24 +157,39 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
 
       const data = await res.json();
 
-      if (data.error && !data.recognized) {
-        setErrorType('processing_error');
-        setErrorMessage(data.error);
-        setState('error');
+      // Nova estrutura de resposta: { success, errorType?, result?, confidence? }
+      if (data.success === true) {
+        // Reconhecimento bem-sucedido
+        setRecognizedText(data.result);
+        setRecognizedConfidence(data.confidence ?? 'medium');
+        setState('confirmed');
         return;
       }
 
-      if (!data.recognized || !data.text) {
-        setErrorType(data.confidence === 'low' ? 'low_confidence' : 'not_recognized');
-        setState('error');
-        return;
+      // Falha — mapeia errorType do backend para o tipo de erro do frontend
+      const backendErrorType: string = data.errorType ?? 'AI_PROCESSING_FAILED';
+
+      if (backendErrorType === 'NO_AI_MODEL') {
+        setErrorType('no_ai_model');
+      } else if (backendErrorType === 'AI_PROCESSING_FAILED') {
+        setErrorType('ai_failed');
+      } else if (backendErrorType === 'LOW_CONFIDENCE') {
+        setErrorType('low_confidence');
+      } else if (backendErrorType === 'NOT_RECOGNIZED') {
+        setErrorType('not_recognized');
+      } else if (backendErrorType === 'NO_DATA') {
+        setErrorType('no_hands');
+      } else {
+        // Fallback para qualquer errorType desconhecido — nunca exibe erro técnico
+        setErrorType('ai_failed');
       }
 
-      setRecognizedText(data.text);
-      setRecognizedConfidence(data.confidence);
-      setState('confirmed');
+      setErrorMessage(undefined);
+      setState('error');
     } catch {
-      setErrorType('processing_error');
+      // Falha de rede ou parsing — trata como falha de processamento
+      setErrorType('ai_failed');
+      setErrorMessage(undefined);
       setState('error');
     }
   }, [captureFrame, stopCamera]);
