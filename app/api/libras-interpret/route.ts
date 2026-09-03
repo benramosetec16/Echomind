@@ -49,10 +49,10 @@ function isModelNotFoundError(e: any): boolean {
   const status = e?.status ?? e?.statusCode;
   // Apenas 404 genuíno — qualquer outro status significa que o endpoint respondeu
   if (status === 404) return true;
+  // Mensagens estritamente sobre o modelo não ser encontrado (não plano/auth/etc.)
   const msg: string = (e?.error?.error?.message ?? e?.message ?? '').toLowerCase();
   return (
     msg.includes('model not found') ||
-    msg.includes('does not exist') ||
     msg.includes('model_not_found') ||
     msg.includes('does not exist') ||
     msg.includes('no such model')
