@@ -45,6 +45,8 @@ export default function LibrasCapture({
   const streamRef = useRef<MediaStream | null>(null);
   const isRecordingRef = useRef(false);
   const recognizerRef = useRef<LibrasRecognizer>(new LibrasRecognizer());
+  const classifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -126,6 +128,8 @@ export default function LibrasCapture({
   // Clean up stream on unmount
   useEffect(() => {
     return () => {
+      if (classifyTimerRef.current) clearTimeout(classifyTimerRef.current);
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
       stopCamera();
     };
   }, [stopCamera]);
@@ -167,8 +171,27 @@ export default function LibrasCapture({
     setState('recognizing');
     librasLogger.info('Recording', 'STOPPED');
 
-    // Run structural classification locally
-    setTimeout(() => {
+    // Safety escape: if 'recognizing' takes > 5 s, force an error state
+    safetyTimerRef.current = setTimeout(() => {
+      safetyTimerRef.current = null;
+      setState((prev) => {
+        if (prev === 'recognizing') {
+          stopCamera();
+          setErrorType('technical_error');
+          return 'error';
+        }
+        return prev;
+      });
+    }, 5000);
+
+    // Run structural classification locally (synchronous, < 1 ms)
+    classifyTimerRef.current = setTimeout(() => {
+      classifyTimerRef.current = null;
+      // Cancel the safety timer — we're handling the result now
+      if (safetyTimerRef.current) {
+        clearTimeout(safetyTimerRef.current);
+        safetyTimerRef.current = null;
+      }
       try {
         const result = recognizerRef.current.classify();
 
@@ -285,7 +308,7 @@ export default function LibrasCapture({
 
         {/* Content */}
         <div className="min-h-[380px] flex flex-col">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="sync">
             {/* IDLE — prompt to activate camera or continue by text */}
             {state === 'idle' && (
               <motion.div
@@ -488,9 +511,8 @@ export default function LibrasCapture({
                 className="flex flex-col items-center justify-center gap-6 p-8 flex-1"
               >
                 <div className="w-16 h-16 rounded-full bg-secondary/10 border border-secondary/20 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-secondary text-3xl animate-spin">
-                    progress_activity
-                  </span>
+                  {/* CSS-only spinner — no icon font dependency */}
+                  <div className="w-8 h-8 border-2 border-secondary/30 border-t-secondary rounded-full animate-spin" />
                 </div>
                 <div className="text-center space-y-1">
                   <p className="text-sm font-medium text-on-surface">
@@ -500,6 +522,12 @@ export default function LibrasCapture({
                     Processando características espaciais e temporais do sinal
                   </p>
                 </div>
+                <button
+                  onClick={handleContinueByText}
+                  className="mt-2 text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant opacity-40 hover:opacity-80 transition-opacity"
+                >
+                  Cancelar
+                </button>
               </motion.div>
             )}
 
