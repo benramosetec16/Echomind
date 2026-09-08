@@ -343,7 +343,10 @@ function evaluateSignMatch(pose, motion, hasTwoHands) {
 
   if (pose.isVLetter) {
     const poseScore = 1.0;
-    const motionScore = !motion.isThumbsUp && !motion.isThumbsDown ? 0.85 : 0.2;
+    const motionScore =
+      motion.isStatic || motion.displacement.y > 0 || motion.horizontalOscillations >= 1
+        ? 0.85
+        : 0.6;
     const conf = Number((0.65 * poseScore + 0.35 * motionScore).toFixed(2));
     if (conf >= 0.5) scores.push({ sign: 'PRECISO_CONVERSAR', confidence: conf, reason: 'Dedos em V' });
   }
