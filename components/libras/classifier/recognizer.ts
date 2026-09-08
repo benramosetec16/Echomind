@@ -89,30 +89,51 @@ export class LibrasRecognizer {
     // 3. Extract motion features across entire temporal sequence
     const motion = extractMotionFeatures(framesWithHands);
 
-    // 4. Sample and aggregate hand pose features
-    // Sample across the second half of the sequence where the gesture is typically established
-    const sampleStart = Math.floor(framesWithHands.length * 0.3);
-    const sampleEnd = framesWithHands.length;
-    const sampleFrames = framesWithHands.slice(sampleStart, sampleEnd);
+    // 4. Sample pose from 3 points in the sequence and majority-vote boolean features
+    // This makes detection robust to brief position variations mid-gesture
+    const sampleIndices = [
+      Math.floor(framesWithHands.length * 0.33),
+      Math.floor(framesWithHands.length * 0.50),
+      Math.floor(framesWithHands.length * 0.67),
+    ];
 
-    // Take the most representative/stable hand detection
-    const representativeDetection = sampleFrames[Math.floor(sampleFrames.length / 2)].hands[0];
-    const rawLandmarks = representativeDetection.landmarks;
+    const sampledPoses = sampleIndices.map((idx) => {
+      const det = framesWithHands[idx].hands[0];
+      const normalized = normalizeLandmarks(det.landmarks, det.handedness);
+      return extractHandPoseFeatures(normalized, det.landmarks);
+    });
 
-    let normalizedHand;
-    try {
-      normalizedHand = normalizeLandmarks(rawLandmarks, representativeDetection.handedness);
-      librasLogger.info('Landmarks', 'OK (normalized)');
-    } catch (e: any) {
-      librasLogger.error('Normalization error', e.message);
-      return {
-        success: false,
-        error: 'NOT_RECOGNIZED',
-        confidence: 0,
-      };
+    // Majority vote: a boolean feature is true if >= 2 of 3 frames agree
+    const majority = (key: keyof typeof sampledPoses[0]): boolean => {
+      const trueCount = sampledPoses.filter((p) => p[key] === true).length;
+      return trueCount >= 2;
+    };
+
+    // Aggregate palmFacing by plurality (most common value)
+    const facingCounts: Record<string, number> = {};
+    for (const p of sampledPoses) {
+      facingCounts[p.palmFacing] = (facingCounts[p.palmFacing] ?? 0) + 1;
     }
+    const majorityFacing = (Object.entries(facingCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'camera') as typeof sampledPoses[0]['palmFacing'];
 
-    const pose = extractHandPoseFeatures(normalizedHand, rawLandmarks);
+    // Build a voted pose using the middle frame's fingers (fingers are complex sub-objects)
+    // and overriding all boolean flags with majority votes
+    const midFrameIdx = Math.floor(framesWithHands.length * 0.50);
+    const midDet = framesWithHands[midFrameIdx].hands[0];
+    const midNormalized = normalizeLandmarks(midDet.landmarks, midDet.handedness);
+    const midPose = extractHandPoseFeatures(midNormalized, midDet.landmarks);
+
+    const pose = {
+      ...midPose,
+      palmFacing: majorityFacing,
+      isThumbsUp:       majority('isThumbsUp'),
+      isThumbsDown:     majority('isThumbsDown'),
+      isFist:           majority('isFist'),
+      isOpenHand:       majority('isOpenHand'),
+      isIndexPointing:  majority('isIndexPointing'),
+      isVLetter:        majority('isVLetter'),
+      isIPinky:         majority('isIPinky'),
+    };
 
     // Check if 2 hands were detected in at least 30% of frames
     const twoHandsCount = framesWithHands.filter((f) => f.hands.length >= 2).length;

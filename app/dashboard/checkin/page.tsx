@@ -70,7 +70,7 @@ export default function CheckinPage() {
     fetchCount();
   }, []);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (thoughtsOverride?: string) => {
     if (!selectedTexture) return;
 
     setIsSubmitting(true);
@@ -80,7 +80,7 @@ export default function CheckinPage() {
     const result = await transmitAura({
       valenceValue,
       texture: selectedTexture,
-      thoughts
+      thoughts: thoughtsOverride ?? thoughts,
     });
 
     if (result?.error) {
@@ -89,8 +89,6 @@ export default function CheckinPage() {
     } else if (result?.insight) {
       setAiInsight(result.insight);
       setIsSubmitting(false);
-      // Optional: reset form after showing insight
-      // setThoughts('');
     }
   };
 
@@ -359,6 +357,8 @@ export default function CheckinPage() {
                       onConfirm={(text) => {
                         setThoughts(text);
                         setShowLibrasCapture(false);
+                        // Auto-transmit: recognized sign fills and submits the check-in immediately
+                        handleSubmit(text);
                       }}
                       onClose={() => setShowLibrasCapture(false)}
                       onContinueText={() => setShowLibrasCapture(false)}

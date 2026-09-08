@@ -159,6 +159,7 @@ function extractHandPoseFeatures(normalized, rawLandmarks) {
 
   return {
     fingers,
+    palmFacing: 'camera',   // synthetic landmarks always face camera
     isThumbsUp,
     isThumbsDown,
     isFist,
@@ -245,11 +246,11 @@ function extractMotionFeatures(frames) {
     return count;
   };
 
-  const horizontalOscillations = countOscillations(vxSeries, 0.08);
-  const verticalOscillations = countOscillations(vySeries, 0.08);
+  const horizontalOscillations = countOscillations(vxSeries, 0.04);
+  const verticalOscillations = countOscillations(vySeries, 0.04);
 
-  const isWavingHorizontal = horizontalOscillations >= 2 && spanX > 0.07;
-  const isNoddingVertical = verticalOscillations >= 2 && spanY > 0.05;
+  const isWavingHorizontal = horizontalOscillations >= 1 && spanX > 0.05;
+  const isNoddingVertical = verticalOscillations >= 1 && spanY > 0.04;
   const isForwardStroke =
     spanY > 0.08 &&
     displacement.y > 0.04 &&
@@ -287,68 +288,73 @@ const LIBRAS_POC_SIGNS = {
 function evaluateSignMatch(pose, motion, hasTwoHands) {
   const scores = [];
 
+  // 1. ESTOU BEM — polegar para cima
   if (pose.isThumbsUp) {
     const motionScore = motion.isStatic || motion.isNoddingVertical ? 0.95 : motion.isWavingHorizontal ? 0.4 : 0.8;
     const conf = Number((0.85 * 1.0 + 0.15 * motionScore).toFixed(2));
-    scores.push({ sign: 'ESTOU_BEM', confidence: conf, reason: 'Polegar para cima' });
+    scores.push({ sign: 'ESTOU_BEM', confidence: conf });
   }
 
+  // 2. NÃO ESTOU BEM — polegar para baixo
   if (pose.isThumbsDown) {
     const motionScore = motion.isStatic || motion.displacement.y > 0 ? 0.95 : motion.isWavingHorizontal ? 0.4 : 0.8;
     const conf = Number((0.85 * 1.0 + 0.15 * motionScore).toFixed(2));
-    scores.push({ sign: 'NAO_ESTOU_BEM', confidence: conf, reason: 'Polegar para baixo' });
+    scores.push({ sign: 'NAO_ESTOU_BEM', confidence: conf });
   }
 
-  if (pose.isOpenHand || pose.isIPinky) {
-    const poseScore = pose.isOpenHand ? 1.0 : 0.85;
-    const motionScore = motion.isWavingHorizontal ? 1.0 : motion.horizontalOscillations >= 1 ? 0.75 : 0.1;
-    const conf = Number((0.45 * poseScore + 0.55 * motionScore).toFixed(2));
-    if (conf >= 0.5 && (motion.isWavingHorizontal || motion.horizontalOscillations >= 1)) {
-      scores.push({ sign: 'OLA', confidence: conf, reason: 'Mão aberta com aceno' });
+  // 3. OLÁ — mão COMPLETAMENTE aberta + aceno horizontal (NÃO mistura com NÃO)
+  if (pose.isOpenHand && !pose.isThumbsUp && !pose.isThumbsDown) {
+    const motionScore = motion.isWavingHorizontal ? 1.0 : motion.horizontalOscillations >= 1 ? 0.7 : 0.05;
+    const conf = Number((0.40 * 1.0 + 0.60 * motionScore).toFixed(2));
+    if (motion.isWavingHorizontal || motion.horizontalOscillations >= 1) {
+      scores.push({ sign: 'OLA', confidence: conf });
     }
   }
 
+  // 4. SIM — punho fechado + qualquer movimento vertical
   if (pose.isFist) {
-    const poseScore = 1.0;
-    const motionScore = motion.isNoddingVertical ? 1.0 : motion.verticalOscillations >= 1 ? 0.75 : 0.1;
-    const conf = Number((0.45 * poseScore + 0.55 * motionScore).toFixed(2));
-    if (conf >= 0.5 && (motion.isNoddingVertical || motion.verticalOscillations >= 1)) {
-      scores.push({ sign: 'SIM', confidence: conf, reason: 'Punho com concordância vertical' });
+    const motionScore = motion.isNoddingVertical ? 1.0
+      : motion.verticalOscillations >= 1 ? 0.80
+      : motion.displacement.y > 0.04 ? 0.60
+      : 0.1;
+    const conf = Number((0.40 * 1.0 + 0.60 * motionScore).toFixed(2));
+    if (motionScore >= 0.6) {
+      scores.push({ sign: 'SIM', confidence: conf });
     }
   }
 
-  if (pose.isIndexPointing || (pose.isOpenHand && motion.isWavingHorizontal)) {
-    const poseScore = pose.isIndexPointing ? 1.0 : 0.75;
+  // 5. NÃO — SOMENTE indicador estendido + oscilação lateral (NÃO mistura com OLÁ)
+  if (pose.isIndexPointing && !pose.isOpenHand) {
     const motionScore = motion.isWavingHorizontal ? 1.0 : motion.horizontalOscillations >= 1 ? 0.75 : 0.1;
-    const conf = Number((0.45 * poseScore + 0.55 * motionScore).toFixed(2));
-    if (conf >= 0.5 && (motion.isWavingHorizontal || motion.horizontalOscillations >= 1)) {
-      scores.push({ sign: 'NAO', confidence: conf, reason: 'Indicador com negação lateral' });
+    const conf = Number((0.45 * 1.0 + 0.55 * motionScore).toFixed(2));
+    if (motion.isWavingHorizontal || motion.horizontalOscillations >= 1) {
+      scores.push({ sign: 'NAO', confidence: conf });
     }
   }
 
-  if (pose.isOpenHand && !motion.isWavingHorizontal && !motion.isNoddingVertical) {
-    const poseScore = 1.0;
-    const motionScore = motion.isForwardStroke ? 1.0 : motion.displacement.y > 0.03 ? 0.75 : 0.1;
-    const conf = Number((0.45 * poseScore + 0.55 * motionScore).toFixed(2));
-    if (conf >= 0.5 && (motion.isForwardStroke || motion.displacement.y > 0.03)) {
-      scores.push({ sign: 'OBRIGADO', confidence: conf, reason: 'Mão aberta com avanço frontal' });
+  // 6. OBRIGADO — mão aberta + palmFacing camera + descida/avanço (sem oscilação lateral)
+  if (pose.isOpenHand && !motion.isWavingHorizontal && !motion.isNoddingVertical && pose.palmFacing === 'camera') {
+    const motionScore = motion.isForwardStroke ? 1.0 : motion.displacement.y > 0.03 ? 0.80 : 0.1;
+    const conf = Number((0.45 * 1.0 + 0.55 * motionScore).toFixed(2));
+    if (motion.isForwardStroke || motion.displacement.y > 0.03) {
+      scores.push({ sign: 'OBRIGADO', confidence: conf });
     }
   }
 
+  // 7. AJUDA — duas mãos ou avanço frontal
   if (hasTwoHands) {
-    const motionScore = motion.displacement.y > 0.02 || motion.isForwardStroke ? 0.9 : 0.75;
+    const motionScore = motion.displacement.y > 0.02 || motion.isForwardStroke ? 0.90 : 0.75;
     const conf = Number((0.85 * 0.5 + motionScore * 0.5).toFixed(2));
-    scores.push({ sign: 'AJUDA', confidence: conf, reason: 'Duas mãos de apoio' });
+    scores.push({ sign: 'AJUDA', confidence: conf });
+  } else if ((pose.isThumbsUp || pose.isFist) && motion.isForwardStroke) {
+    scores.push({ sign: 'AJUDA', confidence: 0.72 });
   }
 
+  // 8. PRECISO CONVERSAR — dedos em V
   if (pose.isVLetter) {
-    const poseScore = 1.0;
-    const motionScore =
-      motion.isStatic || motion.displacement.y > 0 || motion.horizontalOscillations >= 1
-        ? 0.85
-        : 0.6;
-    const conf = Number((0.65 * poseScore + 0.35 * motionScore).toFixed(2));
-    if (conf >= 0.5) scores.push({ sign: 'PRECISO_CONVERSAR', confidence: conf, reason: 'Dedos em V' });
+    const motionScore = motion.isStatic || motion.displacement.y > 0 || motion.horizontalOscillations >= 1 ? 0.85 : 0.6;
+    const conf = Number((0.65 * 1.0 + 0.35 * motionScore).toFixed(2));
+    if (conf >= 0.5) scores.push({ sign: 'PRECISO_CONVERSAR', confidence: conf });
   }
 
   scores.sort((a, b) => b.confidence - a.confidence);
@@ -356,25 +362,44 @@ function evaluateSignMatch(pose, motion, hasTwoHands) {
 }
 
 class TestRecognizer {
-  constructor() {
-    this.buffer = [];
-  }
-  reset() {
-    this.buffer = [];
-  }
-  addFrame(f) {
-    this.buffer.push(f);
-  }
+  constructor() { this.buffer = []; }
+  reset() { this.buffer = []; }
+  addFrame(f) { this.buffer.push(f); }
   classify() {
     const framesWithHands = this.buffer.filter((f) => f.hands && f.hands.length > 0);
     if (framesWithHands.length < 3) return { success: false, error: 'NO_HANDS', confidence: 0 };
 
     const motion = extractMotionFeatures(framesWithHands);
-    const rep = framesWithHands[Math.floor(framesWithHands.length / 2)].hands[0];
-    const norm = normalizeLandmarks(rep.landmarks, rep.handedness);
-    const pose = extractHandPoseFeatures(norm, rep.landmarks);
-    const hasTwoHands = framesWithHands.filter((f) => f.hands.length >= 2).length / framesWithHands.length > 0.3;
 
+    // Majority-vote pose from 3 sample points
+    const indices = [
+      Math.floor(framesWithHands.length * 0.33),
+      Math.floor(framesWithHands.length * 0.50),
+      Math.floor(framesWithHands.length * 0.67),
+    ];
+    const sampledPoses = indices.map((idx) => {
+      const det = framesWithHands[idx].hands[0];
+      const norm = normalizeLandmarks(det.landmarks, det.handedness);
+      return extractHandPoseFeatures(norm, det.landmarks);
+    });
+    const majority = (key) => sampledPoses.filter((p) => p[key] === true).length >= 2;
+    const facingCounts = {};
+    for (const p of sampledPoses) facingCounts[p.palmFacing ?? 'camera'] = (facingCounts[p.palmFacing ?? 'camera'] ?? 0) + 1;
+    const majorityFacing = Object.entries(facingCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'camera';
+    const midPose = sampledPoses[1];
+    const pose = {
+      ...midPose,
+      palmFacing: majorityFacing,
+      isThumbsUp: majority('isThumbsUp'),
+      isThumbsDown: majority('isThumbsDown'),
+      isFist: majority('isFist'),
+      isOpenHand: majority('isOpenHand'),
+      isIndexPointing: majority('isIndexPointing'),
+      isVLetter: majority('isVLetter'),
+      isIPinky: majority('isIPinky'),
+    };
+
+    const hasTwoHands = framesWithHands.filter((f) => f.hands.length >= 2).length / framesWithHands.length > 0.3;
     const matches = evaluateSignMatch(pose, motion, hasTwoHands);
     if (matches.length === 0) return { success: false, error: 'NOT_RECOGNIZED', confidence: 0 };
 

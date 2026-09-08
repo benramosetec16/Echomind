@@ -92,7 +92,17 @@ interface MatchScore {
 }
 
 /**
- * Evaluates hand pose features and motion features against the 8 POC signs
+ * Evaluates hand pose features and motion features against the 8 POC signs.
+ *
+ * Design rules to avoid sign collision:
+ *  - OLÁ  : open hand (all 4 fingers + thumb) + horizontal wave
+ *  - NÃO  : ONLY index extended (no other fingers) + horizontal wave
+ *  - SIM  : fist + any vertical oscillation
+ *  - OBRIGADO : open hand + downward/forward stroke + palm facing camera (no horizontal wave)
+ *  - ESTOU_BEM : thumbs up (static or small motion)
+ *  - NAO_ESTOU_BEM : thumbs down (static or small motion)
+ *  - AJUDA : two hands OR fist+forward stroke
+ *  - PRECISO_CONVERSAR : V-letter (index+middle extended, ring+pinky curled)
  */
 export function evaluateSignMatch(
   pose: HandPoseFeatures,
@@ -102,117 +112,125 @@ export function evaluateSignMatch(
 ): MatchScore[] {
   const scores: MatchScore[] = [];
 
-  // ── 1. ESTOU BEM (Thumbs Up) ──────────────────────────────────────────────
+  // ── 1. ESTOU BEM (Polegar para cima) ─────────────────────────────────────
   if (pose.isThumbsUp) {
-    const poseScore = 1.0;
-    // Motion score is high if hand is held steady or with small vertical affirming motion
     const motionScore =
       motion.isStatic || motion.isNoddingVertical
         ? 0.95
         : motion.isWavingHorizontal
         ? 0.4
         : 0.8;
-    const conf = Number((0.85 * poseScore + 0.15 * motionScore).toFixed(2));
+    const conf = Number((0.85 * 1.0 + 0.15 * motionScore).toFixed(2));
     scores.push({
       sign: 'ESTOU_BEM',
       confidence: conf,
-      reason: 'Polegar para cima detectado com dedos recolhidos e pose estável',
+      reason: 'Polegar para cima com dedos recolhidos',
     });
   }
 
-  // ── 2. NÃO ESTOU BEM (Thumbs Down) ────────────────────────────────────────
+  // ── 2. NÃO ESTOU BEM (Polegar para baixo) ────────────────────────────────
   if (pose.isThumbsDown) {
-    const poseScore = 1.0;
     const motionScore =
       motion.isStatic || motion.displacement.y > 0
         ? 0.95
         : motion.isWavingHorizontal
         ? 0.4
         : 0.8;
-    const conf = Number((0.85 * poseScore + 0.15 * motionScore).toFixed(2));
+    const conf = Number((0.85 * 1.0 + 0.15 * motionScore).toFixed(2));
     scores.push({
       sign: 'NAO_ESTOU_BEM',
       confidence: conf,
-      reason: 'Polegar para baixo detectado com dedos recolhidos e pose estável',
+      reason: 'Polegar para baixo com dedos recolhidos',
     });
   }
 
-  // ── 3. OLÁ (Aceno com Mão Aberta ou letra I) ──────────────────────────────
-  if (pose.isOpenHand || pose.isIPinky) {
-    const poseScore = pose.isOpenHand ? 1.0 : 0.85;
+  // ── 3. OLÁ (Mão COMPLETAMENTE aberta + aceno lateral) ────────────────────
+  // DISCRIMINADOR: isOpenHand exige todos os 4 dedos estendidos.
+  // NÃO pode ser misturado com NÃO (que usa apenas indicador).
+  if (pose.isOpenHand && !pose.isThumbsUp && !pose.isThumbsDown) {
     const motionScore = motion.isWavingHorizontal
       ? 1.0
       : motion.horizontalOscillations >= 1
-      ? 0.75
-      : 0.1;
-    const conf = Number((0.45 * poseScore + 0.55 * motionScore).toFixed(2));
-    if (conf >= 0.5 && (motion.isWavingHorizontal || motion.horizontalOscillations >= 1)) {
+      ? 0.7
+      : 0.05;
+    const conf = Number((0.40 * 1.0 + 0.60 * motionScore).toFixed(2));
+    // Only push if there is clear horizontal movement
+    if (motion.isWavingHorizontal || motion.horizontalOscillations >= 1) {
       scores.push({
         sign: 'OLA',
         confidence: conf,
-        reason: 'Mão aberta com oscilação lateral de aceno',
+        reason: 'Mão completamente aberta com oscilação horizontal de aceno',
       });
     }
   }
 
-  // ── 4. SIM (Punho fechado com oscilação vertical / concordância) ─────────
+  // ── 4. SIM (Punho fechado + movimento vertical) ───────────────────────────
+  // DISCRIMINADOR: isFist exige todos 4 dedos curvados, sem polegares.
   if (pose.isFist) {
-    const poseScore = 1.0;
     const motionScore = motion.isNoddingVertical
       ? 1.0
       : motion.verticalOscillations >= 1
-      ? 0.75
+      ? 0.80
+      : motion.displacement.y > 0.04   // ao menos movimento descendente
+      ? 0.60
       : 0.1;
-    const conf = Number((0.45 * poseScore + 0.55 * motionScore).toFixed(2));
-    if (conf >= 0.5 && (motion.isNoddingVertical || motion.verticalOscillations >= 1)) {
+    const conf = Number((0.40 * 1.0 + 0.60 * motionScore).toFixed(2));
+    if (motionScore >= 0.6) {
       scores.push({
         sign: 'SIM',
         confidence: conf,
-        reason: 'Punho fechado (letra S) com movimento vertical repetido de concordância',
+        reason: 'Punho fechado com movimento vertical de concordância',
       });
     }
   }
 
-  // ── 5. NÃO (Indicador apontando para cima com oscilação lateral) ──────────
-  if (pose.isIndexPointing || (pose.isOpenHand && motion.isWavingHorizontal)) {
-    const poseScore = pose.isIndexPointing ? 1.0 : 0.75;
+  // ── 5. NÃO (Somente indicador estendido + oscilação lateral) ─────────────
+  // DISCRIMINADOR: isIndexPointing exige que APENAS o indicador esteja estendido.
+  // Mão aberta NUNCA ativa este sinal (evita colisão com OLÁ).
+  if (pose.isIndexPointing && !pose.isOpenHand) {
     const motionScore = motion.isWavingHorizontal
       ? 1.0
       : motion.horizontalOscillations >= 1
       ? 0.75
       : 0.1;
-    const conf = Number((0.45 * poseScore + 0.55 * motionScore).toFixed(2));
-    if (conf >= 0.5 && (motion.isWavingHorizontal || motion.horizontalOscillations >= 1)) {
+    const conf = Number((0.45 * 1.0 + 0.55 * motionScore).toFixed(2));
+    if (motion.isWavingHorizontal || motion.horizontalOscillations >= 1) {
       scores.push({
         sign: 'NAO',
         confidence: conf,
-        reason: 'Dedo indicador estendido com oscilação horizontal de negação',
+        reason: 'Dedo indicador isolado com oscilação lateral de negação',
       });
     }
   }
 
-  // ── 6. OBRIGADO (Mão aberta com movimento descendente/frontal suave) ─────
-  if (pose.isOpenHand && !motion.isWavingHorizontal && !motion.isNoddingVertical) {
-    const poseScore = 1.0;
+  // ── 6. OBRIGADO (Mão aberta + movimento frontal/descendente suave) ────────
+  // DISCRIMINADOR: isOpenHand + palmFacing camera + movimento descendente/frontal.
+  // Explicitamente PROIBIDO se houver oscilação lateral (seria OLÁ).
+  if (
+    pose.isOpenHand &&
+    !motion.isWavingHorizontal &&
+    !motion.isNoddingVertical &&
+    pose.palmFacing === 'camera'
+  ) {
     const motionScore = motion.isForwardStroke
       ? 1.0
       : motion.displacement.y > 0.03
-      ? 0.75
+      ? 0.80
       : 0.1;
-    const conf = Number((0.45 * poseScore + 0.55 * motionScore).toFixed(2));
-    if (conf >= 0.5 && (motion.isForwardStroke || motion.displacement.y > 0.03)) {
+    const conf = Number((0.45 * 1.0 + 0.55 * motionScore).toFixed(2));
+    if (motion.isForwardStroke || motion.displacement.y > 0.03) {
       scores.push({
         sign: 'OBRIGADO',
         confidence: conf,
-        reason: 'Mão aberta partindo de cima com projeção frontal descendente',
+        reason: 'Mão aberta (palma para câmera) com projeção descendente/frontal',
       });
     }
   }
 
-  // ── 7. AJUDA (Duas mãos em apoio ou mão de suporte avançando) ────────────
+  // ── 7. AJUDA (Duas mãos ou gesto de suporte frontal) ─────────────────────
   if (hasTwoHands) {
-    // Both hands present
-    const motionScore = motion.displacement.y > 0.02 || motion.isForwardStroke ? 0.9 : 0.75;
+    const motionScore =
+      motion.displacement.y > 0.02 || motion.isForwardStroke ? 0.90 : 0.75;
     const conf = Number((0.85 * 0.5 + motionScore * 0.5).toFixed(2));
     scores.push({
       sign: 'AJUDA',
@@ -220,22 +238,21 @@ export function evaluateSignMatch(
       reason: 'Duas mãos detectadas em posição de suporte frontal',
     });
   } else if ((pose.isThumbsUp || pose.isFist) && motion.isForwardStroke) {
-    const conf = 0.75;
     scores.push({
       sign: 'AJUDA',
-      confidence: conf,
+      confidence: 0.72,
       reason: 'Gesto de suporte unilateral com avanço frontal',
     });
   }
 
-  // ── 8. PRECISO CONVERSAR (Dedos em V / diálogo) ──────────────────────────
+  // ── 8. PRECISO CONVERSAR (Dedos V — indicador + médio estendidos) ─────────
+  // DISCRIMINADOR: isVLetter é único — index+middle estendidos, ring+pinky curvados.
   if (pose.isVLetter) {
-    const poseScore = 1.0;
     const motionScore =
       motion.isStatic || motion.displacement.y > 0 || motion.horizontalOscillations >= 1
         ? 0.85
         : 0.6;
-    const conf = Number((0.65 * poseScore + 0.35 * motionScore).toFixed(2));
+    const conf = Number((0.65 * 1.0 + 0.35 * motionScore).toFixed(2));
     if (conf >= 0.5) {
       scores.push({
         sign: 'PRECISO_CONVERSAR',

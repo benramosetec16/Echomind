@@ -303,14 +303,14 @@ export function extractMotionFeatures(frames: HandFrame[]): MotionFeatures {
     return count;
   };
 
-  const horizontalOscillations = countOscillations(vxSeries, 0.08);
-  const verticalOscillations = countOscillations(vySeries, 0.08);
+  const horizontalOscillations = countOscillations(vxSeries, 0.04);
+  const verticalOscillations = countOscillations(vySeries, 0.04);
 
-  // Waving: horizontal oscillations >= 2 with significant horizontal span
-  const isWavingHorizontal = horizontalOscillations >= 2 && spanX > 0.07;
+  // Waving: at least 1 direction reversal with noticeable horizontal span
+  const isWavingHorizontal = horizontalOscillations >= 1 && spanX > 0.05;
 
-  // Nodding: vertical oscillations >= 2 with significant vertical span
-  const isNoddingVertical = verticalOscillations >= 2 && spanY > 0.05;
+  // Nodding: at least 1 direction reversal with noticeable vertical span
+  const isNoddingVertical = verticalOscillations >= 1 && spanY > 0.04;
 
   // Forward stroke: smooth downward/forward projection from top towards camera (no oscillation)
   const isForwardStroke =
