@@ -385,7 +385,7 @@ export default function CheckinPage() {
                   className="flex flex-col items-center gap-6 mb-32 mx-auto"
                 >
                   <button 
-                    onClick={handleSubmit}
+                    onClick={() => handleSubmit()}
                     disabled={isSubmitting || !selectedTexture}
                     className="group relative px-12 py-4 border border-secondary/30 rounded-full overflow-hidden transition-all hover:border-secondary hover:shadow-[0_0_30px_rgba(159,207,213,0.2)] disabled:opacity-50 disabled:hover:border-secondary/30 disabled:hover:shadow-none"
                   >
