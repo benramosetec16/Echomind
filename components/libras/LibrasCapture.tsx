@@ -5,6 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import LibrasHandTracker from './LibrasHandTracker';
 import LibrasConfirmation from './LibrasConfirmation';
 import LibrasError, { LibrasErrorType } from './LibrasError';
+import { LibrasRecognizer } from './classifier/recognizer';
+import { HandFrame, HandLandmark } from './classifier/types';
+import { librasLogger } from './logger';
 
 type CaptureState =
   | 'idle'
@@ -18,27 +21,42 @@ type CaptureState =
 interface LibrasCaptureProps {
   onConfirm: (text: string) => void;
   onClose: () => void;
+  onContinueText?: () => void;
 }
 
-export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps) {
+export default function LibrasCapture({
+  onConfirm,
+  onClose,
+  onContinueText,
+}: LibrasCaptureProps) {
   const [state, setState] = useState<CaptureState>('idle');
   const [errorType, setErrorType] = useState<LibrasErrorType | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [recognizedText, setRecognizedText] = useState<string | null>(null);
-  const [recognizedConfidence, setRecognizedConfidence] = useState<'high' | 'medium' | 'low' | null>(null);
+  const [recognizedSignLabel, setRecognizedSignLabel] = useState<string | undefined>(undefined);
+  const [recognizedConfidence, setRecognizedConfidence] = useState<
+    'high' | 'medium' | 'low' | null
+  >(null);
+  const [confidenceScore, setConfidenceScore] = useState<number | undefined>(undefined);
   const [hasHands, setHasHands] = useState(false);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const landmarksRef = useRef<any[][] | null>(null);
   const isRecordingRef = useRef(false);
-  const sequenceRef = useRef<any[]>([]);
+  const recognizerRef = useRef<LibrasRecognizer>(new LibrasRecognizer());
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current.getTracks().forEach((track) => {
+        try {
+          track.stop();
+        } catch {
+          // ignore track stop error
+        }
+      });
       streamRef.current = null;
+      librasLogger.info('Camera', 'STOPPED');
     }
   }, []);
 
@@ -47,12 +65,23 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
     setErrorType(null);
     setErrorMessage(undefined);
     try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('NotSupportedError');
+      if (
+        typeof navigator === 'undefined' ||
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+      ) {
+        setErrorType('camera_unavailable');
+        setErrorMessage('Seu navegador não suporta acesso à câmera.');
+        setState('error');
+        return;
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        video: {
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+        },
         audio: false,
       });
 
@@ -60,147 +89,131 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
         throw new Error('NotReadableError');
       }
 
+      // Listen for stream track interruption
+      stream.getVideoTracks()[0].onended = () => {
+        librasLogger.warn('Camera', 'Stream de vídeo interrompido');
+        stopCamera();
+      };
+
       streamRef.current = stream;
+      librasLogger.info('Camera', 'OK');
+
+      const video = videoRef.current;
+      if (video) {
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          librasLogger.info('Video dimensions', `${video.videoWidth}x${video.videoHeight}`);
+          video.play().catch(() => {});
+        };
+      }
+
       setState('ready');
     } catch (err: any) {
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError' || err.name === 'SecurityError') {
+      librasLogger.error('Camera request error', err?.name || err?.message);
+      if (
+        err.name === 'NotAllowedError' ||
+        err.name === 'PermissionDeniedError' ||
+        err.name === 'SecurityError'
+      ) {
         setErrorType('permission_denied');
       } else {
         setErrorType('camera_unavailable');
       }
       setState('error');
     }
-  }, []);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => stopCamera();
   }, [stopCamera]);
 
-  // Callback ref to attach stream as soon as the <video> element mounts
+  // Clean up stream on unmount
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, [stopCamera]);
+
   const handleVideoMount = useCallback((node: HTMLVideoElement | null) => {
-    videoRef.current = node; // Keep ref updated for LibrasHandTracker
+    videoRef.current = node;
     if (node && streamRef.current) {
       if (node.srcObject !== streamRef.current) {
         node.srcObject = streamRef.current;
+        node.onloadedmetadata = () => {
+          librasLogger.info('Video dimensions', `${node.videoWidth}x${node.videoHeight}`);
+          node.play().catch(() => {});
+        };
       }
     }
   }, []);
 
-  const handleLandmarksUpdate = useCallback((landmarks: any[][] | null) => {
-    landmarksRef.current = landmarks;
-    setHasHands(landmarks !== null && landmarks.length > 0);
-    
-    if (isRecordingRef.current && landmarks && landmarks.length > 0) {
-      const rounded = landmarks.map(hand => 
-        hand.map(point => ({
-          x: Number(point.x.toFixed(3)),
-          y: Number(point.y.toFixed(3)),
-          z: Number(point.z.toFixed(3))
-        }))
-      );
-      if (sequenceRef.current.length < 150) {
-        sequenceRef.current.push(rounded);
-      }
-    }
+  const handleLandmarksUpdate = useCallback((landmarks: HandLandmark[][] | null) => {
+    const handsPresent = landmarks !== null && landmarks.length > 0;
+    setHasHands(handsPresent);
   }, []);
 
-  const captureFrame = useCallback((): string | null => {
-    const video = videoRef.current;
-    if (!video || video.readyState < 2) return null;
-    const captureCanvas = document.createElement('canvas');
-    captureCanvas.width = video.videoWidth || 640;
-    captureCanvas.height = video.videoHeight || 480;
-    const ctx = captureCanvas.getContext('2d');
-    if (!ctx) return null;
-    // Mirror the frame to match what user sees
-    ctx.translate(captureCanvas.width, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
-    return captureCanvas.toDataURL('image/jpeg', 0.85);
+  const handleFrameUpdate = useCallback((frame: HandFrame) => {
+    if (isRecordingRef.current) {
+      recognizerRef.current.addFrame(frame);
+    }
   }, []);
 
   const handleStartRecording = useCallback(() => {
-    // Start recording regardless of hand detection — user will position hands during recording
-    sequenceRef.current = [];
+    recognizerRef.current.reset();
     isRecordingRef.current = true;
     setState('recording');
+    librasLogger.info('Recording', 'STARTED');
   }, []);
 
-  const handleStopRecording = useCallback(async () => {
+  const handleStopRecording = useCallback(() => {
     if (!isRecordingRef.current) return;
     isRecordingRef.current = false;
-
-    const imageBase64 = captureFrame();
-    const fullSequence = sequenceRef.current;
-    
-    // Downsample sequence to max 10 frames to avoid token limits in the backend LLM
-    const landmarksSequence = [];
-    if (fullSequence.length > 0) {
-      const step = Math.max(1, Math.floor(fullSequence.length / 10));
-      for (let i = 0; i < fullSequence.length; i += step) {
-        if (landmarksSequence.length < 10) {
-          landmarksSequence.push(fullSequence[i]);
-        }
-      }
-    }
-
     setState('recognizing');
-    stopCamera();
+    librasLogger.info('Recording', 'STOPPED');
 
-    try {
-      const res = await fetch('/api/libras-interpret', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64, landmarks: landmarksSequence }),
-      });
+    // Run structural classification locally
+    setTimeout(() => {
+      try {
+        const result = recognizerRef.current.classify();
 
-      const data = await res.json();
+        if (result.success && result.prediction) {
+          setRecognizedText(result.prediction.text);
+          setRecognizedSignLabel(result.prediction.label);
+          setConfidenceScore(result.confidence);
+          setRecognizedConfidence(
+            result.confidence >= 0.85 ? 'high' : 'medium'
+          );
+          stopCamera();
+          setState('confirmed');
+          return;
+        }
 
-      // Nova estrutura de resposta: { success, errorType?, result?, confidence? }
-      if (data.success === true) {
-        // Reconhecimento bem-sucedido
-        setRecognizedText(data.result);
-        setRecognizedConfidence(data.confidence ?? 'medium');
-        setState('confirmed');
-        return;
+        // Recognition was uncertain or no hands
+        stopCamera();
+        if (result.error === 'NO_HANDS') {
+          setErrorType('no_hands');
+        } else if (result.error === 'LOW_CONFIDENCE') {
+          setErrorType('low_confidence');
+        } else if (result.error === 'NOT_RECOGNIZED') {
+          setErrorType('not_recognized');
+        } else {
+          setErrorType('technical_error');
+        }
+        setState('error');
+      } catch (err: any) {
+        librasLogger.error('Classification error', err?.message);
+        stopCamera();
+        setErrorType('technical_error');
+        setState('error');
       }
-
-      // Falha — mapeia errorType do backend para o tipo de erro do frontend
-      const backendErrorType: string = data.errorType ?? 'AI_PROCESSING_FAILED';
-
-      if (backendErrorType === 'NO_AI_MODEL') {
-        setErrorType('no_ai_model');
-      } else if (backendErrorType === 'AI_PROCESSING_FAILED') {
-        setErrorType('ai_failed');
-      } else if (backendErrorType === 'LOW_CONFIDENCE') {
-        setErrorType('low_confidence');
-      } else if (backendErrorType === 'NOT_RECOGNIZED') {
-        setErrorType('not_recognized');
-      } else if (backendErrorType === 'NO_DATA') {
-        setErrorType('no_hands');
-      } else {
-        // Fallback para qualquer errorType desconhecido — nunca exibe erro técnico
-        setErrorType('ai_failed');
-      }
-
-      setErrorMessage(undefined);
-      setState('error');
-    } catch {
-      // Falha de rede ou parsing — trata como falha de processamento
-      setErrorType('ai_failed');
-      setErrorMessage(undefined);
-      setState('error');
-    }
-  }, [captureFrame, stopCamera]);
+    }, 400);
+  }, [stopCamera]);
 
   const handleRetry = useCallback(() => {
     setRecognizedText(null);
+    setRecognizedSignLabel(undefined);
     setRecognizedConfidence(null);
+    setConfidenceScore(undefined);
     setErrorType(null);
     setErrorMessage(undefined);
-    landmarksRef.current = null;
     setHasHands(false);
+    recognizerRef.current.reset();
     requestCamera();
   }, [requestCamera]);
 
@@ -217,81 +230,112 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
     onClose();
   }, [stopCamera, onClose]);
 
+  const handleContinueByText = useCallback(() => {
+    stopCamera();
+    if (onContinueText) {
+      onContinueText();
+    } else {
+      onClose();
+    }
+  }, [stopCamera, onContinueText, onClose]);
+
   const isVideoActive = state === 'ready' || state === 'recording';
 
   return (
-    // Overlay backdrop
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-lg"
-      onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 16 }}
-        transition={{ duration: 0.35, ease: 'easeOut' }}
-        className="w-full max-w-xl bg-surface-container-low/90 backdrop-blur-2xl border border-white/8 rounded-3xl overflow-hidden"
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className="w-full max-w-xl bg-surface-container-low/95 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-secondary/10 border border-secondary/20 flex items-center justify-center">
-              <span className="material-symbols-outlined text-secondary text-lg">sign_language</span>
+              <span className="material-symbols-outlined text-secondary text-lg">
+                sign_language
+              </span>
             </div>
             <div>
               <h2 className="text-sm font-semibold text-on-surface">Libras</h2>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-on-surface-variant opacity-40">
-                Reconhecimento experimental
+              <p className="text-[10px] uppercase tracking-[0.15em] text-on-surface-variant opacity-60">
+                POC de reconhecimento de Libras
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant opacity-40 hover:opacity-80 hover:bg-white/5 transition-all"
+            aria-label="Fechar"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant opacity-50 hover:opacity-100 hover:bg-white/5 transition-all"
           >
             <span className="material-symbols-outlined text-base">close</span>
           </button>
         </div>
 
         {/* Content */}
-        <div className="min-h-[360px] flex flex-col">
+        <div className="min-h-[380px] flex flex-col">
           <AnimatePresence mode="wait">
-
-            {/* IDLE — prompt to start */}
+            {/* IDLE — prompt to activate camera or continue by text */}
             {state === 'idle' && (
               <motion.div
                 key="idle"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="flex flex-col items-center justify-center gap-8 p-8 flex-1"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center gap-6 p-8 flex-1"
               >
                 <div className="flex flex-col items-center gap-4 text-center max-w-sm">
                   <div className="w-20 h-20 rounded-full bg-secondary/5 border border-secondary/15 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-secondary text-4xl">videocam</span>
+                    <span className="material-symbols-outlined text-secondary text-4xl">
+                      videocam
+                    </span>
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-base font-medium text-on-surface">Responder com Libras</h3>
-                    <p className="text-sm text-on-surface-variant opacity-60 leading-relaxed">
-                      A camera sera ativada para capturar o seu sinal. O reconhecimento e experimental — voce sempre confirmara o resultado antes do envio.
+                    <h3 className="text-base font-medium text-on-surface">
+                      Reconhecimento experimental de sinais
+                    </h3>
+                    <p className="text-sm text-on-surface-variant opacity-70 leading-relaxed">
+                      Utilize a câmera para responder ao seu check-in com sinais básicos em Libras (Olá, Sim, Não, Obrigado, Ajuda, Estou bem, etc.).
                     </p>
                   </div>
-                  <div className="flex items-start gap-2 bg-tertiary/5 border border-tertiary/15 rounded-xl px-4 py-3 text-left">
-                    <span className="material-symbols-outlined text-tertiary text-sm mt-0.5 shrink-0">info</span>
-                    <p className="text-[11px] text-on-surface-variant opacity-60 leading-relaxed">
-                      Nenhuma imagem e armazenada. Os frames sao descartados apos o reconhecimento.
+                  <div className="flex items-start gap-2.5 bg-tertiary/5 border border-tertiary/15 rounded-xl px-4 py-3 text-left">
+                    <span className="material-symbols-outlined text-tertiary text-sm mt-0.5 shrink-0">
+                      lock
+                    </span>
+                    <p className="text-[11px] text-on-surface-variant opacity-70 leading-relaxed">
+                      Privacidade garantida: o processamento ocorre 100% localmente no seu aparelho. Nenhuma imagem é enviada a servidores ou gravada.
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={requestCamera}
-                  className="flex items-center gap-2 px-8 py-3.5 border border-secondary/30 rounded-full text-xs font-semibold uppercase tracking-[0.2em] text-secondary hover:border-secondary hover:shadow-[0_0_25px_rgba(159,207,213,0.2)] transition-all"
-                >
-                  <span className="material-symbols-outlined text-base">videocam</span>
-                  Ativar camera
-                </button>
+
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-xs">
+                  <button
+                    onClick={requestCamera}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3.5 border border-secondary/30 rounded-full text-xs font-semibold uppercase tracking-[0.2em] text-secondary hover:border-secondary hover:bg-secondary/10 hover:shadow-[0_0_25px_rgba(159,207,213,0.2)] transition-all"
+                  >
+                    <span className="material-symbols-outlined text-base">videocam</span>
+                    Ativar câmera
+                  </button>
+
+                  <button
+                    onClick={handleContinueByText}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 border border-white/10 rounded-full text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant opacity-60 hover:opacity-100 hover:border-white/20 transition-all"
+                  >
+                    <span className="material-symbols-outlined text-base">edit</span>
+                    Digitar mensagem
+                  </button>
+                </div>
               </motion.div>
             )}
 
@@ -299,27 +343,36 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
             {state === 'requesting_permission' && (
               <motion.div
                 key="requesting"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 className="flex flex-col items-center justify-center gap-4 p-8 flex-1"
               >
-                <div className="w-12 h-12 rounded-full border border-secondary/30 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-secondary text-2xl animate-pulse">videocam</span>
+                <div className="w-14 h-14 rounded-full border border-secondary/30 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-secondary text-2xl animate-pulse">
+                    videocam
+                  </span>
                 </div>
-                <p className="text-sm text-on-surface-variant opacity-60 text-center">
-                  Solicitando acesso a camera...
+                <p className="text-sm text-on-surface-variant opacity-70 text-center">
+                  Solicitando acesso à câmera...
                 </p>
               </motion.div>
             )}
 
-            {/* READY / RECORDING — camera feed */}
+            {/* READY / RECORDING — Live Camera Feed */}
             {(state === 'ready' || state === 'recording') && (
               <motion.div
                 key="camera"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 className="flex flex-col flex-1"
               >
-                {/* Camera area */}
-                <div className="relative bg-black mx-6 mt-6 rounded-2xl overflow-hidden" style={{ aspectRatio: '4/3' }}>
+                {/* Camera Container */}
+                <div
+                  className="relative bg-black mx-6 mt-6 rounded-2xl overflow-hidden shadow-inner"
+                  style={{ aspectRatio: '4/3' }}
+                >
                   <video
                     ref={handleVideoMount}
                     autoPlay
@@ -334,50 +387,78 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
                     style={{ transform: 'scaleX(-1)' }}
                   />
 
-                  {/* Hand detection indicator */}
-                  <div className={`absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border transition-all ${hasHands ? 'border-secondary/40 bg-secondary/10' : 'border-white/10 bg-black/40'}`}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${hasHands ? 'bg-secondary animate-pulse' : 'bg-white/30'}`} />
-                    <span className={`text-[10px] font-semibold uppercase tracking-widest ${hasHands ? 'text-secondary' : 'text-white/40'}`}>
-                      {hasHands ? 'Maos detectadas' : 'Aguardando maos'}
+                  {/* Hand Detection Indicator Badge */}
+                  <div
+                    className={`absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border transition-all ${
+                      hasHands
+                        ? 'border-secondary/40 bg-secondary/15'
+                        : 'border-white/10 bg-black/50'
+                    }`}
+                  >
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        hasHands ? 'bg-secondary animate-pulse' : 'bg-white/30'
+                      }`}
+                    />
+                    <span
+                      className={`text-[10px] font-semibold uppercase tracking-widest ${
+                        hasHands ? 'text-secondary' : 'text-white/50'
+                      }`}
+                    >
+                      {hasHands ? 'Mãos detectadas' : 'Posicione suas mãos'}
                     </span>
                   </div>
 
-                  {/* Recording indicator */}
+                  {/* Recording Frame Border */}
                   {state === 'recording' && (
-                    <div className="absolute inset-0 border-4 border-red-500/80 rounded-2xl pointer-events-none transition-all" />
+                    <div className="absolute inset-0 border-4 border-red-500/80 rounded-2xl pointer-events-none animate-pulse" />
                   )}
                 </div>
 
-                {/* Instruction */}
-                <p className="text-xs text-on-surface-variant opacity-40 text-center mt-3 px-6">
-                  {state === 'recording' 
-                    ? 'Gravando... realize o sinal e clique em Parar' 
-                    : 'Posicione as maos no centro e clique em Gravar'}
+                {/* State Diagnostic Instructions */}
+                <p className="text-xs text-on-surface-variant opacity-70 text-center mt-3 px-6">
+                  {state === 'recording'
+                    ? 'Gravando movimento... realize o sinal e clique em Parar'
+                    : hasHands
+                    ? 'Mãos detectadas. Clique em Gravar sinal para iniciar'
+                    : 'Posicione suas mãos no centro do enquadramento'}
                 </p>
 
-                {/* Capture buttons */}
-                <div className="flex items-center justify-center gap-4 px-6 py-6">
+                {/* Controls */}
+                <div className="flex flex-wrap items-center justify-center gap-4 px-6 py-5">
                   {state === 'ready' ? (
                     <button
                       onClick={handleStartRecording}
                       className={`flex items-center gap-2 px-8 py-3.5 rounded-full text-xs font-semibold uppercase tracking-[0.2em] transition-all border ${
                         hasHands
                           ? 'border-secondary/40 text-secondary bg-secondary/10 hover:border-secondary hover:bg-secondary/20 hover:shadow-[0_0_25px_rgba(159,207,213,0.2)]'
-                          : 'border-white/10 text-on-surface-variant opacity-40 cursor-not-allowed'
-                      } disabled:opacity-50`}
+                          : 'border-white/10 text-on-surface-variant opacity-50 cursor-pointer hover:border-white/20'
+                      }`}
                     >
-                      <span className="material-symbols-outlined text-base">videocam</span>
+                      <span className="material-symbols-outlined text-base">
+                        radio_button_checked
+                      </span>
                       Gravar sinal
                     </button>
                   ) : (
                     <button
                       onClick={handleStopRecording}
-                      className="flex items-center gap-2 px-8 py-3.5 rounded-full text-xs font-semibold uppercase tracking-[0.2em] transition-all border border-red-500/50 text-red-500 bg-red-500/10 hover:border-red-500 hover:bg-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                      className="flex items-center gap-2 px-8 py-3.5 rounded-full text-xs font-semibold uppercase tracking-[0.2em] transition-all border border-red-500/60 text-red-500 bg-red-500/10 hover:border-red-500 hover:bg-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
                     >
-                      <span className="material-symbols-outlined text-base">stop_circle</span>
+                      <span className="material-symbols-outlined text-base">
+                        stop_circle
+                      </span>
                       Parar gravação
                     </button>
                   )}
+
+                  <button
+                    onClick={handleContinueByText}
+                    className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant opacity-40 hover:opacity-80 transition-opacity"
+                  >
+                    Digitar por texto
+                  </button>
+
                   <button
                     onClick={handleClose}
                     className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant opacity-30 hover:opacity-60 transition-opacity"
@@ -386,11 +467,12 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
                   </button>
                 </div>
 
-                {/* MediaPipe tracker — mounted alongside video so refs are ready */}
+                {/* MediaPipe tracker */}
                 <LibrasHandTracker
                   videoRef={videoRef}
                   canvasRef={canvasRef}
                   onLandmarksUpdate={handleLandmarksUpdate}
+                  onFrameUpdate={handleFrameUpdate}
                   isActive={isVideoActive}
                 />
               </motion.div>
@@ -400,43 +482,66 @@ export default function LibrasCapture({ onConfirm, onClose }: LibrasCaptureProps
             {state === 'recognizing' && (
               <motion.div
                 key="recognizing"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 className="flex flex-col items-center justify-center gap-6 p-8 flex-1"
               >
                 <div className="w-16 h-16 rounded-full bg-secondary/10 border border-secondary/20 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-secondary text-3xl animate-spin">refresh</span>
+                  <span className="material-symbols-outlined text-secondary text-3xl animate-spin">
+                    progress_activity
+                  </span>
                 </div>
                 <div className="text-center space-y-1">
-                  <p className="text-sm font-medium text-on-surface">Interpretando sinal...</p>
-                  <p className="text-xs text-on-surface-variant opacity-40">Analisando o movimento capturado</p>
+                  <p className="text-sm font-medium text-on-surface">
+                    Analisando movimento...
+                  </p>
+                  <p className="text-xs text-on-surface-variant opacity-60">
+                    Processando características espaciais e temporais do sinal
+                  </p>
                 </div>
               </motion.div>
             )}
 
-            {/* CONFIRMED — show result for user confirmation */}
+            {/* CONFIRMED */}
             {state === 'confirmed' && recognizedText && (
-              <motion.div key="confirmed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col">
+              <motion.div
+                key="confirmed"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex-1 flex flex-col"
+              >
                 <LibrasConfirmation
                   text={recognizedText}
+                  signLabel={recognizedSignLabel}
                   confidence={recognizedConfidence}
+                  confidenceScore={confidenceScore}
                   onConfirm={handleConfirm}
                   onRetry={handleRetry}
+                  onContinueText={handleContinueByText}
                 />
               </motion.div>
             )}
 
             {/* ERROR */}
             {state === 'error' && errorType && (
-              <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col">
+              <motion.div
+                key="error"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex-1 flex flex-col"
+              >
                 <LibrasError
                   type={errorType}
                   message={errorMessage}
                   onRetry={errorType !== 'permission_denied' ? handleRetry : undefined}
                   onDismiss={handleClose}
+                  onContinueText={handleContinueByText}
                 />
               </motion.div>
             )}
-
           </AnimatePresence>
         </div>
       </motion.div>

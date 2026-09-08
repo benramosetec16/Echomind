@@ -10,7 +10,7 @@ export type LibrasErrorType =
   | 'processing_error'
   | 'no_hands'
   | 'poor_lighting'
-  | 'no_ai_model'
+  | 'technical_error'
   | 'ai_failed';
 
 interface LibrasErrorProps {
@@ -18,76 +18,97 @@ interface LibrasErrorProps {
   message?: string;
   onRetry?: () => void;
   onDismiss?: () => void;
+  onContinueText?: () => void;
 }
 
-const errorConfig: Record<LibrasErrorType, { icon: string; title: string; message: string; retryLabel?: string }> = {
+const errorConfig: Record<
+  LibrasErrorType,
+  { icon: string; title: string; message: string; retryLabel?: string }
+> = {
   permission_denied: {
     icon: 'videocam_off',
-    title: 'Camera bloqueada',
-    message: 'O acesso a camera foi negado. Para usar o reconhecimento de Libras, permita o acesso a camera nas configuracoes do seu navegador.',
+    title: 'Acesso à câmera não autorizado',
+    message:
+      'A permissão de acesso à câmera foi negada. Permita o acesso nas configurações do seu navegador para usar os sinais ou continue digitando por texto.',
   },
   camera_unavailable: {
     icon: 'no_photography',
-    title: 'Camera indisponivel',
-    message: 'Nao foi possivel acessar a camera. Verifique se ha outro aplicativo utilizando a camera.',
+    title: 'Câmera indisponível',
+    message:
+      'Não foi possível inicializar o dispositivo de vídeo. Verifique se a câmera está sendo utilizada por outro aplicativo.',
     retryLabel: 'Tentar novamente',
   },
   low_confidence: {
     icon: 'help_outline',
-    title: 'Sinal nao reconhecido com seguranca',
-    message: 'Nao conseguimos interpretar esse sinal com confianca suficiente. Certifique-se de que suas maos estejam bem iluminadas e centralizadas no quadro.',
-    retryLabel: 'Fazer novamente',
+    title: 'Sinal não reconhecido com certeza',
+    message:
+      'Não conseguimos reconhecer esse sinal com confiança suficiente. Posicione suas mãos no centro da câmera, mantenha boa iluminação e repita o movimento com calma.',
+    retryLabel: 'Tentar novamente',
   },
   not_recognized: {
     icon: 'sign_language',
-    title: 'Sinal nao identificado',
-    message: 'Nao foi possivel identificar um sinal nesta captura. Posicione as maos no centro da camera com boa iluminacao e realize o sinal de forma clara.',
+    title: 'Sinal não identificado',
+    message:
+      'Não identificamos um sinal correspondente no vocabulário experimental desta etapa. Tente novamente ou prossiga por texto.',
     retryLabel: 'Tentar novamente',
   },
   processing_error: {
     icon: 'error_outline',
-    title: 'Erro no processamento',
-    message: 'Ocorreu uma falha ao processar o sinal. Verifique sua conexao e tente novamente.',
+    title: 'Erro de processamento',
+    message:
+      'Houve uma instabilidade momentânea no processamento dos dados. Tente novamente.',
     retryLabel: 'Tentar novamente',
   },
   no_hands: {
     icon: 'pan_tool',
-    title: 'Maos fora do enquadramento',
-    message: 'Nenhuma mao foi detectada na captura. Posicione as maos dentro da area da camera e tente novamente.',
+    title: 'Mãos não detectadas',
+    message:
+      'Nenhuma mão foi detectada durante a gravação. Posicione as mãos no enquadramento da câmera antes de iniciar o sinal.',
     retryLabel: 'Tentar novamente',
   },
   poor_lighting: {
     icon: 'light_mode',
-    title: 'Iluminacao insuficiente',
-    message: 'A iluminacao esta baixa para um reconhecimento preciso. Aproxime-se de uma fonte de luz e tente novamente.',
+    title: 'Iluminação insuficiente',
+    message:
+      'A iluminação está baixa para detectar os movimentos com precisão. Aproxime-se de uma fonte de luz.',
     retryLabel: 'Tentar novamente',
   },
-  no_ai_model: {
-    icon: 'smart_toy',
-    title: 'Reconhecimento indisponivel',
-    message: 'Nao foi possivel concluir o reconhecimento das maos porque nenhum modelo de IA esta disponivel no momento. Tente novamente em alguns instantes.',
+  technical_error: {
+    icon: 'warning_amber',
+    title: 'Não foi possível processar o reconhecimento',
+    message:
+      'Ocorreu uma falha técnica durante o processamento do sinal. Tente novamente ou use a digitação.',
     retryLabel: 'Tentar novamente',
   },
   ai_failed: {
     icon: 'warning_amber',
-    title: 'Falha no reconhecimento',
-    message: 'Conseguimos capturar sua camera e suas maos, mas nao foi possivel processar o reconhecimento com a IA. Tente novamente.',
+    title: 'Não foi possível processar o reconhecimento',
+    message:
+      'Houve uma falha ao processar o reconhecimento. Você pode tentar novamente ou continuar diretamente por texto.',
     retryLabel: 'Tentar novamente',
   },
 };
 
-export default function LibrasError({ type, message, onRetry, onDismiss }: LibrasErrorProps) {
-  const config = errorConfig[type];
+export default function LibrasError({
+  type,
+  message,
+  onRetry,
+  onDismiss,
+  onContinueText,
+}: LibrasErrorProps) {
+  const config = errorConfig[type] || errorConfig.technical_error;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      className="flex flex-col items-center text-center gap-6 py-8 px-4"
+      className="flex flex-col items-center text-center gap-6 py-8 px-6"
     >
       <div className="w-16 h-16 rounded-full bg-tertiary/10 border border-tertiary/20 flex items-center justify-center">
-        <span className="material-symbols-outlined text-tertiary text-3xl">{config.icon}</span>
+        <span className="material-symbols-outlined text-tertiary text-3xl">
+          {config.icon}
+        </span>
       </div>
 
       <div className="space-y-2 max-w-sm">
@@ -97,7 +118,7 @@ export default function LibrasError({ type, message, onRetry, onDismiss }: Libra
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm mt-2">
         {config.retryLabel && onRetry && (
           <button
             onClick={onRetry}
@@ -107,7 +128,18 @@ export default function LibrasError({ type, message, onRetry, onDismiss }: Libra
             {config.retryLabel}
           </button>
         )}
-        {onDismiss && (
+
+        {onContinueText && (
+          <button
+            onClick={onContinueText}
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border border-white/10 rounded-full text-xs font-semibold uppercase tracking-[0.15em] text-on-surface hover:border-white/25 hover:bg-white/5 transition-all"
+          >
+            <span className="material-symbols-outlined text-base">edit_note</span>
+            Continuar por texto
+          </button>
+        )}
+
+        {onDismiss && !onContinueText && (
           <button
             onClick={onDismiss}
             className="flex-1 px-6 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant opacity-50 hover:opacity-80 transition-opacity"

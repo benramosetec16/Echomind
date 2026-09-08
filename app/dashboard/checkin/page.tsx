@@ -361,6 +361,7 @@ export default function CheckinPage() {
                         setShowLibrasCapture(false);
                       }}
                       onClose={() => setShowLibrasCapture(false)}
+                      onContinueText={() => setShowLibrasCapture(false)}
                     />
                   )}
                 </AnimatePresence>
