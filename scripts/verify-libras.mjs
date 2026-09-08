@@ -368,55 +368,72 @@ class TestRecognizer {
   classify() {
     const framesWithHands = this.buffer.filter((f) => f.hands && f.hands.length > 0);
     if (framesWithHands.length < 3) return { success: false, error: 'NO_HANDS', confidence: 0 };
-
     const motion = extractMotionFeatures(framesWithHands);
-
-    // Majority-vote pose from 3 sample points
-    const indices = [
-      Math.floor(framesWithHands.length * 0.33),
-      Math.floor(framesWithHands.length * 0.50),
-      Math.floor(framesWithHands.length * 0.67),
-    ];
-    const sampledPoses = indices.map((idx) => {
-      const det = framesWithHands[idx].hands[0];
-      const norm = normalizeLandmarks(det.landmarks, det.handedness);
-      return extractHandPoseFeatures(norm, det.landmarks);
-    });
+    const indices = [Math.floor(framesWithHands.length * 0.33), Math.floor(framesWithHands.length * 0.50), Math.floor(framesWithHands.length * 0.67)];
+    const sampledPoses = indices.map((idx) => { const det = framesWithHands[idx].hands[0]; const norm = normalizeLandmarks(det.landmarks, det.handedness); return extractHandPoseFeatures(norm, det.landmarks); });
     const majority = (key) => sampledPoses.filter((p) => p[key] === true).length >= 2;
-    const facingCounts = {};
-    for (const p of sampledPoses) facingCounts[p.palmFacing ?? 'camera'] = (facingCounts[p.palmFacing ?? 'camera'] ?? 0) + 1;
-    const majorityFacing = Object.entries(facingCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'camera';
-    const midPose = sampledPoses[1];
-    const pose = {
-      ...midPose,
-      palmFacing: majorityFacing,
-      isThumbsUp: majority('isThumbsUp'),
-      isThumbsDown: majority('isThumbsDown'),
-      isFist: majority('isFist'),
-      isOpenHand: majority('isOpenHand'),
-      isIndexPointing: majority('isIndexPointing'),
-      isVLetter: majority('isVLetter'),
-      isIPinky: majority('isIPinky'),
-    };
-
+    const pose = { ...sampledPoses[1], palmFacing: 'camera', isThumbsUp: majority('isThumbsUp'), isThumbsDown: majority('isThumbsDown'), isFist: majority('isFist'), isOpenHand: majority('isOpenHand'), isIndexPointing: majority('isIndexPointing'), isVLetter: majority('isVLetter'), isIPinky: majority('isIPinky') };
     const hasTwoHands = framesWithHands.filter((f) => f.hands.length >= 2).length / framesWithHands.length > 0.3;
     const matches = evaluateSignMatch(pose, motion, hasTwoHands);
     if (matches.length === 0) return { success: false, error: 'NOT_RECOGNIZED', confidence: 0 };
-
     const best = matches[0];
     if (best.confidence >= CONFIDENCE_THRESHOLD) {
-      return {
-        success: true,
-        prediction: {
-          sign: best.sign,
-          label: LIBRAS_POC_SIGNS[best.sign].label,
-          text: LIBRAS_POC_SIGNS[best.sign].text,
-          confidence: best.confidence,
-        },
-        confidence: best.confidence,
-      };
+      return { success: true, prediction: { sign: best.sign, label: LIBRAS_POC_SIGNS[best.sign].label, text: LIBRAS_POC_SIGNS[best.sign].text, confidence: best.confidence }, confidence: best.confidence };
     }
     return { success: false, error: 'LOW_CONFIDENCE', confidence: best.confidence };
+  }
+}
+
+// ── ML-based recognizer (mirrors the new recognizer.ts) ───────────────────────
+function mapGestureToSign(dominantLabel, gestureVoteScore, motion, hasTwoHands) {
+  if (hasTwoHands) return { sign: 'AJUDA', confidence: Number((0.85 * gestureVoteScore + 0.15 * 0.9).toFixed(2)) };
+  const hasHorizontalMotion = motion.isWavingHorizontal || motion.horizontalOscillations >= 1;
+  const hasVerticalMotion   = motion.isNoddingVertical  || motion.verticalOscillations  >= 1 || motion.displacement.y > 0.04;
+  const hasForwardMotion    = motion.isForwardStroke    || motion.displacement.y > 0.03;
+  switch (dominantLabel) {
+    case 'Thumb_Up':    return { sign: 'ESTOU_BEM',         confidence: Number((0.85 * gestureVoteScore + 0.15 * 0.95).toFixed(2)) };
+    case 'Thumb_Down':  return { sign: 'NAO_ESTOU_BEM',     confidence: Number((0.85 * gestureVoteScore + 0.15 * 0.95).toFixed(2)) };
+    case 'Victory':     return { sign: 'PRECISO_CONVERSAR', confidence: Number((0.80 * gestureVoteScore + 0.20 * 0.85).toFixed(2)) };
+    case 'ILY':         return { sign: 'AJUDA',             confidence: Number((0.80 * gestureVoteScore + 0.20 * 0.85).toFixed(2)) };
+    case 'Open_Palm':
+      if (hasHorizontalMotion) return { sign: 'OLA',      confidence: Number((0.50 * gestureVoteScore + 0.50 * (motion.isWavingHorizontal ? 1.0 : 0.75)).toFixed(2)) };
+      if (hasForwardMotion)    return { sign: 'OBRIGADO', confidence: Number((0.50 * gestureVoteScore + 0.50 * (motion.isForwardStroke ? 1.0 : 0.80)).toFixed(2)) };
+      return null;
+    case 'Closed_Fist':
+      if (hasVerticalMotion)    return { sign: 'SIM',   confidence: Number((0.50 * gestureVoteScore + 0.50 * (motion.isNoddingVertical ? 1.0 : 0.75)).toFixed(2)) };
+      if (motion.isForwardStroke) return { sign: 'AJUDA', confidence: Number((0.50 * gestureVoteScore + 0.50 * 0.80).toFixed(2)) };
+      return null;
+    case 'Pointing_Up':
+      if (hasHorizontalMotion) return { sign: 'NAO', confidence: Number((0.50 * gestureVoteScore + 0.50 * (motion.isWavingHorizontal ? 1.0 : 0.75)).toFixed(2)) };
+      return null;
+    default: return null;
+  }
+}
+
+class MLRecognizer {
+  constructor() { this.buffer = []; }
+  reset() { this.buffer = []; }
+  addFrame(f) { this.buffer.push(f); }
+  classify() {
+    const framesWithHands = this.buffer.filter((f) => f.hands && f.hands.length > 0 && f.hands[0].landmarks.length >= 21);
+    if (framesWithHands.length < 3) return { success: false, error: 'NO_HANDS', confidence: 0 };
+    const labelCounts = {};
+    for (const f of framesWithHands) {
+      const label = f.hands[0].gestureLabel ?? 'None';
+      labelCounts[label] = (labelCounts[label] ?? 0) + 1;
+    }
+    const sorted = Object.entries(labelCounts).sort((a, b) => b[1] - a[1]);
+    const dominantLabel = sorted[0][0];
+    const gestureVoteScore = sorted[0][1] / framesWithHands.length;
+    if (dominantLabel === 'None' || gestureVoteScore < 0.4) return { success: false, error: 'NOT_RECOGNIZED', confidence: 0 };
+    const motion = extractMotionFeatures(framesWithHands);
+    const hasTwoHands = framesWithHands.filter((f) => f.hands.length >= 2).length / framesWithHands.length > 0.3;
+    const match = mapGestureToSign(dominantLabel, gestureVoteScore, motion, hasTwoHands);
+    if (!match) return { success: false, error: 'NOT_RECOGNIZED', confidence: 0 };
+    if (match.confidence >= CONFIDENCE_THRESHOLD) {
+      return { success: true, prediction: { sign: match.sign, label: LIBRAS_POC_SIGNS[match.sign].label, text: LIBRAS_POC_SIGNS[match.sign].text, confidence: match.confidence }, confidence: match.confidence };
+    }
+    return { success: false, error: 'LOW_CONFIDENCE', confidence: match.confidence };
   }
 }
 
@@ -428,14 +445,12 @@ function createSyntheticHand(options) {
   const s = options.scale || 0.15;
   const lms = new Array(21).fill(null).map(() => ({ ...wrist }));
   lms[0] = { ...wrist };
-
   lms[1] = { x: wrist.x - 0.2 * s, y: wrist.y - 0.3 * s, z: wz };
   lms[2] = { x: wrist.x - 0.4 * s, y: wrist.y - 0.5 * s, z: wz };
   lms[5] = { x: wrist.x - 0.3 * s, y: wrist.y - 1.0 * s, z: wz };
   lms[9] = { x: wrist.x, y: wrist.y - 1.0 * s, z: wz };
   lms[13] = { x: wrist.x + 0.3 * s, y: wrist.y - 0.95 * s, z: wz };
   lms[17] = { x: wrist.x + 0.5 * s, y: wrist.y - 0.85 * s, z: wz };
-
   const buildFinger = (mcpIdx, isExtended, xOffset) => {
     const mcp = lms[mcpIdx];
     if (isExtended) {
@@ -448,12 +463,10 @@ function createSyntheticHand(options) {
       lms[mcpIdx + 3] = { x: mcp.x, y: mcp.y + 0.25 * s, z: wz + 0.1 * s };
     }
   };
-
   buildFinger(5, options.indexState === 'extended', 0);
   buildFinger(9, options.middleState === 'extended', 0);
   buildFinger(13, options.ringState === 'extended', 0);
   buildFinger(17, options.pinkyState === 'extended', 0.1);
-
   const thumbMcp = lms[2];
   if (options.thumbDirection === 'up') {
     lms[3] = { x: thumbMcp.x - 0.1 * s, y: thumbMcp.y - 0.35 * s, z: wz };
@@ -468,21 +481,27 @@ function createSyntheticHand(options) {
     lms[3] = { x: thumbMcp.x + 0.2 * s, y: thumbMcp.y - 0.1 * s, z: wz + 0.1 * s };
     lms[4] = { x: thumbMcp.x + 0.4 * s, y: thumbMcp.y, z: wz + 0.15 * s };
   }
-
   return lms;
+}
+
+function makeMLFrame(landmarks, gestureLabel, timestamp) {
+  return { timestamp, hands: [{ landmarks, gestureLabel, gestureScore: 0.92 }] };
+}
+function makeWavingMLFrames(landmarks, gestureLabel) {
+  const xOff = [0, 0.05, 0.1, 0.04, -0.05, -0.1, -0.04, 0.06, 0.1, 0.03, -0.06, -0.1];
+  return xOff.map((dx, i) => ({ timestamp: 1000 + i * 40, hands: [{ landmarks: landmarks.map((lm) => ({ ...lm, x: lm.x + dx })), gestureLabel, gestureScore: 0.92 }] }));
+}
+function makeNoddingMLFrames(landmarks, gestureLabel) {
+  const yOff = [0, 0.05, 0.09, 0.03, -0.04, 0.05, 0.09, 0.02, -0.03];
+  return yOff.map((dy, i) => ({ timestamp: 1000 + i * 40, hands: [{ landmarks: landmarks.map((lm) => ({ ...lm, y: lm.y + dy })), gestureLabel, gestureScore: 0.92 }] }));
 }
 
 let passed = 0;
 let failed = 0;
 
 function assert(condition, testName) {
-  if (condition) {
-    console.log(`  ✅ PASS: ${testName}`);
-    passed++;
-  } else {
-    console.error(`  ❌ FAIL: ${testName}`);
-    failed++;
-  }
+  if (condition) { console.log(`  ✅ PASS: ${testName}`); passed++; }
+  else           { console.error(`  ❌ FAIL: ${testName}`); failed++; }
 }
 
 console.log('\n======================================================');
@@ -495,93 +514,65 @@ const handA = createSyntheticHand({ scale: 0.15, wristPos: { x: 0.3, y: 0.4, z: 
 const normA = normalizeLandmarks(handA);
 assert(normA.landmarks[0].x === 0 && normA.landmarks[0].y === 0, 'Pulso na origem (0,0)');
 assert(Math.abs(euclideanDistance(normA.landmarks[0], normA.landmarks[9]) - 1.0) < 0.001, 'Distância da palma normalizada = 1.0');
-
 const handB = createSyntheticHand({ scale: 0.45, wristPos: { x: 0.8, y: 0.2, z: -0.5 } });
 const normB = normalizeLandmarks(handB);
 assert(euclideanDistance(normA.landmarks[8], normB.landmarks[8]) < 0.001, 'Invariância de escala e translação 3D comprovada');
 
-// 2. Anatomical Poses
+// 2. Poses (kept for coverage of featureExtraction)
 console.log('\n2. Poses Anatômicas:');
-const thumbsUpHand = createSyntheticHand({ thumbDirection: 'up', indexState: 'curled', middleState: 'curled', ringState: 'curled', pinkyState: 'curled' });
-const pThumbsUp = extractHandPoseFeatures(normalizeLandmarks(thumbsUpHand), thumbsUpHand);
-assert(pThumbsUp.isThumbsUp === true, 'Polegar para cima (Thumbs Up)');
-
-const thumbsDownHand = createSyntheticHand({ thumbDirection: 'down', indexState: 'curled', middleState: 'curled', ringState: 'curled', pinkyState: 'curled' });
-const pThumbsDown = extractHandPoseFeatures(normalizeLandmarks(thumbsDownHand), thumbsDownHand);
-assert(pThumbsDown.isThumbsDown === true, 'Polegar para baixo (Thumbs Down)');
-
-const openHand = createSyntheticHand({ thumbDirection: 'extended', indexState: 'extended', middleState: 'extended', ringState: 'extended', pinkyState: 'extended' });
-const pOpen = extractHandPoseFeatures(normalizeLandmarks(openHand), openHand);
-assert(pOpen.isOpenHand === true, 'Mão aberta');
-
-const fistHand = createSyntheticHand({ thumbDirection: 'curled', indexState: 'curled', middleState: 'curled', ringState: 'curled', pinkyState: 'curled' });
-const pFist = extractHandPoseFeatures(normalizeLandmarks(fistHand), fistHand);
-assert(pFist.isFist === true, 'Punho fechado (Letra S)');
-
-const indexHand = createSyntheticHand({ thumbDirection: 'curled', indexState: 'extended', middleState: 'curled', ringState: 'curled', pinkyState: 'curled' });
-const pIndex = extractHandPoseFeatures(normalizeLandmarks(indexHand), indexHand);
-assert(pIndex.isIndexPointing === true, 'Indicador estendido (Letra D)');
-
-const vHand = createSyntheticHand({ thumbDirection: 'curled', indexState: 'extended', middleState: 'extended', ringState: 'curled', pinkyState: 'curled' });
-const pV = extractHandPoseFeatures(normalizeLandmarks(vHand), vHand);
-assert(pV.isVLetter === true, 'Dedos em V (Conversar)');
+const thumbsUpHand   = createSyntheticHand({ thumbDirection: 'up',       indexState: 'curled',   middleState: 'curled',   ringState: 'curled',   pinkyState: 'curled' });
+const thumbsDownHand = createSyntheticHand({ thumbDirection: 'down',     indexState: 'curled',   middleState: 'curled',   ringState: 'curled',   pinkyState: 'curled' });
+const openHand       = createSyntheticHand({ thumbDirection: 'extended', indexState: 'extended', middleState: 'extended', ringState: 'extended', pinkyState: 'extended' });
+const fistHand       = createSyntheticHand({ thumbDirection: 'curled',   indexState: 'curled',   middleState: 'curled',   ringState: 'curled',   pinkyState: 'curled' });
+const indexHand      = createSyntheticHand({ thumbDirection: 'curled',   indexState: 'extended', middleState: 'curled',   ringState: 'curled',   pinkyState: 'curled' });
+const vHand          = createSyntheticHand({ thumbDirection: 'curled',   indexState: 'extended', middleState: 'extended', ringState: 'curled',   pinkyState: 'curled' });
+assert(extractHandPoseFeatures(normalizeLandmarks(thumbsUpHand),   thumbsUpHand  ).isThumbsUp      === true, 'Polegar para cima (Thumbs Up)');
+assert(extractHandPoseFeatures(normalizeLandmarks(thumbsDownHand), thumbsDownHand).isThumbsDown    === true, 'Polegar para baixo (Thumbs Down)');
+assert(extractHandPoseFeatures(normalizeLandmarks(openHand),       openHand      ).isOpenHand      === true, 'Mão aberta');
+assert(extractHandPoseFeatures(normalizeLandmarks(fistHand),       fistHand      ).isFist          === true, 'Punho fechado (Letra S)');
+assert(extractHandPoseFeatures(normalizeLandmarks(indexHand),      indexHand     ).isIndexPointing === true, 'Indicador estendido (Letra D)');
+assert(extractHandPoseFeatures(normalizeLandmarks(vHand),          vHand         ).isVLetter       === true, 'Dedos em V (Conversar)');
 
 // 3. Motion
 console.log('\n3. Movimento Temporal:');
-const wavingFrames = [];
-const xOffsets = [0, 0.05, 0.1, 0.04, -0.05, -0.1, -0.04, 0.06, 0.1, 0.03, -0.06, -0.1];
-for (let i = 0; i < xOffsets.length; i++) {
-  const moved = openHand.map((lm) => ({ ...lm, x: lm.x + xOffsets[i] }));
-  wavingFrames.push({ timestamp: 1000 + i * 40, hands: [{ landmarks: moved }] });
-}
-const mWave = extractMotionFeatures(wavingFrames);
-assert(mWave.isWavingHorizontal === true, 'Oscilação horizontal (aceno)');
+const wavingFrames  = makeWavingMLFrames(openHand,  'Open_Palm');
+const noddingFrames = makeNoddingMLFrames(fistHand, 'Closed_Fist');
+assert(extractMotionFeatures(wavingFrames ).isWavingHorizontal === true, 'Oscilação horizontal (aceno)');
+assert(extractMotionFeatures(noddingFrames).isNoddingVertical  === true, 'Oscilação vertical (concordância)');
 
-const noddingFrames = [];
-const yOffsets = [0, 0.05, 0.09, 0.03, -0.04, 0.05, 0.09, 0.02, -0.03];
-for (let i = 0; i < yOffsets.length; i++) {
-  const moved = fistHand.map((lm) => ({ ...lm, y: lm.y + yOffsets[i] }));
-  noddingFrames.push({ timestamp: 1000 + i * 40, hands: [{ landmarks: moved }] });
-}
-const mNod = extractMotionFeatures(noddingFrames);
-assert(mNod.isNoddingVertical === true, 'Oscilação vertical (concordância)');
+// 4. Reconhecimento Integrado — ML GestureLabel
+console.log('\n4. Reconhecimento Integrado (ML GestureLabel):');
+const mlRec = new MLRecognizer();
 
-// 4. Integrated Classifier
-console.log('\n4. Reconhecimento Integrado:');
-const rec = new TestRecognizer();
-
-// 4.1 Estou bem
-for (let i = 0; i < 15; i++) rec.addFrame({ timestamp: 1000 + i * 40, hands: [{ landmarks: thumbsUpHand }] });
-const rEstouBem = rec.classify();
-assert(rEstouBem.success === true && rEstouBem.prediction.sign === 'ESTOU_BEM', 'Reconhecimento: "Estou bem"');
+mlRec.reset();
+for (let i = 0; i < 15; i++) mlRec.addFrame(makeMLFrame(thumbsUpHand, 'Thumb_Up', 1000 + i * 40));
+const rEstouBem = mlRec.classify();
+assert(rEstouBem.success === true && rEstouBem.prediction.sign === 'ESTOU_BEM',     'Reconhecimento: "Estou bem" (Thumb_Up)');
 assert(rEstouBem.confidence >= 0.70, `Confiança (${rEstouBem.confidence}) >= 0.70`);
 
-// 4.2 Não estou bem
-rec.reset();
-for (let i = 0; i < 15; i++) rec.addFrame({ timestamp: 1000 + i * 40, hands: [{ landmarks: thumbsDownHand }] });
-const rNaoEstouBem = rec.classify();
-assert(rNaoEstouBem.success === true && rNaoEstouBem.prediction.sign === 'NAO_ESTOU_BEM', 'Reconhecimento: "Não estou bem"');
+mlRec.reset();
+for (let i = 0; i < 15; i++) mlRec.addFrame(makeMLFrame(thumbsDownHand, 'Thumb_Down', 1000 + i * 40));
+assert(mlRec.classify().prediction?.sign === 'NAO_ESTOU_BEM',                      'Reconhecimento: "Não estou bem" (Thumb_Down)');
 
-// 4.3 Olá
-rec.reset();
-for (const f of wavingFrames) rec.addFrame(f);
-const rOla = rec.classify();
-assert(rOla.success === true && rOla.prediction.sign === 'OLA', 'Reconhecimento: "Olá"');
+mlRec.reset();
+for (const f of wavingFrames) mlRec.addFrame(f);
+assert(mlRec.classify().prediction?.sign === 'OLA',                                'Reconhecimento: "Olá" (Open_Palm + wave)');
 
-// 4.4 Sim
-rec.reset();
-for (const f of noddingFrames) rec.addFrame(f);
-const rSim = rec.classify();
-assert(rSim.success === true && rSim.prediction.sign === 'SIM', 'Reconhecimento: "Sim"');
+mlRec.reset();
+for (const f of noddingFrames) mlRec.addFrame(f);
+assert(mlRec.classify().prediction?.sign === 'SIM',                                'Reconhecimento: "Sim" (Closed_Fist + nod)');
 
-// 4.5 Rejeição de Gesto Neutro / Estático sem Sinal
-rec.reset();
-// Mão neutra estática (nem punho, nem polegar, nem aceno)
-const neutralHand = createSyntheticHand({ thumbDirection: 'extended', indexState: 'extended', middleState: 'curled', ringState: 'curled', pinkyState: 'extended' });
-for (let i = 0; i < 15; i++) rec.addFrame({ timestamp: 1000 + i * 40, hands: [{ landmarks: neutralHand }] });
-const rNeutral = rec.classify();
-assert(rNeutral.success === false, 'Gesto sem correspondência rejeitado (success = false)');
-assert(rNeutral.error === 'NOT_RECOGNIZED' || rNeutral.error === 'LOW_CONFIDENCE', 'Erro estruturado retornado sem inventar sinal');
+mlRec.reset();
+for (let i = 0; i < 15; i++) mlRec.addFrame(makeMLFrame(vHand, 'Victory', 1000 + i * 40));
+assert(mlRec.classify().prediction?.sign === 'PRECISO_CONVERSAR',                  'Reconhecimento: "Preciso conversar" (Victory)');
+
+// Rejeição: gesto None (ex: pipoca, gesto não reconhecido pelo ML)
+mlRec.reset();
+const pipocaHand = createSyntheticHand({ thumbDirection: 'extended', indexState: 'extended', middleState: 'curled', ringState: 'curled', pinkyState: 'extended' });
+for (let i = 0; i < 15; i++) mlRec.addFrame(makeMLFrame(pipocaHand, 'None', 1000 + i * 40));
+const rPipoca = mlRec.classify();
+assert(rPipoca.success === false, 'Gesto "None" (ex: pipoca) rejeitado corretamente (success = false)');
+assert(rPipoca.error === 'NOT_RECOGNIZED', 'Erro estruturado retornado sem inventar sinal');
 
 console.log(`\n======================================================`);
 console.log(`  Resultado: ${passed} PASSOU, ${failed} FALHOU`);

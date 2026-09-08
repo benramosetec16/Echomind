@@ -12,6 +12,10 @@ export interface HandDetection {
   landmarks: HandLandmark[];
   handedness?: 'Left' | 'Right';
   score?: number;
+  /** Gesture category name from MediaPipe GestureRecognizer ML model, e.g. 'Thumb_Up', 'Open_Palm', 'Victory' */
+  gestureLabel?: string;
+  /** Confidence score (0–1) for the gesture from the ML model */
+  gestureScore?: number;
 }
 
 export interface HandFrame {
