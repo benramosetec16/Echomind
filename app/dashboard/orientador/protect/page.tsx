@@ -15,7 +15,7 @@ import {
   PROTECT_STATUS_ICONS,
   type ProtectStatus,
   type ProtectRequestKind,
-} from '../../../lib/protect/types';
+} from '@/lib/protect/types';
 
 interface RequestItem {
   id: string;

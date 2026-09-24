@@ -14,7 +14,7 @@ import {
   PROTECT_STATUS_ICONS,
   type ProtectStatus,
   type ProtectRequestKind,
-} from '../../../lib/protect/types';
+} from '@/lib/protect/types';
 import Link from 'next/link';
 
 type MainView = 'hub' | 'request' | 'history' | 'prevention' | 'done';
