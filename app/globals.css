@@ -1,31 +1,31 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: #121414;
-  --color-surface: #121414;
-  --color-surface-dim: #121414;
-  --color-surface-bright: #38393a;
-  --color-surface-container-lowest: #0c0f0f;
-  --color-surface-container-low: #1a1c1c;
-  --color-surface-container: #1e2020;
-  --color-surface-container-high: #282a2b;
-  --color-surface-container-highest: #333535;
-  --color-on-surface: #e2e2e2;
-  --color-on-surface-variant: #c4c7c7;
-  --color-primary: #c9c6c5;
-  --color-on-primary: #313030;
-  --color-primary-container: #050505;
-  --color-secondary: #9fcfd5;
-  --color-on-secondary: #00363b;
-  --color-secondary-container: #1f5055;
-  --color-tertiary: #cebdff;
-  --color-on-tertiary: #35275e;
-  --color-error: #ffb4ab;
-  --color-on-error: #690005;
-  --color-outline: #8e9192;
-  --color-outline-variant: #444748;
-  --color-surface-variant: #333535;
-  --color-foreground: #e2e2e2;
+  --color-background: #080B12;
+  --color-surface: #111925;
+  --color-surface-dim: #080B12;
+  --color-surface-bright: #172231;
+  --color-surface-container-lowest: #080B12;
+  --color-surface-container-low: #111925;
+  --color-surface-container: #172231;
+  --color-surface-container-high: #1D2C40;
+  --color-surface-container-highest: #283C57;
+  --color-on-surface: #F5F7FF;
+  --color-on-surface-variant: #AAB4C5;
+  --color-primary: #5B7CFF;
+  --color-on-primary: #FFFFFF;
+  --color-primary-container: #718DFF;
+  --color-secondary: #38D6C5;
+  --color-on-secondary: #000000;
+  --color-secondary-container: #2A9D91;
+  --color-tertiary: #8A6CFF;
+  --color-on-tertiary: #FFFFFF;
+  --color-error: #F4C95D;
+  --color-on-error: #000000;
+  --color-outline: #AAB4C5;
+  --color-outline-variant: #4B5A73;
+  --color-surface-variant: #172231;
+  --color-foreground: #F5F7FF;
   --font-sans: var(--font-hanken), 'sans-serif';
 }
 
@@ -221,3 +221,7 @@ input[type="range"]::-webkit-slider-thumb {
   opacity: 0.3 !important;
 }
 
+
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }

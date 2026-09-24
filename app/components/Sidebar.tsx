@@ -104,7 +104,7 @@ export default function Sidebar() {
         <span className="font-display text-2xl font-extralight text-primary tracking-tighter hidden group-hover:block ml-3">EchoMind</span>
       </div>
 
-      <div className="flex flex-col gap-4 w-full px-4">
+      <div className="flex flex-col gap-4 w-full px-4 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
         {[...(navByRole[userRole] || navByRole.aluno), ...sharedItems].map((item) => {
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
           
