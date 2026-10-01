@@ -123,7 +123,15 @@ Os níveis (estresse, energia, motivacao) devem ser de 0 a 10.`;
       throw new Error('Resposta vazia recebida do Groq.');
     }
 
-    const analise = JSON.parse(responseContent);
+    let analise;
+    try {
+      const clean = responseContent.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const match = clean.match(/\{[\s\S]*\}/);
+      analise = JSON.parse(match ? match[0] : clean);
+    } catch {
+      throw new Error('Não foi possível interpretar a resposta da IA. Tente novamente.');
+    }
+
     return NextResponse.json(analise, { status: 200 });
 
   } catch (error: any) {

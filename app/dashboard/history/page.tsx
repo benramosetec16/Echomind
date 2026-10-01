@@ -192,6 +192,24 @@ export default function HistoryPage() {
     return path;
   };
 
+  // Computed stats from REAL data — no invented numbers
+  const avgValence = filteredCheckins.length > 0
+    ? Math.round(filteredCheckins.reduce((sum, c) => sum + c.valence_value, 0) / filteredCheckins.length)
+    : null;
+
+  const valenceVariance = filteredCheckins.length > 1
+    ? Math.round(Math.sqrt(
+        filteredCheckins.reduce((sum, c) => sum + Math.pow(c.valence_value - (avgValence ?? 0), 2), 0) / filteredCheckins.length
+      ))
+    : null;
+
+  // Last check-in for tooltip
+  const lastCheckin = filteredCheckins.length > 0 ? filteredCheckins[filteredCheckins.length - 1] : null;
+  const lastCheckinDate = lastCheckin ? new Date(lastCheckin.created_at) : null;
+  const lastCheckinLabel = lastCheckinDate
+    ? lastCheckinDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+    : null;
+
   const dynamicPath = calculatePath();
 
   return (
@@ -291,82 +309,111 @@ export default function HistoryPage() {
                   <line x1="0" y1="150" x2="800" y2="150" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
                   <line x1="0" y1="225" x2="800" y2="225" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
                   
-                  {/* Paths */}
-                  <path 
-                    d="M 0,250 C 100,200 200,280 300,150 C 400,20 500,100 600,80 C 700,60 800,120 800,120" 
-                    fill="none" 
-                    stroke="url(#turbulence-gradient)" 
-                    strokeWidth="2" 
-                    strokeDasharray="4 4"
-                    opacity="0.4"
-                  />
-                  <path 
-                    key={dynamicPath}
-                    d={dynamicPath} 
-                    fill="none" 
-                    stroke="url(#stability-gradient)" 
-                    strokeWidth="3" 
-                    className="path-draw"
-                  />
+                  {/* Real data path only — no fake turbulence */}
+                  {filteredCheckins.length >= 2 ? (
+                    <path 
+                      key={dynamicPath}
+                      d={dynamicPath} 
+                      fill="none" 
+                      stroke="url(#stability-gradient)" 
+                      strokeWidth="3" 
+                      className="path-draw"
+                    />
+                  ) : (
+                    <text x="400" y="155" textAnchor="middle" fill="rgba(255,255,255,0.2)" fontSize="14" fontFamily="sans-serif">
+                      {filteredCheckins.length === 0 ? 'Nenhum dado no período selecionado' : 'Ao menos 2 registros são necessários para o gráfico'}
+                    </text>
+                  )}
                 </svg>
 
-                {/* Tooltip Point */}
-                <div className="absolute left-[60%] top-[40%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
-                  <div className="w-4 h-4 bg-background rounded-full border-2 border-tertiary flex items-center justify-center shadow-[0_0_15px_rgba(206,189,255,0.4)]">
-                    <div className="w-1.5 h-1.5 bg-tertiary rounded-full animate-pulse"></div>
+                {/* Tooltip — shows real last check-in data */}
+                {lastCheckin && (
+                  <div className="absolute right-4 top-4 flex flex-col items-end pointer-events-none">
+                    <div className="aetheric-glass px-3 py-2 rounded-lg text-right whitespace-nowrap">
+                      <div className="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-0.5">Último Pulso · {lastCheckinLabel}</div>
+                      <div className="text-sm font-medium text-secondary">{lastCheckin.valence_value}/100</div>
+                    </div>
                   </div>
-                  <div className="mt-4 aetheric-glass px-4 py-2 rounded-lg text-center whitespace-nowrap">
-                    <div className="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-1">Último Pulso</div>
-                    <div className="text-sm font-medium text-tertiary">Núcleo Estável</div>
-                  </div>
-                </div>
+                )}
               </div>
             </motion.div>
 
             {/* Right Side Cards */}
             <div className="lg:col-span-4 flex flex-col gap-6">
-              {/* Cognitive Load */}
+              {/* Stats — based on REAL data only */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
                 className="aetheric-glass rounded-[32px] p-8"
               >
-                <h3 className="text-xl font-medium text-tertiary mb-8">Carga Cognitiva</h3>
+                <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-on-surface-variant mb-6">Estatísticas do Período</h3>
                 
-                <div className="mb-6">
-                  <div className="flex justify-between text-xs font-semibold mb-2">
-                    <span className="text-on-surface-variant uppercase tracking-widest">Densidade de Informação</span>
-                    <span className="text-secondary">Alta</span>
+                {filteredCheckins.length === 0 ? (
+                  <div className="py-4 text-center">
+                    <span className="material-symbols-outlined text-3xl text-on-surface-variant opacity-20 mb-2 block">analytics</span>
+                    <p className="text-sm text-on-surface-variant opacity-40">Sem dados no período</p>
                   </div>
-                  <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full w-[85%] bg-secondary rounded-full shadow-[0_0_10px_rgba(159,207,213,0.5)]"></div>
-                  </div>
-                </div>
+                ) : (
+                  <div className="flex flex-col gap-5">
+                    <div>
+                      <div className="flex justify-between text-xs font-semibold mb-2">
+                        <span className="text-on-surface-variant uppercase tracking-widest">Média de Bem-Estar</span>
+                        <span className="text-secondary">{avgValence}/100</span>
+                      </div>
+                      <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-secondary rounded-full shadow-[0_0_10px_rgba(159,207,213,0.5)] transition-all duration-700"
+                          style={{ width: `${avgValence}%` }}
+                        />
+                      </div>
+                    </div>
 
-                <div>
-                  <div className="flex justify-between text-xs font-semibold mb-2">
-                    <span className="text-on-surface-variant uppercase tracking-widest">Ressonância Emocional</span>
-                    <span className="text-tertiary">Estável</span>
+                    <div>
+                      <div className="flex justify-between text-xs font-semibold mb-2">
+                        <span className="text-on-surface-variant uppercase tracking-widest">Variação Emocional</span>
+                        <span className="text-tertiary">{valenceVariance !== null ? (valenceVariance < 15 ? 'Estável' : valenceVariance < 30 ? 'Moderada' : 'Alta') : '—'}</span>
+                      </div>
+                      <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-tertiary rounded-full shadow-[0_0_10px_rgba(206,189,255,0.5)] transition-all duration-700"
+                          style={{ width: valenceVariance !== null ? `${Math.min(valenceVariance * 2, 100)}%` : '0%' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/5">
+                      <p className="text-xs text-on-surface-variant opacity-50">{filteredCheckins.length} registro{filteredCheckins.length !== 1 ? 's' : ''} no período</p>
+                    </div>
                   </div>
-                  <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full w-[62%] bg-tertiary rounded-full shadow-[0_0_10px_rgba(206,189,255,0.5)]"></div>
-                  </div>
-                </div>
+                )}
               </motion.div>
 
-              {/* Aetheric Sync */}
+              {/* Period summary */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="aetheric-glass rounded-[32px] p-8 flex-1 relative overflow-hidden flex flex-col justify-center group"
+                className="aetheric-glass rounded-[32px] p-8 flex-1 relative overflow-hidden flex flex-col justify-between group"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 via-transparent to-tertiary/5 opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <h3 className="text-2xl font-light text-primary mb-3 relative z-10">Sincronia do Sistema</h3>
-                <p className="text-sm text-on-surface-variant leading-relaxed relative z-10">
-                  Seu fluxo atual está perfeitamente alinhado com suas janelas cognitivas ativas. Considere iniciar protocolos de trabalho profundo.
-                </p>
+                <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 via-transparent to-tertiary/5 opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="relative z-10">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-on-surface-variant mb-4">Resumo</h3>
+                  {filteredCheckins.length === 0 ? (
+                    <p className="text-sm text-on-surface-variant opacity-40">Faça seu primeiro check-in para ver seu resumo aqui.</p>
+                  ) : (
+                    <p className="text-sm text-on-surface-variant leading-relaxed">
+                      {filteredCheckins.length === 1
+                        ? `Você realizou 1 registro neste período. Continue acompanhando para ver tendências ao longo do tempo.`
+                        : avgValence !== null && avgValence >= 70
+                        ? `Você manteve bem-estar elevado (média ${avgValence}/100) ao longo de ${filteredCheckins.length} registros. Continue assim.`
+                        : avgValence !== null && avgValence >= 45
+                        ? `Seu bem-estar ficou equilibrado (média ${avgValence}/100) em ${filteredCheckins.length} registros. Atenção às variações.`
+                        : `Período com alguns momentos de dificuldade (média ${avgValence}/100). Considere conversar com um orientador.`
+                      }
+                    </p>
+                  )}
+                </div>
               </motion.div>
             </div>
 

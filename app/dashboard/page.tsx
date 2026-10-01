@@ -22,7 +22,7 @@ export default function DashboardPage() {
   const [guardianBannerDismissed, setGuardianBannerDismissed] = useState(false);
 
   const [metrics, setMetrics] = useState({
-    latestValence: 75,
+    latestValence: null as number | null,
     checkinsCount: 0,
     journalCount: 0,
   });
@@ -47,7 +47,7 @@ export default function DashboardPage() {
     const latestValence = checkins.length > 0 ? checkins[0].valence_value : 75;
 
     setMetrics({
-      latestValence,
+      latestValence: checkins.length > 0 ? checkins[0].valence_value : null,
       checkinsCount: checkins.length,
       journalCount: journalRes.count || 0,
     });
@@ -208,8 +208,14 @@ export default function DashboardPage() {
                   <span className="material-symbols-outlined text-secondary opacity-50 group-hover:opacity-100 transition-opacity">vital_signs</span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extralight text-on-surface">{metrics.latestValence}</span>
-                  <span className="text-sm text-on-surface-variant opacity-40">/100</span>
+                  {metrics.latestValence !== null ? (
+                    <>
+                      <span className="text-5xl font-extralight text-on-surface">{metrics.latestValence}</span>
+                      <span className="text-sm text-on-surface-variant opacity-40">/100</span>
+                    </>
+                  ) : (
+                    <span className="text-lg text-on-surface-variant opacity-30">Nenhum registro ainda</span>
+                  )}
                 </div>
               </div>
               <div className="mt-8 h-20 flex items-end gap-1">
@@ -298,47 +304,65 @@ export default function DashboardPage() {
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Protocol Card 1 */}
+              {/* Card 1 — Check-in rápido */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
                 className="group cursor-pointer"
+                onClick={() => router.push('/dashboard/checkin')}
+                role="button"
+                aria-label="Ir para o check-in emocional"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && router.push('/dashboard/checkin')}
               >
-                <div className="aetheric-glass rounded-[40px] p-8 flex gap-8 items-center transition-all duration-500 group-hover:bg-white/[0.04]">
+                <div className="aetheric-glass rounded-[40px] p-8 flex gap-8 items-center transition-all duration-500 group-hover:bg-white/[0.04] group-hover:border-secondary/20">
                   <div className="w-32 h-32 rounded-3xl overflow-hidden bg-surface-container flex-shrink-0 border border-white/5 relative">
-                    <img src="/protocol_synapse.png" alt="Clareza Sináptica" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-br from-secondary/20 to-transparent"></div>
+                    <img src="/protocol_synapse.png" alt="" aria-hidden="true" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-secondary/20 to-transparent" />
                   </div>
 
                   <div className="flex flex-col flex-1">
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-xl font-medium text-on-surface">Clareza Sináptica</h4>
-                      <span className="px-3 py-1 bg-secondary/10 text-secondary text-[10px] font-semibold uppercase tracking-[0.15em] rounded-full border border-secondary/20">ATIVO</span>
+                      <h4 className="text-xl font-medium text-on-surface">Check-in Emocional</h4>
+                      <span className="px-3 py-1 bg-secondary/10 text-secondary text-[10px] font-semibold uppercase tracking-[0.15em] rounded-full border border-secondary/20">
+                        {metrics.checkinsCount > 0 ? `${metrics.checkinsCount} feitos` : 'INICIAR'}
+                      </span>
                     </div>
-                    <p className="text-sm text-on-surface-variant opacity-70 mb-6">Supressão de fundo neural engajada para maximizar o rendimento do trabalho profundo.</p>
+                    <p className="text-sm text-on-surface-variant opacity-70 mb-4">Registre como você está agora. Leva menos de 1 minuto e alimenta sua análise de bem-estar.</p>
+                    <span className="text-xs font-semibold uppercase tracking-[0.15em] text-secondary opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                      Fazer check-in <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </span>
                   </div>
                 </div>
               </motion.div>
 
-              {/* Protocol Card 2 */}
+              {/* Card 2 — Análise Emocional */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.9 }}
                 className="group cursor-pointer"
+                onClick={() => router.push('/dashboard/analyze')}
+                role="button"
+                aria-label="Ir para análise emocional"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && router.push('/dashboard/analyze')}
               >
-                <div className="aetheric-glass rounded-[40px] p-8 flex gap-8 items-center transition-all duration-500 group-hover:bg-white/[0.04]">
+                <div className="aetheric-glass rounded-[40px] p-8 flex gap-8 items-center transition-all duration-500 group-hover:bg-white/[0.04] group-hover:border-tertiary/20">
                   <div className="w-32 h-32 rounded-3xl overflow-hidden bg-surface-container flex-shrink-0 border border-white/5 relative">
-                    <img src="/protocol_resonance.png" alt="Mudança de Ressonância" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-br from-tertiary/20 to-transparent"></div>
+                    <img src="/protocol_resonance.png" alt="" aria-hidden="true" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-tertiary/20 to-transparent" />
                   </div>
                   <div className="flex flex-col flex-1">
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-xl font-medium text-on-surface">Mudança de Ressonância</h4>
-                      <span className="px-3 py-1 bg-surface-variant text-on-surface-variant text-[10px] font-semibold uppercase tracking-[0.15em] rounded-full border border-white/10">ESPERA</span>
+                      <h4 className="text-xl font-medium text-on-surface">Análise com IA</h4>
+                      <span className="px-3 py-1 bg-surface-variant text-on-surface-variant text-[10px] font-semibold uppercase tracking-[0.15em] rounded-full border border-white/10">DISPONÍVEL</span>
                     </div>
-                    <p className="text-sm text-on-surface-variant opacity-70 mb-6">Ajuste de humor ambiente programado para fase de pôr do sol circadiano.</p>
+                    <p className="text-sm text-on-surface-variant opacity-70 mb-4">Descreva como está se sentindo em texto livre. A IA identifica padrões e sugere apoio contextualizado.</p>
+                    <span className="text-xs font-semibold uppercase tracking-[0.15em] text-tertiary opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                      Iniciar análise <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </span>
                   </div>
                 </div>
               </motion.div>

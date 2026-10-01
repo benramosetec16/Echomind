@@ -118,7 +118,14 @@ Não inclua nenhuma introdução ou texto fora do JSON. Certifique-se de que o c
       throw new Error("Resposta vazia da IA");
     }
 
-    const parsed = JSON.parse(responseContent);
+    let parsed;
+    try {
+      const clean = responseContent.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const match = clean.match(/\{[\s\S]*\}/);
+      parsed = JSON.parse(match ? match[0] : clean);
+    } catch {
+      throw new Error("Não foi possível interpretar a resposta da IA.");
+    }
 
     // Consulta aos vídeos recomendados
     

@@ -35,6 +35,7 @@ export default function CheckinPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [checkinSaved, setCheckinSaved] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showLibrasCapture, setShowLibrasCapture] = useState(false);
 
@@ -86,14 +87,18 @@ export default function CheckinPage() {
     if (result?.error) {
       setErrorMsg(result.error);
       setIsSubmitting(false);
-    } else if (result?.insight) {
-      setAiInsight(result.insight);
+    } else if (result?.success) {
+      setCheckinSaved(true);
+      setAiInsight(result.insight || null);
       setIsSubmitting(false);
+      // Increment local counter
+      setCheckinCount(prev => prev !== null ? prev + 1 : 1);
     }
   };
 
   const resetForm = () => {
     setAiInsight(null);
+    setCheckinSaved(false);
     setThoughts('');
     setValenceValue(50);
   }
@@ -130,8 +135,8 @@ export default function CheckinPage() {
           </header>
 
           <AnimatePresence mode="wait">
-            {aiInsight ? (
-              /* AI Insight Reveal View */
+            {checkinSaved ? (
+              /* Success / AI Insight View */
               <motion.div 
                 key="insight"
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -144,21 +149,42 @@ export default function CheckinPage() {
                   initial={{ rotate: -90, opacity: 0 }}
                   animate={{ rotate: 0, opacity: 1 }}
                   transition={{ delay: 0.2, duration: 1 }}
-                  className="w-16 h-16 rounded-full bg-secondary/10 border border-secondary/30 flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(159,207,213,0.3)]"
+                  className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(34,197,94,0.2)]"
                 >
-                  <Sparkles className="w-8 h-8 text-secondary" />
+                  <span className="material-symbols-outlined text-green-400 text-3xl">check_circle</span>
                 </motion.div>
-                
-                <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-secondary mb-6">Análise da IA</h2>
-                
-                <motion.p 
-                  initial={{ y: 20, opacity: 0 }}
+
+                <motion.p
+                  initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.6, duration: 1 }}
-                  className="text-3xl md:text-4xl font-light leading-relaxed text-on-surface mb-12 tracking-tight"
+                  transition={{ delay: 0.3 }}
+                  className="text-xs font-semibold uppercase tracking-[0.3em] text-green-400 mb-2"
                 >
-                  "{aiInsight}"
+                  Check-in salvo com sucesso
                 </motion.p>
+
+                {aiInsight ? (
+                  <>
+                    <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-secondary mb-6">Análise da IA</h2>
+                    <motion.p 
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.6, duration: 1 }}
+                      className="text-3xl md:text-4xl font-light leading-relaxed text-on-surface mb-12 tracking-tight"
+                    >
+                      &ldquo;{aiInsight}&rdquo;
+                    </motion.p>
+                  </>
+                ) : (
+                  <motion.p
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="text-base text-on-surface-variant opacity-60 mb-12 max-w-md"
+                  >
+                    Seu registro foi salvo. A análise da IA está sendo processada em segundo plano.
+                  </motion.p>
+                )}
 
                 <motion.button 
                   initial={{ opacity: 0 }}
@@ -167,7 +193,7 @@ export default function CheckinPage() {
                   onClick={resetForm}
                   className="text-xs uppercase tracking-[0.2em] font-semibold text-on-surface-variant hover:text-secondary transition-colors"
                 >
-                  Retornar ao Santuário
+                  Novo Check-in
                 </motion.button>
               </motion.div>
             ) : (
@@ -279,6 +305,8 @@ export default function CheckinPage() {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.6 + (index * 0.1) }}
                           onClick={() => setSelectedTexture(texture.id)}
+                          aria-label={`Selecionar textura: ${texture.name} — ${texture.desc}`}
+                          aria-pressed={isSelected}
                           className={`glass-panel group p-6 flex flex-col items-start gap-6 rounded-xl transition-all duration-500 text-left ${
                             isSelected ? 'border-secondary/40 bg-secondary/5' : 'hover:border-secondary/40'
                           }`}
@@ -346,6 +374,7 @@ export default function CheckinPage() {
                     >
                       <span className="material-symbols-outlined text-sm">sign_language</span>
                       Usar Libras
+                      <span className="ml-1 px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider bg-tertiary/10 text-tertiary border border-tertiary/20">Experimental</span>
                     </button>
                   </motion.div>
                 </section>
