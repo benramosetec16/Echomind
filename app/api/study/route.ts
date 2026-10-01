@@ -107,9 +107,9 @@ Não inclua nenhuma introdução ou texto fora do JSON. Certifique-se de que o c
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
       ],
-      model: 'openai/gpt-oss-20b',
+      model: 'llama-3.3-70b-versatile',
       temperature: 0.4,
-      response_format: { type: 'json_object' }
+      
     });
 
     const responseContent = chatCompletion.choices[0]?.message?.content;
@@ -144,3 +144,4 @@ Não inclua nenhuma introdução ou texto fora do JSON. Certifique-se de que o c
     return NextResponse.json({ error: 'Ocorreu um erro ao processar sua solicitação.' }, { status: 500 });
   }
 }
+

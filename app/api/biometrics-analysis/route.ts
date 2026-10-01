@@ -65,14 +65,26 @@ Retorne APENAS JSON no formato:
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "system", content: systemPrompt }],
-      model: "openai/gpt-oss-20b",
-      response_format: { type: 'json_object' },
+      model: "llama-3.3-70b-versatile",
       temperature: 0.2,
       max_tokens: 1000,
     });
 
     const responseContent = chatCompletion.choices[0]?.message?.content || "{}";
-    const analise = JSON.parse(responseContent);
+    let analise;
+    try {
+      const clean = responseContent.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const match = clean.match(/\{[\s\S]*\}/);
+      analise = JSON.parse(match ? match[0] : clean);
+    } catch (e) {
+      analise = { 
+        resumo: "Erro ao interpretar resposta da IA.", 
+        tendencias: "Indefinido", 
+        fatores_atencao: [], 
+        recomendacoes: [], 
+        nivel_risco: "Baixo" 
+      };
+    }
 
     return NextResponse.json(analise);
   } catch (error: any) {
