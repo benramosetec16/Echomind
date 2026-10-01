@@ -65,7 +65,7 @@ Retorne APENAS JSON no formato:
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "system", content: systemPrompt }],
-      model: "llama3-8b-8192",
+      model: "openai/gpt-oss-20b",
       temperature: 0.2,
       max_tokens: 1000,
     });
@@ -107,5 +107,6 @@ Retorne APENAS JSON no formato:
     return NextResponse.json({ error: `${error.message || "Erro desconhecido"}. ${availableModels}` }, { status: 500 });
   }
 }
+
 
 

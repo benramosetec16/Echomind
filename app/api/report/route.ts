@@ -132,7 +132,7 @@ Gere um JSON estrito no formato:
 
         const chatCompletion = await groq.chat.completions.create({
           messages: [{ role: 'system', content: prompt }],
-          model: 'llama3-8b-8192',
+          model: 'openai/gpt-oss-20b',
           
           temperature: 0.3,
           max_tokens: 800,
@@ -268,7 +268,7 @@ Não cite dados individuais. Retorne APENAS um objeto JSON válido, no seguinte 
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'system', content: systemPrompt }],
-      model: 'llama3-8b-8192',
+      model: 'openai/gpt-oss-20b',
       
       temperature: 0.2,
       max_tokens: 1500,
@@ -294,6 +294,7 @@ Não cite dados individuais. Retorne APENAS um objeto JSON válido, no seguinte 
     return NextResponse.json({ error: error.message || 'Erro desconhecido ao gerar relatório.' }, { status: 500 });
   }
 }
+
 
 
 

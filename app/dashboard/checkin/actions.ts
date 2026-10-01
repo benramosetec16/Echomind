@@ -80,7 +80,7 @@ export async function transmitAura(payload: { valenceValue: number; texture: str
         ],
         model: 'openai/gpt-oss-20b',
         temperature: 0.7,
-        response_format: { type: 'json_object' }
+        
       });
 
       const aiResponse = chatCompletion.choices[0]?.message?.content;
@@ -220,3 +220,4 @@ export async function updateUserBindings(data: {
 
   return { success: true };
 }
+

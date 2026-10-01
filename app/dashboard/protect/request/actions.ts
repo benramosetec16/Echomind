@@ -96,7 +96,7 @@ Responda APENAS com JSON válido:
         ],
         model: 'openai/gpt-oss-20b',
         temperature: 0.3,
-        response_format: { type: 'json_object' },
+        
       });
 
       const aiResponse = completion.choices[0]?.message?.content;
@@ -375,3 +375,4 @@ export async function updateProtectRequestStatus({
 
   return { success: true };
 }
+

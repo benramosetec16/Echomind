@@ -78,7 +78,7 @@ As respostas devem ser informativas, empáticas e não devem fornecer diagnósti
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: 'llama3-8b-8192',
+      model: 'openai/gpt-oss-20b',
       temperature: 0.5,
     });
 
@@ -104,6 +104,7 @@ As respostas devem ser informativas, empáticas e não devem fornecer diagnósti
     return NextResponse.json({ error: error.message || 'Erro interno no servidor' }, { status: 500 });
   }
 }
+
 
 
 

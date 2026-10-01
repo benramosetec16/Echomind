@@ -136,7 +136,7 @@ Gere um JSON estrito:
 
         const chatCompletion = await groq.chat.completions.create({
           messages: [{ role: 'system', content: prompt }],
-          model: 'llama3-8b-8192',
+          model: 'openai/gpt-oss-20b',
           
           temperature: 0.3,
           max_tokens: 600,
@@ -181,6 +181,7 @@ Gere um JSON estrito:
     return NextResponse.json({ error: err.message || 'Erro ao gerar relatório do orientador.' }, { status: 500 });
   }
 }
+
 
 
 

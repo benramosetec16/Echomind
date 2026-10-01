@@ -107,7 +107,7 @@ Não inclua nenhuma introdução ou texto fora do JSON. Certifique-se de que o c
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
       ],
-      model: 'llama3-8b-8192',
+      model: 'openai/gpt-oss-20b',
       temperature: 0.4,
       
     });
@@ -144,6 +144,7 @@ Não inclua nenhuma introdução ou texto fora do JSON. Certifique-se de que o c
     return NextResponse.json({ error: 'Ocorreu um erro ao processar sua solicitação.' }, { status: 500 });
   }
 }
+
 
 
 
