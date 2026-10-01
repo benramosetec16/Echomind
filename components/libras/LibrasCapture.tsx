@@ -39,6 +39,7 @@ export default function LibrasCapture({
   >(null);
   const [confidenceScore, setConfidenceScore] = useState<number | undefined>(undefined);
   const [hasHands, setHasHands] = useState(false);
+  const [modelLoading, setModelLoading] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -432,6 +433,14 @@ export default function LibrasCapture({
                     </span>
                   </div>
 
+                  {/* Model Loading Overlay */}
+                  {modelLoading && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+                      <div className="w-10 h-10 border-2 border-secondary/30 border-t-secondary rounded-full animate-spin mb-3" />
+                      <p className="text-xs text-secondary font-semibold uppercase tracking-widest">Carregando IA...</p>
+                    </div>
+                  )}
+
                   {/* Recording Frame Border */}
                   {state === 'recording' && (
                     <div className="absolute inset-0 border-4 border-red-500/80 rounded-2xl pointer-events-none animate-pulse" />
@@ -496,6 +505,13 @@ export default function LibrasCapture({
                   canvasRef={canvasRef}
                   onLandmarksUpdate={handleLandmarksUpdate}
                   onFrameUpdate={handleFrameUpdate}
+                  onModelLoading={setModelLoading}
+                  onError={(msg) => {
+                    stopCamera();
+                    setErrorType('technical_error');
+                    setErrorMessage(msg);
+                    setState('error');
+                  }}
                   isActive={isVideoActive}
                 />
               </motion.div>

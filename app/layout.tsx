@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 import { AccessibilityProvider } from "@/components/AccessibilityProvider";
+import VLibrasWidget from "@/components/VLibrasWidget";
 
 const hankenGrotesk = Hanken_Grotesk({
   variable: "--font-hanken",
@@ -32,6 +33,7 @@ export default function RootLayout({
         <AccessibilityProvider>
           {children}
         </AccessibilityProvider>
+        <VLibrasWidget />
       </body>
     </html>
   );
