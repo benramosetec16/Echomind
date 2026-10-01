@@ -147,7 +147,7 @@ export default function LoginPage() {
       <button 
         type="button"
         onClick={toggleLanguage}
-        className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/30 px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider transition-all duration-300"
+        className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-surface-container-low/50 hover:bg-surface-container-low border border-white/5 px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider text-on-surface-variant transition-all duration-300 backdrop-blur-md"
       >
         <Languages className="w-4 h-4" />
         {locale.toUpperCase()}
@@ -162,9 +162,9 @@ export default function LoginPage() {
             className="fixed inset-0 z-50 flex items-center justify-center bg-background"
           >
             <motion.div
-              animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.8, 0.3] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute w-64 h-64 rounded-full bg-secondary/10 blur-[60px]"
+              animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.4, 0.1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute w-64 h-64 rounded-full bg-primary/20 blur-[60px]"
             />
             <motion.h1
               initial={{ opacity: 0, scale: 0.9 }}
@@ -181,8 +181,8 @@ export default function LoginPage() {
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div
           ref={glowRef}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full transition-transform duration-75 ease-out"
-          style={{ background: 'radial-gradient(circle at 50% 50%, rgba(159, 207, 213, 0.08) 0%, rgba(18, 20, 20, 0) 70%)' }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full transition-transform duration-75 ease-out opacity-60"
+          style={{ background: 'radial-gradient(circle at 50% 50%, rgba(91, 124, 255, 0.08) 0%, rgba(138, 108, 255, 0.04) 30%, rgba(8, 11, 18, 0) 70%)' }}
         />
       </div>
 
@@ -190,7 +190,7 @@ export default function LoginPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: isLoading ? 0 : 1 }}
         transition={{ duration: 1, delay: 0.2 }}
-        className="relative z-10 w-full max-w-[420px] mx-auto min-h-screen flex flex-col items-center justify-center px-6"
+        className="relative z-10 w-full max-w-[400px] mx-auto min-h-[100dvh] flex flex-col items-center justify-center px-6 py-12"
       >
         <header className="text-center mb-8 mt-12">
           <motion.div
@@ -209,7 +209,7 @@ export default function LoginPage() {
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 2.2, duration: 0.8 }}
-            className="text-5xl font-extralight tracking-tighter text-primary mb-2"
+            className="text-4xl font-light tracking-tighter bg-gradient-to-r from-primary to-tertiary bg-clip-text text-transparent mb-2"
           >
             EchoMind
           </motion.h1>
@@ -227,7 +227,7 @@ export default function LoginPage() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 2.6, duration: 0.8 }}
-          className="glass-panel w-full rounded-[24px] p-10 relative overflow-hidden"
+          className="w-full rounded-[24px] p-8 sm:p-10 relative overflow-hidden bg-surface-container-low/40 backdrop-blur-3xl border border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.4),0_0_40px_rgba(91,124,255,0.03)]"
         >
           <AnimatePresence mode="popLayout">
             {errorMsg && (
@@ -248,9 +248,9 @@ export default function LoginPage() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="absolute top-0 left-0 right-0 bg-secondary/10 border-b border-secondary/20 p-3 flex items-center justify-center gap-2"
+                className="absolute top-0 left-0 right-0 bg-green-500/10 border-b border-green-500/20 p-3 flex items-center justify-center gap-2"
               >
-                <span className="text-[10px] text-secondary font-medium tracking-wider text-center px-2">{successMsg}</span>
+                <span className="text-[10px] text-green-400 font-medium tracking-wider text-center px-2">{successMsg}</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -352,7 +352,7 @@ export default function LoginPage() {
                     Frase-chave (Senha)
                   </label>
                   {mode === 'login' && (
-                    <button type="button" onClick={() => { setMode('forgot'); setErrorMsg(null); setSuccessMsg(null); }} className="text-[9px] uppercase tracking-wider text-secondary opacity-70 hover:opacity-100 transition-opacity">
+                    <button type="button" onClick={() => { setMode('forgot'); setErrorMsg(null); setSuccessMsg(null); }} className="text-[9px] uppercase tracking-wider text-primary opacity-70 hover:opacity-100 transition-opacity">
                       {t[locale].forgotPass}
                     </button>
                   )}
@@ -417,10 +417,10 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={status !== 'idle'}
-              className={`cyan-ice-ghost w-full py-4 rounded-xl text-[11px] uppercase tracking-[0.2em] font-semibold mt-4 transition-all duration-300 ${
-                status === 'idle' ? 'text-secondary hover:border-secondary/60' : 
-                status === 'validating' ? 'text-secondary opacity-50' : 
-                'bg-secondary/10 text-secondary border-secondary/30 shadow-[0_0_20px_rgba(159,207,213,0.2)]'
+              className={`w-full py-4 rounded-xl text-[11px] uppercase tracking-[0.2em] font-bold mt-6 transition-all duration-300 relative overflow-hidden ${
+                status === 'idle' ? 'bg-gradient-to-r from-primary to-tertiary text-white shadow-[0_0_20px_rgba(91,124,255,0.15)] hover:shadow-[0_0_30px_rgba(91,124,255,0.3)] hover:brightness-110 active:scale-[0.98]' : 
+                status === 'validating' ? 'bg-primary/40 text-white/60 cursor-not-allowed shadow-none' : 
+                'bg-green-500/20 text-green-400 border border-green-500/30 shadow-[0_0_20px_rgba(34,197,94,0.1)]'
               }`}
             >
               {status === 'idle' && getButtonLabel()}
@@ -444,8 +444,8 @@ export default function LoginPage() {
                 onClick={handleBiometricClick}
                 className="flex items-center gap-3 text-on-surface-variant hover:text-secondary transition-colors group mt-2"
               >
-                <Fingerprint className="w-5 h-5 text-secondary pulse-effect" />
-                <span className="text-[10px] uppercase tracking-[0.15em] font-semibold">{t[locale].biometric}</span>
+                <Fingerprint className="w-5 h-5 text-secondary/60 pulse-slow group-hover:text-secondary transition-colors" />
+                <span className="text-[10px] uppercase tracking-[0.15em] font-semibold opacity-70 group-hover:opacity-100 transition-opacity">{t[locale].biometric}</span>
               </button>
             </div>
           </form>
@@ -469,7 +469,7 @@ export default function LoginPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-surface-container border border-secondary/20 px-5 py-3 rounded-full shadow-[0_0_30px_rgba(159,207,213,0.15)]"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-surface-container-low/90 backdrop-blur-md border border-white/5 px-5 py-3 rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
           >
             <Fingerprint className="w-4 h-4 text-secondary" />
             <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-on-surface-variant">
