@@ -89,7 +89,22 @@ Retorne APENAS JSON no formato:
     return NextResponse.json(analise);
   } catch (error: any) {
     console.error("Biometrics AI Analysis Error:", error);
-    return NextResponse.json({ error: error.message || "Erro desconhecido ao gerar a análise da Groq." }, { status: 500 });
+    
+    // Fetch available models to diagnose the issue
+    let availableModels = '';
+    try {
+      const apiKey = process.env.GROQ_API_KEY;
+      if (apiKey) {
+        const res = await fetch('https://api.groq.com/openai/v1/models', { headers: { Authorization: `Bearer ${apiKey}` } });
+        const data = await res.json();
+        const models = (data.data ?? []).map((m: any) => m.id).join(', ');
+        availableModels = `Modelos disponíveis na sua conta: ${models}`;
+      }
+    } catch (e) {
+      availableModels = 'Não foi possível buscar a lista de modelos.';
+    }
+
+    return NextResponse.json({ error: `${error.message || "Erro desconhecido"}. ${availableModels}` }, { status: 500 });
   }
 }
 
