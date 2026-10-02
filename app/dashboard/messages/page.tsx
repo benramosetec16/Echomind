@@ -251,7 +251,7 @@ export default function MessagesPage() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="aetheric-glass rounded-[28px] p-6 flex flex-col gap-6"
+                className="aetheric-glass rounded-2xl p-6 flex flex-col gap-6"
               >
                 {/* Pendentes */}
                 {pendingSessions.length > 0 && (
@@ -402,7 +402,7 @@ export default function MessagesPage() {
             <motion.div
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="aetheric-glass rounded-[32px] p-6 flex flex-col overflow-hidden relative"
+              className="aetheric-glass rounded-2xl p-6 flex flex-col overflow-hidden relative"
               style={{ minHeight: '50vh' }}
             >
               {loading ? (
@@ -480,7 +480,7 @@ export default function MessagesPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-surface-container border border-white/10 rounded-3xl p-8 w-full max-w-md shadow-2xl"
+              className="bg-surface-container border border-white/10 rounded-2xl p-8 w-full max-w-md shadow-2xl"
             >
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center">

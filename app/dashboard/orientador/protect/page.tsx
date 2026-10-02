@@ -150,7 +150,7 @@ export default function OrientadorProtectPage() {
               {loading ? (
                 <div className="text-center py-12 text-sm text-on-surface-variant animate-pulse">Carregando...</div>
               ) : requests.length === 0 ? (
-                <div className="aetheric-glass rounded-3xl p-8 text-center">
+                <div className="aetheric-glass rounded-2xl p-8 text-center">
                   <span className="material-symbols-outlined text-on-surface-variant text-3xl">check_circle</span>
                   <p className="text-sm text-on-surface-variant mt-2">Nenhuma solicitação recebida.</p>
                 </div>

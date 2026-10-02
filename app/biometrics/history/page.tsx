@@ -75,7 +75,7 @@ export default function BiometricsHistory() {
              </Link>
           </div>
           
-          <div className="max-w-[1200px] mx-auto w-full aetheric-glass rounded-[32px] p-8">
+          <div className="max-w-[1200px] mx-auto w-full aetheric-glass rounded-2xl p-8">
             <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
               <h2 className="text-xs uppercase tracking-[0.2em] font-semibold text-secondary flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">history</span>

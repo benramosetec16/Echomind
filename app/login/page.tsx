@@ -227,7 +227,7 @@ export default function LoginPage() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 2.6, duration: 0.8 }}
-          className="w-full rounded-[24px] p-8 sm:p-10 relative overflow-hidden bg-surface-container-low/40 backdrop-blur-3xl border border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.4),0_0_40px_rgba(91,124,255,0.03)]"
+          className="w-full rounded-2xl p-8 sm:p-10 relative overflow-hidden bg-surface-container-low/40 backdrop-blur-3xl border border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.4),0_0_40px_rgba(91,124,255,0.03)]"
         >
           <AnimatePresence mode="popLayout">
             {errorMsg && (

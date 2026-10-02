@@ -257,7 +257,7 @@ export default function AdminDashboard() {
           {/* System Stats */}
           <section className="max-w-[1200px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
             {systemStats.map((stat, i) => (
-              <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.1 }} className="aetheric-glass rounded-[24px] p-6 flex flex-col gap-3">
+              <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.1 }} className="aetheric-glass rounded-2xl p-6 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs uppercase tracking-[0.15em] text-on-surface-variant font-semibold">{stat.label}</span>
                   <span className="material-symbols-outlined text-secondary opacity-60 text-xl">{stat.icon}</span>
@@ -270,7 +270,7 @@ export default function AdminDashboard() {
 
           {/* Institutions Management */}
           <section className="max-w-[1200px] mx-auto mb-10">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="aetheric-glass rounded-[28px] p-8">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="aetheric-glass rounded-2xl p-8">
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <h3 className="text-lg font-light text-on-surface">Gestão de Instituições</h3>
@@ -342,7 +342,7 @@ export default function AdminDashboard() {
                 exit={{ opacity: 0, y: -10 }}
                 className="max-w-[1200px] mx-auto mb-10"
               >
-                <div className="aetheric-glass rounded-[28px] p-8 border border-secondary/20">
+                <div className="aetheric-glass rounded-2xl p-8 border border-secondary/20">
                   <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-secondary text-3xl">domain</span>
@@ -498,7 +498,7 @@ export default function AdminDashboard() {
 
           <div className="max-w-[1200px] mx-auto grid md:grid-cols-2 gap-8">
             {/* Role Distribution */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="aetheric-glass rounded-[28px] p-8">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="aetheric-glass rounded-2xl p-8">
               <h3 className="text-lg font-light text-on-surface mb-6">Distribuição de Perfis no Sistema</h3>
               <div className="flex flex-col gap-4">
                 {roleDist.map((role) => (
@@ -516,7 +516,7 @@ export default function AdminDashboard() {
             </motion.div>
 
             {/* Activity Log */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="aetheric-glass rounded-[28px] p-8">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="aetheric-glass rounded-2xl p-8">
               <h3 className="text-lg font-light text-on-surface mb-6">Log Geral em Tempo Real</h3>
               <div className="flex flex-col gap-4">
                 {loading ? (

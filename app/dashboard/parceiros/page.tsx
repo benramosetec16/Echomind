@@ -66,7 +66,7 @@ export default function ParceirosPage() {
               <motion.div
                 key={partner.id}
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.1 }}
-                className="aetheric-glass rounded-[32px] p-8 flex flex-col relative overflow-hidden group"
+                className="aetheric-glass rounded-2xl p-8 flex flex-col relative overflow-hidden group"
               >
                 {/* Decoration */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-secondary/50 to-transparent opacity-50" />
@@ -102,7 +102,7 @@ export default function ParceirosPage() {
           {/* Privacy Disclaimer */}
           <motion.section
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-            className="max-w-[1200px] mx-auto mt-16 p-6 border border-white/5 bg-white/[0.02] rounded-[24px] flex gap-4 items-start"
+            className="max-w-[1200px] mx-auto mt-16 p-6 border border-white/5 bg-white/[0.02] rounded-2xl flex gap-4 items-start"
           >
             <span className="material-symbols-outlined text-secondary opacity-60">info</span>
             <div>

@@ -45,7 +45,7 @@ export default function OnboardingModal({ onComplete }: Props) {
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-md aetheric-glass rounded-[28px] p-10"
+        className="w-full max-w-md aetheric-glass rounded-2xl p-10"
       >
         <div className="text-center mb-8">
           <span className="material-symbols-outlined text-secondary text-4xl block mb-3">domain</span>

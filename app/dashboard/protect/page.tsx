@@ -115,7 +115,7 @@ export default function ProtectPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                     onClick={() => setView('request')}
-                    className="aetheric-glass rounded-3xl p-6 text-left hover:border-secondary/30 transition-all border border-white/5 group"
+                    className="aetheric-glass rounded-2xl p-6 text-left hover:border-secondary/30 transition-all border border-white/5 group"
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-secondary/10 border border-secondary/20 group-hover:border-secondary/40 flex items-center justify-center flex-shrink-0 transition-colors">
@@ -138,7 +138,7 @@ export default function ProtectPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.15 }}
                     onClick={() => setView('history')}
-                    className="aetheric-glass rounded-3xl p-5 text-left hover:border-white/15 transition-all border border-white/5 group"
+                    className="aetheric-glass rounded-2xl p-5 text-left hover:border-white/15 transition-all border border-white/5 group"
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 group-hover:border-white/20 flex items-center justify-center flex-shrink-0 transition-colors">
@@ -159,7 +159,7 @@ export default function ProtectPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                     onClick={() => setView('prevention')}
-                    className="aetheric-glass rounded-3xl p-5 text-left hover:border-white/15 transition-all border border-white/5 group"
+                    className="aetheric-glass rounded-2xl p-5 text-left hover:border-white/15 transition-all border border-white/5 group"
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 group-hover:border-white/20 flex items-center justify-center flex-shrink-0 transition-colors">
@@ -188,7 +188,7 @@ export default function ProtectPage() {
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -30 }}
-                className="aetheric-glass rounded-3xl p-8"
+                className="aetheric-glass rounded-2xl p-8"
               >
                 <div className="flex items-center gap-3 mb-6">
                   <button
@@ -212,7 +212,7 @@ export default function ProtectPage() {
                 key="done"
                 initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="aetheric-glass rounded-3xl p-8 space-y-6 text-center"
+                className="aetheric-glass rounded-2xl p-8 space-y-6 text-center"
               >
                 <div className="flex justify-center">
                   <div className="w-16 h-16 rounded-full bg-secondary/10 border border-secondary/30 flex items-center justify-center">
@@ -292,7 +292,7 @@ export default function ProtectPage() {
                 {loadingHistory ? (
                   <div className="text-center py-12 text-sm text-on-surface-variant animate-pulse">Carregando...</div>
                 ) : requests.length === 0 ? (
-                  <div className="aetheric-glass rounded-3xl p-8 text-center space-y-3">
+                  <div className="aetheric-glass rounded-2xl p-8 text-center space-y-3">
                     <span className="material-symbols-outlined text-on-surface-variant text-3xl">inbox</span>
                     <p className="text-sm text-on-surface-variant">Nenhum pedido ainda.</p>
                   </div>

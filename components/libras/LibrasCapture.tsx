@@ -40,11 +40,14 @@ export default function LibrasCapture({
   const [confidenceScore, setConfidenceScore] = useState<number | undefined>(undefined);
   const [hasHands, setHasHands] = useState(false);
   const [modelLoading, setModelLoading] = useState(false);
+  const [isDebugMode, setIsDebugMode] = useState(false);
+  const [debugInfo, setDebugInfo] = useState({ fps: 0, hands: 0, frames: 0, gestureLabel: 'None' });
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const isRecordingRef = useRef(false);
+  const lastFrameTime = useRef(0);
   const recognizerRef = useRef<LibrasRecognizer>(new LibrasRecognizer());
   const classifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -154,9 +157,20 @@ export default function LibrasCapture({
   }, []);
 
   const handleFrameUpdate = useCallback((frame: HandFrame) => {
+    const now = performance.now();
+    const fps = lastFrameTime.current > 0 ? Math.round(1000 / (now - lastFrameTime.current)) : 0;
+    lastFrameTime.current = now;
+
     if (isRecordingRef.current) {
       recognizerRef.current.addFrame(frame);
     }
+    
+    setDebugInfo({
+      fps,
+      hands: frame.hands?.length || 0,
+      frames: recognizerRef.current.getFrameCount(),
+      gestureLabel: frame.hands && frame.hands.length > 0 ? (frame.hands[0].gestureLabel || 'None') : 'None'
+    });
   }, []);
 
   const handleStartRecording = useCallback(() => {
@@ -280,11 +294,17 @@ export default function LibrasCapture({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 16 }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
-        className="w-full max-w-xl bg-surface-container-low/95 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
+        className="w-full max-w-xl bg-surface-container-low/95 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/5 relative">
+          <button 
+            onClick={() => setIsDebugMode(p => !p)}
+            className="absolute top-2 left-3 text-[9px] font-mono text-white/20 hover:text-white/80 transition-colors z-50 px-1 py-0.5 rounded"
+          >
+            DEBUG
+          </button>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-secondary/10 border border-secondary/20 flex items-center justify-center">
               <span className="material-symbols-outlined text-secondary text-lg">
@@ -438,6 +458,17 @@ export default function LibrasCapture({
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-10">
                       <div className="w-10 h-10 border-2 border-secondary/30 border-t-secondary rounded-full animate-spin mb-3" />
                       <p className="text-xs text-secondary font-semibold uppercase tracking-widest">Carregando IA...</p>
+                    </div>
+                  )}
+
+                  {/* Debug Overlay */}
+                  {isDebugMode && (
+                    <div className="absolute top-10 left-3 bg-black/80 p-3 rounded-lg border border-green-500/30 font-mono text-[10px] text-green-400 z-20 flex flex-col gap-1 backdrop-blur-md pointer-events-none">
+                      <div>FPS: {debugInfo.fps}</div>
+                      <div>MÃOS: {debugInfo.hands}</div>
+                      <div>FRAMES (BUFFER): {debugInfo.frames}</div>
+                      <div>ML LABEL: {debugInfo.gestureLabel}</div>
+                      <div>STATE: {state}</div>
                     </div>
                   )}
 

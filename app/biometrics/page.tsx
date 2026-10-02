@@ -69,7 +69,7 @@ export default async function BiometricsDashboard() {
               {/* Status Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {cards.map((card, i) => (
-                  <div key={i} className="aetheric-glass rounded-[32px] p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700">
+                  <div key={i} className="aetheric-glass rounded-2xl p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700">
                     <div className="flex justify-between items-start mb-6">
                       <span className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant">{card.label}</span>
                       <span className="material-symbols-outlined text-secondary opacity-50 group-hover:opacity-100 transition-opacity">{card.icon}</span>
@@ -83,14 +83,14 @@ export default async function BiometricsDashboard() {
               </div>
 
               {/* Integration Placeholders */}
-              <div className="aetheric-glass rounded-[40px] p-8 flex flex-col justify-between">
+              <div className="aetheric-glass rounded-2xl p-8 flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-6">
                   <span className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant block">Integrações</span>
                   <span className="material-symbols-outlined text-secondary opacity-50">sync</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Apple HealthKit */}
-                  <div className="aetheric-glass rounded-3xl p-6 flex gap-4 items-center opacity-50 grayscale">
+                  <div className="aetheric-glass rounded-2xl p-6 flex gap-4 items-center opacity-50 grayscale">
                     <div className="w-12 h-12 rounded-2xl bg-surface-container flex items-center justify-center border border-white/5">
                       <span className="material-symbols-outlined text-on-surface">health_metrics</span>
                     </div>
@@ -101,7 +101,7 @@ export default async function BiometricsDashboard() {
                   </div>
                   
                   {/* Apple Watch */}
-                  <div className="aetheric-glass rounded-3xl p-6 flex gap-4 items-center opacity-50 grayscale">
+                  <div className="aetheric-glass rounded-2xl p-6 flex gap-4 items-center opacity-50 grayscale">
                     <div className="w-12 h-12 rounded-2xl bg-surface-container flex items-center justify-center border border-white/5">
                       <span className="material-symbols-outlined text-on-surface">watch</span>
                     </div>

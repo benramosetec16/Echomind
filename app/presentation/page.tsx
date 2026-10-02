@@ -67,7 +67,7 @@ export default function PresentationPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: idx * 0.1, duration: 0.5 }}
-              className="glass-panel p-8 rounded-3xl hover:border-white/10 transition-colors"
+              className="glass-panel p-8 rounded-2xl hover:border-white/10 transition-colors"
             >
               <feature.icon className="w-10 h-10 text-secondary mb-6" />
               <h3 className="text-xl font-medium text-white mb-3">{feature.title}</h3>

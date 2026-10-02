@@ -177,7 +177,7 @@ export default function LibrasHandTracker({
           isProcessingRef.current = true;
 
           try {
-            const results = recognizer.recognizeForVideo(video, Date.now());
+            const results = recognizer.recognizeForVideo(video, performance.now());
 
             const ctx = canvas.getContext('2d');
             if (ctx) {
@@ -215,13 +215,13 @@ export default function LibrasHandTracker({
 
               onLandmarksUpdateRef.current?.(allLandmarks);
               onFrameUpdateRef.current?.({
-                timestamp: Date.now(),
+                timestamp: performance.now(),
                 hands: detections,
               });
             } else {
               onLandmarksUpdateRef.current?.(null);
               onFrameUpdateRef.current?.({
-                timestamp: Date.now(),
+                timestamp: performance.now(),
                 hands: [],
               });
             }

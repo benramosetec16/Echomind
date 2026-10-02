@@ -77,7 +77,7 @@ export default function BiometricsInsights() {
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="glass-panel rounded-3xl p-8 hover:border-white/10 transition-colors md:col-span-2">
+        <div className="glass-panel rounded-2xl p-8 hover:border-white/10 transition-colors md:col-span-2">
           <h3 className="text-sm uppercase tracking-[0.15em] font-semibold mb-4 flex items-center justify-between text-secondary">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[18px]">psychology</span>
@@ -102,7 +102,7 @@ export default function BiometricsInsights() {
           )}
         </div>
 
-        <div className="glass-panel rounded-3xl p-8 hover:border-white/10 transition-colors">
+        <div className="glass-panel rounded-2xl p-8 hover:border-white/10 transition-colors">
           <h3 className="text-sm uppercase tracking-[0.15em] font-semibold mb-4 flex items-center gap-2 text-error">
             <span className="material-symbols-outlined text-[18px]">warning</span>
             FATORES DE ATENÇÃO
@@ -114,7 +114,7 @@ export default function BiometricsInsights() {
           </ul>
         </div>
 
-        <div className="glass-panel rounded-3xl p-8 hover:border-white/10 transition-colors">
+        <div className="glass-panel rounded-2xl p-8 hover:border-white/10 transition-colors">
           <h3 className="text-sm uppercase tracking-[0.15em] font-semibold mb-4 flex items-center gap-2 text-primary">
             <span className="material-symbols-outlined text-[18px]">lightbulb</span>
             RECOMENDAÇÕES PREVENTIVAS
@@ -142,7 +142,7 @@ export default function BiometricsInsights() {
 
           <div className="space-y-8 max-w-[1200px] mx-auto w-full">
             {/* Charts Section */}
-            <section className="aetheric-glass rounded-[32px] p-8 mb-8">
+            <section className="aetheric-glass rounded-2xl p-8 mb-8">
               <h2 className="text-xs uppercase tracking-[0.2em] font-semibold text-secondary mb-8 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">monitoring</span>
                 EVOLUÇÃO BIOMÉTRICA
@@ -157,7 +157,7 @@ export default function BiometricsInsights() {
             </section>
 
             {/* AI Insights Section */}
-            <section className="aetheric-glass rounded-[32px] p-8">
+            <section className="aetheric-glass rounded-2xl p-8">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-xs uppercase tracking-[0.2em] font-semibold text-tertiary flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px]">auto_awesome</span>

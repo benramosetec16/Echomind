@@ -119,7 +119,7 @@ export default function AccessibilityPage() {
         <main className="pt-24 px-6 max-w-4xl mx-auto space-y-6">
 
           {/* Visual Settings */}
-          <section className="bg-surface/50 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-md">
+          <section className="bg-surface/50 border border-white/5 rounded-2xl p-6 md:p-8 backdrop-blur-md">
             <h2 className="text-base font-semibold mb-1 flex items-center gap-2 text-on-surface">
               <span className="material-symbols-outlined text-secondary text-xl">visibility</span>
               Configurações Visuais
@@ -200,7 +200,7 @@ export default function AccessibilityPage() {
           </section>
 
           {/* Study AI Settings */}
-          <section className="bg-surface/50 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-md">
+          <section className="bg-surface/50 border border-white/5 rounded-2xl p-6 md:p-8 backdrop-blur-md">
             <h2 className="text-base font-semibold mb-1 flex items-center gap-2 text-on-surface">
               <span className="material-symbols-outlined text-secondary text-xl">school</span>
               Apoio aos Estudos
@@ -259,7 +259,7 @@ export default function AccessibilityPage() {
           </section>
 
           {/* Response Style */}
-          <section className="bg-surface/50 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-md">
+          <section className="bg-surface/50 border border-white/5 rounded-2xl p-6 md:p-8 backdrop-blur-md">
             <h2 className="text-base font-semibold mb-1 flex items-center gap-2 text-on-surface">
               <span className="material-symbols-outlined text-secondary text-xl">psychology</span>
               Estilo de Resposta da IA
@@ -318,7 +318,7 @@ export default function AccessibilityPage() {
           </section>
 
           {/* Check-in Settings */}
-          <section className="bg-surface/50 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-md">
+          <section className="bg-surface/50 border border-white/5 rounded-2xl p-6 md:p-8 backdrop-blur-md">
             <h2 className="text-base font-semibold mb-1 flex items-center gap-2 text-on-surface">
               <span className="material-symbols-outlined text-secondary text-xl">mood</span>
               Estilo do Check-in
@@ -390,7 +390,7 @@ export default function AccessibilityPage() {
           </section>
 
           {/* Libras Section */}
-          <section className="bg-surface/50 border border-secondary/10 rounded-3xl p-6 md:p-8 backdrop-blur-md">
+          <section className="bg-surface/50 border border-secondary/10 rounded-2xl p-6 md:p-8 backdrop-blur-md">
             <h2 className="text-base font-semibold mb-1 flex items-center gap-2">
               <span className="material-symbols-outlined text-secondary text-xl">sign_language</span>
               Libras — Recurso Experimental

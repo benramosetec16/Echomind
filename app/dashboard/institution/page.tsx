@@ -402,19 +402,19 @@ export default function InstitutionPage() {
 
           {/* Quick Metrics */}
           <section className="max-w-[1200px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
-            <div className="aetheric-glass rounded-[24px] p-6">
+            <div className="aetheric-glass rounded-2xl p-6">
               <span className="text-xs uppercase tracking-wider text-on-surface-variant">Salas Ativas</span>
               <h3 className="text-3xl font-light text-on-surface mt-2">{classrooms.length}</h3>
             </div>
-            <div className="aetheric-glass rounded-[24px] p-6">
+            <div className="aetheric-glass rounded-2xl p-6">
               <span className="text-xs uppercase tracking-wider text-on-surface-variant">Alunos</span>
               <h3 className="text-3xl font-light text-on-surface mt-2">{students.length}</h3>
             </div>
-            <div className="aetheric-glass rounded-[24px] p-6">
+            <div className="aetheric-glass rounded-2xl p-6">
               <span className="text-xs uppercase tracking-wider text-on-surface-variant">Professores</span>
               <h3 className="text-3xl font-light text-on-surface mt-2">{professors.length}</h3>
             </div>
-            <div className="aetheric-glass rounded-[24px] p-6">
+            <div className="aetheric-glass rounded-2xl p-6">
               <span className="text-xs uppercase tracking-wider text-on-surface-variant">Orientadores</span>
               <h3 className="text-3xl font-light text-on-surface mt-2">{orientadores.length}</h3>
             </div>
@@ -423,7 +423,7 @@ export default function InstitutionPage() {
           {/* Charts Section */}
           {students.length > 0 && (
             <section className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
-              <div className="aetheric-glass rounded-[28px] p-8 flex flex-col">
+              <div className="aetheric-glass rounded-2xl p-8 flex flex-col">
                 <h2 className="text-xl font-light text-on-surface mb-6">Média de Valência (7 dias)</h2>
                 <div className="h-[250px] w-full flex-grow">
                   <ResponsiveContainer width="100%" height="100%">
@@ -440,7 +440,7 @@ export default function InstitutionPage() {
                 </div>
               </div>
 
-              <div className="aetheric-glass rounded-[28px] p-8 flex flex-col">
+              <div className="aetheric-glass rounded-2xl p-8 flex flex-col">
                 <h2 className="text-xl font-light text-on-surface mb-6">Distribuição de Sentimentos</h2>
                 <div className="h-[250px] w-full flex-grow">
                   <ResponsiveContainer width="100%" height="100%">
@@ -461,7 +461,7 @@ export default function InstitutionPage() {
 
           {/* AI Institutional Intelligence Module */}
           <section className="max-w-[1200px] mx-auto mb-10">
-            <div className="aetheric-glass rounded-[28px] p-8 relative overflow-hidden">
+            <div className="aetheric-glass rounded-2xl p-8 relative overflow-hidden">
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h2 className="text-xl font-light text-on-surface mb-2 flex items-center gap-2">
@@ -574,7 +574,7 @@ export default function InstitutionPage() {
 
           {/* Classroom Management */}
           <section className="max-w-[1200px] mx-auto mb-10">
-            <div className="aetheric-glass rounded-[28px] p-8">
+            <div className="aetheric-glass rounded-2xl p-8">
               <h2 className="text-xl font-light text-on-surface mb-4">Gestão de Salas / Turmas</h2>
 
               <form onSubmit={handleCreateClassroom} className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
@@ -711,7 +711,7 @@ export default function InstitutionPage() {
 
           {/* Institutional Code Generator */}
           <section className="max-w-[1200px] mx-auto">
-            <div className="aetheric-glass rounded-[28px] p-8">
+            <div className="aetheric-glass rounded-2xl p-8">
               <h2 className="text-xl font-light text-on-surface mb-4">Geração de Códigos Institucionais</h2>
 
               <form onSubmit={handleGenerateCode} className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
@@ -815,7 +815,7 @@ export default function InstitutionPage() {
 
           {/* Members Management */}
           <section className="max-w-[1200px] mx-auto mb-10">
-            <div className="aetheric-glass rounded-[28px] p-8">
+            <div className="aetheric-glass rounded-2xl p-8">
               <h2 className="text-xl font-light text-on-surface mb-6">Membros da Instituição</h2>
               
               <div className="flex flex-col gap-8">

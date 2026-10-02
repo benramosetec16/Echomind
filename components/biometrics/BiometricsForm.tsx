@@ -44,7 +44,7 @@ export default function BiometricsForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="relative z-10 aetheric-glass rounded-[32px] p-10 overflow-hidden">
+    <form onSubmit={handleSubmit} className="relative z-10 aetheric-glass rounded-2xl p-10 overflow-hidden">
       <h2 className="text-sm uppercase tracking-[0.2em] font-semibold text-secondary mb-8 block">
         Novo Registro Biométrico
       </h2>

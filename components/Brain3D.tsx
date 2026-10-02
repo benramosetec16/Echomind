@@ -88,7 +88,7 @@ export default function Brain3D({ initialStatus = 'neutral', className = '' }: B
           <motion.div 
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm rounded-3xl"
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm rounded-2xl"
           >
             <div className="w-12 h-12 border-2 border-secondary/20 border-t-secondary rounded-full animate-spin mb-4" />
             <span className="text-secondary text-xs uppercase tracking-widest font-semibold animate-pulse">

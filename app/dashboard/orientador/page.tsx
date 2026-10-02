@@ -332,19 +332,19 @@ export default function OrientadorDashboard() {
 
           {/* Quick Metrics */}
           <section className="max-w-[1200px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
-            <div className="aetheric-glass rounded-[24px] p-6">
+            <div className="aetheric-glass rounded-2xl p-6">
               <span className="text-xs uppercase tracking-wider text-on-surface-variant">Alunos Vinculados</span>
               <h3 className="text-3xl font-light text-on-surface mt-2">{loading ? '...' : stats.emObservacao}</h3>
             </div>
-            <div className="aetheric-glass rounded-[24px] p-6">
+            <div className="aetheric-glass rounded-2xl p-6">
               <span className="text-xs uppercase tracking-wider text-on-surface-variant">Alertas de Risco</span>
               <h3 className="text-3xl font-light text-red-400 mt-2">{loading ? '...' : stats.riscoElevado}</h3>
             </div>
-            <div className="aetheric-glass rounded-[24px] p-6">
+            <div className="aetheric-glass rounded-2xl p-6">
               <span className="text-xs uppercase tracking-wider text-on-surface-variant">Intervenções</span>
               <h3 className="text-3xl font-light text-secondary mt-2">{loading ? '...' : stats.intervencoes}</h3>
             </div>
-            <div className="aetheric-glass rounded-[24px] p-6">
+            <div className="aetheric-glass rounded-2xl p-6">
               <span className="text-xs uppercase tracking-wider text-on-surface-variant">Sessões</span>
               {loading ? (
                 <h3 className="text-3xl font-light text-yellow-400 mt-2">...</h3>
@@ -365,7 +365,7 @@ export default function OrientadorDashboard() {
 
           {/* Intervention Creator */}
           <section className="max-w-[1200px] mx-auto mb-10">
-            <div className="aetheric-glass rounded-[28px] p-8">
+            <div className="aetheric-glass rounded-2xl p-8">
               <h2 className="text-xl font-light text-on-surface mb-4">Registrar Nova Intervenção</h2>
               <form onSubmit={handleCreateIntervention} className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <select
@@ -410,7 +410,7 @@ export default function OrientadorDashboard() {
 
           {/* Student Watchlist */}
           <section className="max-w-[1200px] mx-auto mb-10">
-            <div className="aetheric-glass rounded-[28px] p-8">
+            <div className="aetheric-glass rounded-2xl p-8">
               <h2 className="text-xl font-light text-on-surface mb-6">Lista de Observação Emocional</h2>
 
               {loading ? (
@@ -472,7 +472,7 @@ export default function OrientadorDashboard() {
           {/* Interventions List */}
           {interventions.length > 0 && (
             <section className="max-w-[1200px] mx-auto mb-10">
-              <div className="aetheric-glass rounded-[28px] p-8">
+              <div className="aetheric-glass rounded-2xl p-8">
                 <h2 className="text-xl font-light text-on-surface mb-6">Histórico de Intervenções</h2>
                 <div className="space-y-3">
                   {interventions.map(interv => (
@@ -523,7 +523,7 @@ export default function OrientadorDashboard() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-surface-container border border-white/10 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"
+              className="bg-surface-container border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"
             >
               <div className="p-6 md:p-8 border-b border-white/5 flex justify-between items-start bg-surface-container-highest/30">
                 <div>

@@ -200,7 +200,7 @@ export default function AlertsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className={`lg:col-span-8 aetheric-glass rounded-3xl p-8 overflow-hidden relative transition-all duration-500 ${
+              className={`lg:col-span-8 aetheric-glass rounded-2xl p-8 overflow-hidden relative transition-all duration-500 ${
                 activeAlert ? (activeAlert.type === 'critical' ? 'border-error/30 shadow-[0_0_30px_rgba(255,180,171,0.1)]' : 'border-tertiary/30') : ''
               }`}
             >
@@ -263,7 +263,7 @@ export default function AlertsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="lg:col-span-4 aetheric-glass rounded-3xl p-8 flex flex-col"
+              className="lg:col-span-4 aetheric-glass rounded-2xl p-8 flex flex-col"
             >
               <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface-variant mb-8">Resumo Diário</h3>
               
@@ -299,7 +299,7 @@ export default function AlertsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="lg:col-span-12 mt-8 aetheric-glass rounded-3xl overflow-hidden mb-12"
+              className="lg:col-span-12 mt-8 aetheric-glass rounded-2xl overflow-hidden mb-12"
             >
               <div className="p-8 flex justify-between items-center border-b border-white/5">
                 <h3 className="text-lg font-medium text-on-surface uppercase tracking-[0.1em]">Registro Biométrico (24H)</h3>
