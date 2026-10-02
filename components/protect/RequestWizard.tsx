@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SafetyQuestion from './SafetyQuestion';
 import ReportInput from './ReportInput';
 import UrgentBanner from './UrgentBanner';
-import { createProtectRequest } from '@/app/dashboard/protect/request/actions';
+import { createProtectRequest, getAvailableOrientadores } from '@/app/dashboard/protect/request/actions';
 import {
   PROTECT_KIND_LABELS,
   PROTECT_KIND_ICONS,
@@ -18,7 +18,7 @@ interface RequestWizardProps {
   onCancel: () => void;
 }
 
-type WizardStep = 'kind' | 'report' | 'safety' | 'submitting' | 'done' | 'error';
+type WizardStep = 'kind' | 'report' | 'safety' | 'orientador' | 'submitting' | 'done' | 'error';
 
 const kinds: { kind: ProtectRequestKind; urgent?: boolean }[] = [
   { kind: 'want_to_talk' },
@@ -35,6 +35,19 @@ export default function RequestWizard({ onComplete, onCancel }: RequestWizardPro
   const [involvesGuardian, setInvolvesGuardian] = useState<boolean | null | undefined>(undefined);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const [orientadores, setOrientadores] = useState<any[]>([]);
+  const [loadingOrientadores, setLoadingOrientadores] = useState(false);
+
+  useEffect(() => {
+    async function loadOrientadores() {
+      setLoadingOrientadores(true);
+      const res = await getAvailableOrientadores();
+      if (res.data) setOrientadores(res.data);
+      setLoadingOrientadores(false);
+    }
+    loadOrientadores();
+  }, []);
+
   const handleKindSelect = (kind: ProtectRequestKind) => {
     setSelectedKind(kind);
     setStep('report');
@@ -45,10 +58,10 @@ export default function RequestWizard({ onComplete, onCancel }: RequestWizardPro
 
   const handleSafetyAnswer = (answer: boolean | null) => {
     setInvolvesGuardian(answer);
-    handleSubmit(answer);
+    setStep('orientador'); // Move to orientador selection
   };
 
-  const handleSubmit = async (guardianAnswer: boolean | null | undefined) => {
+  const handleSubmit = async (orientadorId?: string) => {
     if (!selectedKind) return;
     setStep('submitting');
     setErrorMsg(null);
@@ -57,7 +70,8 @@ export default function RequestWizard({ onComplete, onCancel }: RequestWizardPro
       requestKind: selectedKind,
       reportText,
       entryType,
-      involvesGuardian: guardianAnswer === undefined ? null : guardianAnswer,
+      involvesGuardian: involvesGuardian === undefined ? null : involvesGuardian,
+      orientadorId,
     });
 
     if (result.error) {
@@ -185,6 +199,66 @@ export default function RequestWizard({ onComplete, onCancel }: RequestWizardPro
             exit={{ opacity: 0, x: -20 }}
           >
             <SafetyQuestion onAnswer={handleSafetyAnswer} />
+          </motion.div>
+        )}
+
+        {/* PASSO 4: Escolha de Orientador */}
+        {step === 'orientador' && (
+          <motion.div
+            key="orientador"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-5"
+          >
+            <div className="space-y-2">
+              <h3 className="text-lg font-medium text-on-surface">Com quem você gostaria de falar?</h3>
+              <p className="text-sm text-on-surface-variant">
+                Selecione um profissional disponível da sua instituição.
+              </p>
+            </div>
+
+            {loadingOrientadores ? (
+              <div className="flex justify-center p-8">
+                <span className="material-symbols-outlined animate-spin text-secondary">progress_activity</span>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {orientadores.map((or) => (
+                  <button
+                    key={or.id}
+                    onClick={() => handleSubmit(or.id)}
+                    className="flex items-center justify-between p-4 rounded-2xl bg-surface-container/50 border border-white/5 hover:border-secondary/30 transition-all text-left group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center border border-secondary/20">
+                        <span className="text-xs text-secondary font-bold">{or.full_name.substring(0,2).toUpperCase()}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-on-surface">{or.full_name}</p>
+                        <p className="text-xs text-on-surface-variant capitalize">{or.role}</p>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
+                      check_circle
+                    </span>
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => handleSubmit()}
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-left"
+                >
+                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+                    <span className="material-symbols-outlined text-on-surface-variant text-sm">shuffle</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-on-surface">Qualquer profissional disponível</p>
+                    <p className="text-xs text-on-surface-variant">O sistema fará o roteamento automático</p>
+                  </div>
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
 

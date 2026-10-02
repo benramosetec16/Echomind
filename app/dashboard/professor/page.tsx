@@ -279,7 +279,7 @@ export default function ProfessorDashboard() {
   return (
     <>
       <TopBar title="Painel do Professor" />
-      <main className="pt-32 px-8 md:px-16 pb-24 relative min-h-screen">
+      <main className="pt-20 md:pt-32 px-4 md:px-8 md:px-16 pb-24 relative min-h-screen">
         <PageTransition>
           <header className="max-w-[1200px] mx-auto mb-12">
             <span className="text-xs font-semibold text-secondary uppercase tracking-[0.3em]">
@@ -295,19 +295,19 @@ export default function ProfessorDashboard() {
 
           {/* Stat Cards */}
           <section className="max-w-[1200px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
-            <div className="aetheric-glass rounded-2xl p-6">
+            <div className="aetheric-glass rounded-[32px] p-6">
               <span className="text-xs uppercase tracking-wider text-on-surface-variant">Salas Ativas</span>
               <h3 className="text-3xl font-light text-on-surface mt-2">{loading ? '...' : stats.activeClasses}</h3>
             </div>
-            <div className="aetheric-glass rounded-2xl p-6">
+            <div className="aetheric-glass rounded-[32px] p-6">
               <span className="text-xs uppercase tracking-wider text-on-surface-variant">Alunos Monitorados</span>
               <h3 className="text-3xl font-light text-on-surface mt-2">{loading ? '...' : stats.monitoredStudents}</h3>
             </div>
-            <div className="aetheric-glass rounded-2xl p-6">
+            <div className="aetheric-glass rounded-[32px] p-6">
               <span className="text-xs uppercase tracking-wider text-on-surface-variant">Check-ins Hoje</span>
               <h3 className="text-3xl font-light text-secondary mt-2">{loading ? '...' : stats.checkinsToday}</h3>
             </div>
-            <div className="aetheric-glass rounded-2xl p-6">
+            <div className="aetheric-glass rounded-[32px] p-6">
               <span className="text-xs uppercase tracking-wider text-on-surface-variant">Alertas Ativos</span>
               <h3 className="text-3xl font-light text-yellow-400 mt-2">{loading ? '...' : stats.pendingAlerts}</h3>
             </div>
@@ -315,7 +315,7 @@ export default function ProfessorDashboard() {
 
           {/* Classrooms Grid */}
           <section className="max-w-[1200px] mx-auto mb-10">
-            <div className="aetheric-glass rounded-2xl p-8">
+            <div className="aetheric-glass rounded-[32px] p-8">
               <h2 className="text-xl font-light text-on-surface mb-6">Salas Sob Sua Responsabilidade</h2>
 
               {loading ? (
@@ -368,7 +368,7 @@ export default function ProfessorDashboard() {
 
           {/* Recent Alerts */}
           <section className="max-w-[1200px] mx-auto">
-            <div className="aetheric-glass rounded-2xl p-8">
+            <div className="aetheric-glass rounded-[32px] p-8">
               <h2 className="text-xl font-light text-on-surface mb-6">Alertas Recentes dos Seus Alunos</h2>
 
               {loading ? (

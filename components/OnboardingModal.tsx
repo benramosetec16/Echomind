@@ -131,7 +131,7 @@ export default function OnboardingModal({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="aetheric-glass rounded-2xl p-8 max-w-lg w-full border border-secondary/30 bg-surface/90 shadow-2xl relative"
+          className="aetheric-glass rounded-[32px] p-8 max-w-lg w-full border border-secondary/30 bg-surface/90 shadow-2xl relative"
         >
           <div className="flex items-center gap-3 mb-4">
             <span className="material-symbols-outlined text-secondary text-2xl">verified_user</span>

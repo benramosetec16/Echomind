@@ -87,62 +87,84 @@ export default function Sidebar() {
   }, [supabase]);
 
   return (
-    <nav className="fixed left-0 top-0 h-full w-20 hover:w-64 transition-all duration-500 ease-in-out z-50 bg-background/80 backdrop-blur-xl border-r border-white/5 flex flex-col items-center py-8 gap-6 overflow-hidden group">
-      <div className="mb-10 mt-4 flex items-center justify-center w-full px-6">
-        {/* Logo collapsed: small square icon */}
-        <img
-          src="/echomind-logo.png"
-          alt="EchoMind"
-          className="w-10 h-10 object-contain block group-hover:hidden flex-shrink-0"
-        />
-        {/* Logo expanded: wider version */}
-        <img
-          src="/echomind-logo.png"
-          alt="EchoMind"
-          className="w-10 h-10 object-contain hidden group-hover:block flex-shrink-0"
-        />
-        <span className="font-display text-2xl font-extralight text-primary tracking-tighter hidden group-hover:block ml-3">EchoMind</span>
-      </div>
+    <>
+      {/* Desktop: Side nav */}
+      <nav className="hidden md:flex fixed left-0 top-0 h-full w-20 hover:w-64 transition-all duration-500 ease-in-out z-50 bg-background/80 backdrop-blur-xl border-r border-white/5 flex-col items-center py-8 gap-6 overflow-hidden group">
+        <div className="mb-10 mt-4 flex items-center justify-center w-full px-6">
+          <img src="/echomind-logo.png" alt="EchoMind" className="w-10 h-10 object-contain block group-hover:hidden flex-shrink-0" />
+          <img src="/echomind-logo.png" alt="EchoMind" className="w-10 h-10 object-contain hidden group-hover:block flex-shrink-0" />
+          <span className="font-display text-2xl font-extralight text-primary tracking-tighter hidden group-hover:block ml-3">EchoMind</span>
+        </div>
 
-      <div className="flex flex-col gap-4 w-full px-4 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
-        {[...(navByRole[userRole] || navByRole.aluno), ...sharedItems].map((item) => {
+        <div className="flex flex-col gap-4 w-full px-4 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
+          {[...(navByRole[userRole] || navByRole.aluno), ...sharedItems].map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+            return (
+              <Link
+                key={`${item.href}-${item.label}`}
+                href={item.href}
+                className={`flex items-center gap-4 py-3 px-3 transition-all duration-300 rounded-full active:scale-95 ${
+                  isActive
+                    ? 'text-secondary bg-secondary-container/20'
+                    : 'text-on-surface-variant opacity-60 hover:text-primary'
+                }`}
+              >
+                <span className="material-symbols-outlined text-2xl flex-shrink-0" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
+                  {item.icon}
+                </span>
+                <span className="font-sans text-sm tracking-wide opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="mt-auto mb-8 w-full px-4 flex justify-center group-hover:justify-start group-hover:px-6 transition-all">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden flex-shrink-0 bg-surface-container flex items-center justify-center">
+              <span className="font-sans text-sm font-medium text-on-surface-variant">{userInitials}</span>
+            </div>
+            <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              <span className="font-sans text-sm text-on-surface font-semibold">{userName || '...'}</span>
+              <span className="text-[10px] text-secondary uppercase tracking-widest">{ROLE_LABELS[userRole]}</span>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Mobile: Bottom nav bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-t border-white/5 flex items-center justify-around px-2 py-2 safe-area-pb">
+        {(navByRole[userRole] || navByRole.aluno).slice(0, 5).map((item) => {
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-          
           return (
-            <Link 
-              key={`${item.href}-${item.label}`} 
+            <Link
+              key={`mob-${item.href}-${item.label}`}
               href={item.href}
-              className={`flex items-center gap-4 py-3 px-3 transition-all duration-300 rounded-full active:scale-95 ${
-                isActive 
-                  ? 'text-secondary bg-secondary-container/20' 
-                  : 'text-on-surface-variant opacity-60 hover:text-primary'
+              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl transition-all active:scale-95 ${
+                isActive ? 'text-secondary' : 'text-on-surface-variant opacity-50'
               }`}
             >
-              <span 
-                className="material-symbols-outlined text-2xl flex-shrink-0"
-                style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
-              >
+              <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
                 {item.icon}
               </span>
-              <span className="font-sans text-sm tracking-wide opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                {item.label}
-              </span>
+              <span className="text-[9px] tracking-wide">{item.label}</span>
             </Link>
           );
         })}
-      </div>
-
-      <div className="mt-auto mb-8 w-full px-4 flex justify-center group-hover:justify-start group-hover:px-6 transition-all">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden flex-shrink-0 bg-surface-container flex items-center justify-center">
-             <span className="font-sans text-sm font-medium text-on-surface-variant">{userInitials}</span>
-          </div>
-          <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-            <span className="font-sans text-sm text-on-surface font-semibold">{userName || '...'}</span>
-            <span className="text-[10px] text-secondary uppercase tracking-widest">{ROLE_LABELS[userRole]}</span>
-          </div>
-        </div>
-      </div>
-    </nav>
+        {/* Profile icon always visible */}
+        <Link
+          href="/dashboard/profile"
+          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl transition-all active:scale-95 ${
+            pathname === '/dashboard/profile' ? 'text-secondary' : 'text-on-surface-variant opacity-50'
+          }`}
+        >
+          <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: pathname === '/dashboard/profile' ? "'FILL' 1" : "'FILL' 0" }}>
+            nightlight
+          </span>
+          <span className="text-[9px] tracking-wide">Perfil</span>
+        </Link>
+      </nav>
+    </>
   );
 }

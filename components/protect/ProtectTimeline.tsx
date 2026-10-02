@@ -76,7 +76,7 @@ export default function ProtectTimeline({ entries }: ProtectTimelineProps) {
                 </span>
               </div>
 
-              <div className="aetheric-glass rounded-2xl p-4 space-y-1">
+              <div className="aetheric-glass rounded-[32px] p-4 space-y-1">
                 <div className="flex items-center justify-between">
                   <p
                     className={`text-sm font-medium ${

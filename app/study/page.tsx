@@ -87,7 +87,7 @@ export default function StudyPage() {
             </div>
 
             {/* Input Area */}
-            <div className="aetheric-glass rounded-2xl p-6 md:p-8 mb-8">
+            <div className="aetheric-glass rounded-[32px] p-6 md:p-8 mb-8">
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -133,7 +133,7 @@ export default function StudyPage() {
 
                 {/* Explicação */}
                 {result.explicacao && (
-                  <div className="aetheric-glass rounded-2xl p-8">
+                  <div className="aetheric-glass rounded-[32px] p-8">
                     <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
                       <span className="material-symbols-outlined text-secondary">school</span>
                       <h3 className="text-xs font-semibold text-secondary uppercase tracking-[0.2em]">Explicação Profunda</h3>
@@ -147,7 +147,7 @@ export default function StudyPage() {
                 {/* Resumo e Conceitos */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {result.resumo && (
-                    <div className="aetheric-glass rounded-2xl p-8">
+                    <div className="aetheric-glass rounded-[32px] p-8">
                       <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
                         <span className="material-symbols-outlined text-secondary">compress</span>
                         <h3 className="text-xs font-semibold text-secondary uppercase tracking-[0.2em]">Resumo</h3>
@@ -159,7 +159,7 @@ export default function StudyPage() {
                   )}
 
                   {result.conceitos && result.conceitos.length > 0 && (
-                    <div className="aetheric-glass rounded-2xl p-8">
+                    <div className="aetheric-glass rounded-[32px] p-8">
                       <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
                         <span className="material-symbols-outlined text-secondary">lightbulb</span>
                         <h3 className="text-xs font-semibold text-secondary uppercase tracking-[0.2em]">Conceitos Importantes</h3>
@@ -178,7 +178,7 @@ export default function StudyPage() {
 
                 {/* Quiz Interativo */}
                 {result.quiz && result.quiz.length > 0 && (
-                  <div className="aetheric-glass rounded-2xl p-8">
+                  <div className="aetheric-glass rounded-[32px] p-8">
                     <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
                       <span className="material-symbols-outlined text-secondary">quiz</span>
                       <h3 className="text-xs font-semibold text-secondary uppercase tracking-[0.2em]">Quiz de Fixação</h3>
@@ -265,7 +265,7 @@ export default function StudyPage() {
 
                 {/* Vídeos Curados do EchoMind */}
                 {result.videos && result.videos.length > 0 && (
-                  <div className="aetheric-glass rounded-2xl p-8">
+                  <div className="aetheric-glass rounded-[32px] p-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
                       <div className="flex items-center gap-3">
                         <span className="material-symbols-outlined text-[#FF0000]">play_circle</span>
@@ -323,7 +323,7 @@ export default function StudyPage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="aetheric-glass rounded-2xl p-8 mt-12 bg-red-500/10 border-red-500/20"
+                className="aetheric-glass rounded-[32px] p-8 mt-12 bg-red-500/10 border-red-500/20"
               >
                 <div className="text-red-400 text-sm font-light text-center">
                   {result.error}

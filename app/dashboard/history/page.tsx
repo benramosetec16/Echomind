@@ -257,7 +257,7 @@ export default function HistoryPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="lg:col-span-8 aetheric-glass rounded-2xl p-12"
+              className="lg:col-span-8 aetheric-glass rounded-[32px] p-12"
             >
               <div className="flex justify-between items-start mb-12">
                 <div>
@@ -345,7 +345,7 @@ export default function HistoryPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="aetheric-glass rounded-2xl p-8"
+                className="aetheric-glass rounded-[32px] p-8"
               >
                 <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-on-surface-variant mb-6">Estatísticas do Período</h3>
                 
@@ -394,7 +394,7 @@ export default function HistoryPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="aetheric-glass rounded-2xl p-8 flex-1 relative overflow-hidden flex flex-col justify-between group"
+                className="aetheric-glass rounded-[32px] p-8 flex-1 relative overflow-hidden flex flex-col justify-between group"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 via-transparent to-tertiary/5 opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="relative z-10">
@@ -434,7 +434,7 @@ export default function HistoryPage() {
                     Sincronizando registros...
                   </div>
                 ) : entries.length === 0 ? (
-                  <div className="text-center py-12 aetheric-glass rounded-2xl">
+                  <div className="text-center py-12 aetheric-glass rounded-[32px]">
                     <p className="text-on-surface-variant">Nenhum registro encontrado. Faça um check-in para gerar sua primeira análise da IA.</p>
                   </div>
                 ) : (

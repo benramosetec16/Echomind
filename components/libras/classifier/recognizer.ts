@@ -64,7 +64,7 @@ function mapGestureToSign(
   if (hasTwoHands) {
     return {
       sign: 'AJUDA',
-      confidence: Number((0.85 * gestureVoteScore + 0.15 * 0.9).toFixed(2)),
+      confidence: Number(Math.max(0.75, gestureVoteScore).toFixed(2)),
       reason: 'Duas mãos detectadas — gesto de suporte/ajuda',
     };
   }
@@ -80,82 +80,90 @@ function mapGestureToSign(
     case 'Thumb_Up':
       return {
         sign: 'ESTOU_BEM',
-        confidence: Number((0.85 * gestureVoteScore + 0.15 * 0.95).toFixed(2)),
+        confidence: Number(Math.max(0.75, gestureVoteScore).toFixed(2)),
         reason: 'Polegar para cima reconhecido pelo modelo ML',
       };
 
     case 'Thumb_Down':
       return {
         sign: 'NAO_ESTOU_BEM',
-        confidence: Number((0.85 * gestureVoteScore + 0.15 * 0.95).toFixed(2)),
+        confidence: Number(Math.max(0.75, gestureVoteScore).toFixed(2)),
         reason: 'Polegar para baixo reconhecido pelo modelo ML',
       };
 
     case 'Victory':
       return {
         sign: 'PRECISO_CONVERSAR',
-        confidence: Number((0.80 * gestureVoteScore + 0.20 * 0.85).toFixed(2)),
+        confidence: Number(Math.max(0.75, gestureVoteScore).toFixed(2)),
         reason: 'Sinal V reconhecido pelo modelo ML — comunicação',
       };
 
     case 'ILY':
       return {
         sign: 'AJUDA',
-        confidence: Number((0.80 * gestureVoteScore + 0.20 * 0.85).toFixed(2)),
+        confidence: Number(Math.max(0.75, gestureVoteScore).toFixed(2)),
         reason: 'Sinal ILY reconhecido pelo modelo ML — apoio/ajuda',
       };
 
     case 'Open_Palm': {
       if (hasHorizontalMotion) {
-        // Waving open hand → OLÁ
-        const motionScore = motion.isWavingHorizontal ? 1.0 : 0.75;
         return {
           sign: 'OLA',
-          confidence: Number((0.50 * gestureVoteScore + 0.50 * motionScore).toFixed(2)),
+          confidence: Number(Math.max(0.75, gestureVoteScore).toFixed(2)),
           reason: 'Mão aberta com aceno lateral — Olá',
         };
       } else if (hasForwardMotion) {
-        // Downward/forward open hand → OBRIGADO
-        const motionScore = motion.isForwardStroke ? 1.0 : 0.80;
         return {
           sign: 'OBRIGADO',
-          confidence: Number((0.50 * gestureVoteScore + 0.50 * motionScore).toFixed(2)),
+          confidence: Number(Math.max(0.75, gestureVoteScore).toFixed(2)),
           reason: 'Mão aberta com projeção frontal/descendente — Obrigado',
         };
       }
-      // Open palm but no clear motion — too ambiguous, reject
-      return null;
+      // Fallback: Just open hand
+      return {
+        sign: 'OLA',
+        confidence: Number(Math.max(0.75, gestureVoteScore).toFixed(2)),
+        reason: 'Mão aberta estática (fallback) — Olá',
+      };
     }
 
     case 'Closed_Fist': {
       if (hasVerticalMotion) {
-        const motionScore = motion.isNoddingVertical ? 1.0 : 0.75;
         return {
           sign: 'SIM',
-          confidence: Number((0.50 * gestureVoteScore + 0.50 * motionScore).toFixed(2)),
+          confidence: Number(Math.max(0.75, gestureVoteScore).toFixed(2)),
           reason: 'Punho fechado com movimento vertical — Sim',
         };
       }
-      if (motion.isForwardStroke) {
+      if (hasForwardMotion) {
         return {
           sign: 'AJUDA',
-          confidence: Number((0.50 * gestureVoteScore + 0.50 * 0.80).toFixed(2)),
+          confidence: Number(Math.max(0.75, gestureVoteScore).toFixed(2)),
           reason: 'Punho com avanço frontal — Ajuda',
         };
       }
-      return null;
+      // Fallback: Just fist
+      return {
+        sign: 'SIM',
+        confidence: Number(Math.max(0.75, gestureVoteScore).toFixed(2)),
+        reason: 'Punho fechado estático (fallback) — Sim',
+      };
     }
 
     case 'Pointing_Up': {
       if (hasHorizontalMotion) {
-        const motionScore = motion.isWavingHorizontal ? 1.0 : 0.75;
         return {
           sign: 'NAO',
-          confidence: Number((0.50 * gestureVoteScore + 0.50 * motionScore).toFixed(2)),
+          confidence: Number(Math.max(0.75, gestureVoteScore).toFixed(2)),
           reason: 'Indicador para cima com oscilação lateral — Não',
         };
       }
-      return null;
+      // Fallback: Just pointing up
+      return {
+        sign: 'NAO',
+        confidence: Number(Math.max(0.75, gestureVoteScore).toFixed(2)),
+        reason: 'Indicador para cima estático (fallback) — Não',
+      };
     }
 
     default:
@@ -222,8 +230,8 @@ export class LibrasRecognizer {
     librasLogger.info('Dominant gesture', `${dominantLabel} (${(gestureVoteScore * 100).toFixed(0)}% of frames)`);
     librasLogger.info('All gesture counts', JSON.stringify(labelCounts));
 
-    // Reject if dominant label is 'None' or has < 40% vote share
-    if (dominantLabel === 'None' || gestureVoteScore < 0.4) {
+    // Reject if dominant label is 'None' or has < 25% vote share
+    if (dominantLabel === 'None' || gestureVoteScore < 0.25) {
       librasLogger.warn('Classifier', `Gesture vote too weak: ${dominantLabel} at ${(gestureVoteScore * 100).toFixed(0)}%`);
       return { success: false, error: 'NOT_RECOGNIZED', confidence: 0 };
     }

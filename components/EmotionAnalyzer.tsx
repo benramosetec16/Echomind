@@ -336,7 +336,7 @@ export default function EmotionAnalyzer() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6 }}
-              className="aetheric-glass rounded-2xl p-10 text-center relative overflow-hidden"
+              className="aetheric-glass rounded-[32px] p-10 text-center relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-b from-secondary/5 to-transparent pointer-events-none" />
               <div className="relative z-10">

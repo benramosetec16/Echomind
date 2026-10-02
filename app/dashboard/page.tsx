@@ -137,7 +137,7 @@ export default function DashboardPage() {
   return (
     <>
       <TopBar title="Atmosfera" />
-      <main className="pt-32 px-8 md:px-16 pb-24 relative min-h-screen">
+      <main className="pt-24 md:pt-32 px-4 md:px-16 pb-24 relative min-h-screen">
         <PageTransition>
           {/* Guardian Contact Banner */}
           {showGuardianBanner && !guardianBannerDismissed && userId && (
@@ -165,7 +165,7 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="text-4xl font-medium leading-[1.1] text-on-surface tracking-tight"
+                className="text-5xl font-light leading-[1.1] text-on-surface tracking-tight"
               >
                 Bem-vindo, {userName || '...'}.
               </motion.h2>
@@ -200,7 +200,7 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="md:col-span-4 aetheric-glass rounded-2xl p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
+              className="md:col-span-4 aetheric-glass rounded-[32px] p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
             >
               <div>
                 <div className="flex justify-between items-start mb-6">
@@ -232,7 +232,7 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="md:col-span-4 aetheric-glass rounded-2xl p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
+              className="md:col-span-4 aetheric-glass rounded-[32px] p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
             >
               <div>
                 <div className="flex justify-between items-start mb-6">
@@ -245,8 +245,11 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="mt-8 relative h-20 flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full border border-secondary/20 flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 bg-secondary rounded-full"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 border-2 border-dashed border-secondary/20 rounded-full animate-[spin_20s_linear_infinite]"></div>
+                </div>
+                <div className="w-12 h-12 rounded-full border border-secondary/30 flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 bg-secondary rounded-full shadow-[0_0_8px_rgba(159,207,213,0.6)]"></div>
                 </div>
               </div>
             </motion.div>
@@ -256,7 +259,7 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="md:col-span-4 aetheric-glass rounded-2xl p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
+              className="md:col-span-4 aetheric-glass rounded-[32px] p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
             >
               <div>
                 <div className="flex justify-between items-start mb-6">
@@ -313,7 +316,7 @@ export default function DashboardPage() {
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && router.push('/dashboard/checkin')}
               >
-                <div className="aetheric-glass rounded-2xl p-8 flex gap-8 items-center transition-all duration-500 group-hover:bg-white/[0.04] group-hover:border-secondary/20">
+                <div className="aetheric-glass rounded-[32px] p-8 flex gap-8 items-center transition-all duration-500 group-hover:bg-white/[0.04] group-hover:border-secondary/20">
                   <div className="w-32 h-32 rounded-2xl overflow-hidden bg-surface-container flex-shrink-0 border border-white/5 relative">
                     <img src="/protocol_synapse.png" alt="" aria-hidden="true" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-br from-secondary/20 to-transparent" />
@@ -346,7 +349,7 @@ export default function DashboardPage() {
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && router.push('/dashboard/analyze')}
               >
-                <div className="aetheric-glass rounded-2xl p-8 flex gap-8 items-center transition-all duration-500 group-hover:bg-white/[0.04] group-hover:border-tertiary/20">
+                <div className="aetheric-glass rounded-[32px] p-8 flex gap-8 items-center transition-all duration-500 group-hover:bg-white/[0.04] group-hover:border-tertiary/20">
                   <div className="w-32 h-32 rounded-2xl overflow-hidden bg-surface-container flex-shrink-0 border border-white/5 relative">
                     <img src="/protocol_resonance.png" alt="" aria-hidden="true" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-br from-tertiary/20 to-transparent" />

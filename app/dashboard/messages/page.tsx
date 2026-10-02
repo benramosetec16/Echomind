@@ -223,7 +223,7 @@ export default function MessagesPage() {
   return (
     <>
       <TopBar title="Mensagens Aethericas" />
-      <main className="pt-32 px-8 md:px-16 pb-24 relative min-h-screen flex flex-col">
+      <main className="pt-20 md:pt-32 px-4 md:px-8 md:px-16 pb-24 relative min-h-screen flex flex-col">
         <PageTransition>
           <section className="max-w-[900px] mx-auto w-full flex flex-col gap-8">
 
@@ -251,7 +251,7 @@ export default function MessagesPage() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="aetheric-glass rounded-2xl p-6 flex flex-col gap-6"
+                className="aetheric-glass rounded-[32px] p-6 flex flex-col gap-6"
               >
                 {/* Pendentes */}
                 {pendingSessions.length > 0 && (
@@ -402,7 +402,7 @@ export default function MessagesPage() {
             <motion.div
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="aetheric-glass rounded-2xl p-6 flex flex-col overflow-hidden relative"
+              className="aetheric-glass rounded-[32px] p-6 flex flex-col overflow-hidden relative"
               style={{ minHeight: '50vh' }}
             >
               {loading ? (

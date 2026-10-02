@@ -321,7 +321,7 @@ export default function ProfilePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="lg:col-span-8 aetheric-glass rounded-2xl p-10 flex flex-col min-h-[400px]"
+                className="lg:col-span-8 aetheric-glass rounded-[32px] p-10 flex flex-col min-h-[400px]"
               >
                 <div className="flex justify-between items-center mb-12">
                   <div className="flex items-center gap-3">
@@ -693,7 +693,7 @@ export default function ProfilePage() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="aetheric-glass rounded-2xl p-10 max-w-lg w-full"
+              className="aetheric-glass rounded-[32px] p-10 max-w-lg w-full"
             >
               <div className="flex items-center gap-3 mb-8">
                 <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>

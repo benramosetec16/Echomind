@@ -193,7 +193,7 @@ export default function CalendarPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="lg:col-span-8 aetheric-glass rounded-2xl p-8"
+              className="lg:col-span-8 aetheric-glass rounded-[32px] p-8"
             >
               {/* Month Nav */}
               <div className="flex items-center justify-between mb-8">
@@ -299,7 +299,7 @@ export default function CalendarPage() {
               className="lg:col-span-4 flex flex-col gap-4"
             >
               {/* Selected Day Events */}
-              <div className="aetheric-glass rounded-2xl p-6 flex-1">
+              <div className="aetheric-glass rounded-[32px] p-6 flex-1">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-sm font-semibold text-on-surface uppercase tracking-[0.12em]">
@@ -375,7 +375,7 @@ export default function CalendarPage() {
               </div>
 
               {/* Monthly Summary */}
-              <div className="aetheric-glass rounded-2xl p-5">
+              <div className="aetheric-glass rounded-[32px] p-5">
                 <h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant mb-4">
                   Resumo do Mês
                 </h4>
@@ -411,7 +411,7 @@ export default function CalendarPage() {
                   initial={{ opacity: 0, scale: 0.95, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="aetheric-glass rounded-2xl p-8 max-w-md w-full"
+                  className="aetheric-glass rounded-[32px] p-8 max-w-md w-full"
                 >
                   <h3 className="text-xl font-light text-on-surface mb-6">
                     Novo Evento —{' '}

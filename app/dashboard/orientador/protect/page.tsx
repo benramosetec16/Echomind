@@ -24,6 +24,7 @@ interface RequestItem {
   routing_type: string;
   is_urgent: boolean;
   created_at: string;
+  student?: { full_name: string };
 }
 
 interface RequestDetail {
@@ -37,6 +38,7 @@ interface RequestDetail {
   status: ProtectStatus;
   created_at: string;
   assigned_at: string | null;
+  student?: { full_name: string };
 }
 
 function formatDate(iso: string) {
@@ -116,7 +118,7 @@ export default function OrientadorProtectPage() {
   return (
     <>
       <TopBar title="Protect — Painel do Orientador" />
-      <main className="pt-28 px-8 pb-12 max-w-4xl mx-auto">
+      <main className="pt-20 md:pt-28 px-4 md:px-8 pb-12 max-w-4xl mx-auto">
         <PageTransition>
           <div className="space-y-6">
 
@@ -132,7 +134,7 @@ export default function OrientadorProtectPage() {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }}
-                  className="aetheric-glass rounded-2xl p-5"
+                  className="aetheric-glass rounded-[32px] p-5"
                 >
                   <div className="flex items-center gap-3">
                     <span className={`material-symbols-outlined ${stat.color}`}>{stat.icon}</span>
@@ -150,7 +152,7 @@ export default function OrientadorProtectPage() {
               {loading ? (
                 <div className="text-center py-12 text-sm text-on-surface-variant animate-pulse">Carregando...</div>
               ) : requests.length === 0 ? (
-                <div className="aetheric-glass rounded-2xl p-8 text-center">
+                <div className="aetheric-glass rounded-[32px] p-8 text-center">
                   <span className="material-symbols-outlined text-on-surface-variant text-3xl">check_circle</span>
                   <p className="text-sm text-on-surface-variant mt-2">Nenhuma solicitação recebida.</p>
                 </div>
@@ -161,7 +163,7 @@ export default function OrientadorProtectPage() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="aetheric-glass rounded-2xl overflow-hidden border border-white/5"
+                    className="aetheric-glass rounded-[32px] overflow-hidden border border-white/5"
                   >
                     <button
                       onClick={() => handleSelect(req.id)}
@@ -192,6 +194,9 @@ export default function OrientadorProtectPage() {
                             </span>
                           )}
                         </div>
+                        <p className="text-xs text-secondary font-medium mt-0.5">
+                          {req.student?.full_name ?? 'Estudante'}
+                        </p>
                         <p className="text-xs text-on-surface-variant mt-0.5">
                           {formatDate(req.created_at)} · {PROTECT_STATUS_LABELS[req.status]}
                         </p>
@@ -216,6 +221,19 @@ export default function OrientadorProtectPage() {
                               <p className="text-xs text-on-surface-variant animate-pulse">Carregando detalhes...</p>
                             ) : detail ? (
                               <>
+                                {/* Aluno */}
+                                <div className="flex items-center gap-3 pb-3 border-b border-white/5">
+                                  <div className="w-9 h-9 rounded-full bg-secondary/10 border border-secondary/20 flex items-center justify-center flex-shrink-0">
+                                    <span className="text-xs text-secondary font-bold">
+                                      {(detail.student?.full_name ?? 'AL').substring(0, 2).toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-on-surface">{detail.student?.full_name ?? 'Estudante'}</p>
+                                    <p className="text-xs text-on-surface-variant">Nível: <span className={`font-medium ${detail.routing_type === 'special_protection' ? 'text-secondary' : 'text-white/60'}`}>{detail.routing_type === 'special_protection' ? 'Proteção Especial' : 'Normal'}</span></p>
+                                  </div>
+                                </div>
+
                                 {/* AVISO de routing especial */}
                                 {detail.routing_type === 'special_protection' && (
                                   <div className="rounded-xl p-4 bg-secondary/5 border border-secondary/20 flex items-start gap-3">

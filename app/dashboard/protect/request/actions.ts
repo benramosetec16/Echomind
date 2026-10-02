@@ -24,6 +24,7 @@ export async function createProtectRequest(payload: {
   entryType: ProtectEntryType;
   involvesGuardian: boolean | null;
   isUrgent?: boolean;
+  orientadorId?: string;
 }): Promise<{
   success?: boolean;
   requestId?: string;
@@ -51,13 +52,13 @@ export async function createProtectRequest(payload: {
   }
 
   // === PROTECTED ROUTING ENGINE ===
-  // Determina o fluxo ANTES de salvar
-  // Nunca consulta guardian_name ou guardian_phone
   const routing = await determineRouting(
     user.id,
     profile.institution_id,
     payload.involvesGuardian,
   );
+  
+  const assignedTo = payload.orientadorId || routing.assignedTo;
 
   // Gera resumo auxiliar via IA (apenas organização, sem decisão crítica)
   let aiSummary: string | null = null;
@@ -123,8 +124,8 @@ Responda APENAS com JSON válido:
       routing_type: routing.routingType,
       is_urgent: isUrgentAI,
       status: 'created',
-      assigned_to: routing.assignedTo,
-      assigned_at: routing.assignedTo ? new Date().toISOString() : null,
+      assigned_to: assignedTo,
+      assigned_at: assignedTo ? new Date().toISOString() : null,
     })
     .select('id')
     .single();
@@ -259,7 +260,7 @@ export async function getProfessionalProtectRequests(): Promise<{
   const { data, error } = await supabase
     .from('protect_requests')
     .select(
-      'id, request_kind, status, routing_type, is_urgent, created_at, updated_at',
+      'id, request_kind, status, routing_type, is_urgent, created_at, updated_at, student:profiles!student_id(full_name)',
     )
     .eq('assigned_to', user.id)
     .neq('status', 'archived')
@@ -295,7 +296,7 @@ export async function getProfessionalRequestDetail(requestId: string): Promise<{
   const { data, error } = await supabase
     .from('protect_requests')
     .select(
-      'id, request_kind, entry_type, report_text, involves_guardian, routing_type, is_urgent, status, created_at, updated_at, assigned_at',
+      'id, request_kind, entry_type, report_text, involves_guardian, routing_type, is_urgent, status, created_at, updated_at, assigned_at, student:profiles!student_id(full_name)',
     )
     .eq('id', requestId)
     .single();
@@ -374,5 +375,37 @@ export async function updateProtectRequestStatus({
   });
 
   return { success: true };
+}
+
+/**
+ * Retorna os orientadores disponíveis na instituição do aluno.
+ */
+export async function getAvailableOrientadores(): Promise<{
+  data?: any[];
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Não autenticado' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('institution_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile?.institution_id) return { error: 'Instituição não encontrada' };
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, full_name, role')
+    .eq('institution_id', profile.institution_id)
+    .in('role', ['orientador', 'gestor'])
+    .order('full_name');
+
+  if (error) return { error: error.message };
+  return { data: data ?? [] };
 }
 

@@ -106,7 +106,7 @@ export default function AdminVideosPage() {
             </div>
 
             {isEditing && (
-              <div className="aetheric-glass rounded-2xl p-6 mb-8 border border-secondary/30">
+              <div className="aetheric-glass rounded-[32px] p-6 mb-8 border border-secondary/30">
                 <h3 className="text-xl font-semibold mb-6">{isEditing.id ? 'Editar Vídeo' : 'Novo Vídeo'}</h3>
                 <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input type="text" placeholder="Título" value={isEditing.titulo || ''} onChange={e => setIsEditing({...isEditing, titulo: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-secondary" required />
@@ -137,7 +137,7 @@ export default function AdminVideosPage() {
               </div>
             )}
 
-            <div className="aetheric-glass rounded-2xl overflow-hidden">
+            <div className="aetheric-glass rounded-[32px] overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-white/5 border-b border-white/10">

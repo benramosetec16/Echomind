@@ -56,7 +56,7 @@ export default function PreventionCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.07 }}
       onClick={onClick}
-      className="aetheric-glass rounded-2xl p-5 text-left hover:border-secondary/30 transition-all border border-white/5 w-full"
+      className="aetheric-glass rounded-[32px] p-5 text-left hover:border-secondary/30 transition-all border border-white/5 w-full"
     >
       <div className="flex items-start gap-4">
         <div className="w-10 h-10 rounded-full bg-secondary/10 border border-secondary/20 flex items-center justify-center flex-shrink-0">

@@ -38,7 +38,7 @@ export default function ParceirosPage() {
   return (
     <>
       <TopBar title="Rede de Apoio" />
-      <main className="pt-32 px-8 md:px-16 pb-24 relative min-h-screen">
+      <main className="pt-20 md:pt-32 px-4 md:px-8 md:px-16 pb-24 relative min-h-screen">
         <PageTransition>
           <section className="max-w-[1200px] mx-auto mb-16">
             <motion.span
@@ -66,7 +66,7 @@ export default function ParceirosPage() {
               <motion.div
                 key={partner.id}
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.1 }}
-                className="aetheric-glass rounded-2xl p-8 flex flex-col relative overflow-hidden group"
+                className="aetheric-glass rounded-[32px] p-8 flex flex-col relative overflow-hidden group"
               >
                 {/* Decoration */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-secondary/50 to-transparent opacity-50" />

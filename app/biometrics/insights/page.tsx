@@ -142,7 +142,7 @@ export default function BiometricsInsights() {
 
           <div className="space-y-8 max-w-[1200px] mx-auto w-full">
             {/* Charts Section */}
-            <section className="aetheric-glass rounded-2xl p-8 mb-8">
+            <section className="aetheric-glass rounded-[32px] p-8 mb-8">
               <h2 className="text-xs uppercase tracking-[0.2em] font-semibold text-secondary mb-8 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">monitoring</span>
                 EVOLUÇÃO BIOMÉTRICA
@@ -157,7 +157,7 @@ export default function BiometricsInsights() {
             </section>
 
             {/* AI Insights Section */}
-            <section className="aetheric-glass rounded-2xl p-8">
+            <section className="aetheric-glass rounded-[32px] p-8">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-xs uppercase tracking-[0.2em] font-semibold text-tertiary flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
