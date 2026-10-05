@@ -54,6 +54,12 @@ export default function ProfilePage() {
   const [savingGuardian, setSavingGuardian] = useState(false);
   const [guardianMsg, setGuardianMsg] = useState<string | null>(null);
 
+  // Preferências de atendimento (Protect — campo de gênero)
+  const [userGender, setUserGender] = useState<string | null>(null);
+  const [savingGender, setSavingGender] = useState(false);
+  const [genderMsg, setGenderMsg] = useState<string | null>(null);
+  const [genderReminderDismissed, setGenderReminderDismissed] = useState(false);
+
   useEffect(() => {
     async function loadProfile() {
       try {
@@ -109,6 +115,9 @@ export default function ProfilePage() {
             // Guardian contact
             setGuardianName(data.guardian_name ?? '');
             setGuardianPhone(data.guardian_phone ?? '');
+
+            // Gênero (campo de atendimento Protect)
+            setUserGender(data.gender ?? null);
 
             // Load avatar_url from profile row if set
             if (data.avatar_url) {
@@ -246,6 +255,25 @@ export default function ProfilePage() {
       setTimeout(() => setGuardianMsg(null), 3000);
     }
     setSavingGuardian(false);
+  };
+
+  // --- Gender Save (Preferências de Atendimento) ---
+  const handleSaveGender = async (value: string | null) => {
+    if (!userId) return;
+    setSavingGender(true);
+    setGenderMsg(null);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ gender: value })
+      .eq('id', userId);
+    if (error) {
+      setGenderMsg('Erro ao salvar: ' + error.message);
+    } else {
+      setUserGender(value);
+      setGenderMsg('Salvo com sucesso!');
+      setTimeout(() => setGenderMsg(null), 3000);
+    }
+    setSavingGender(false);
   };
 
   if (loading) {
@@ -567,6 +595,106 @@ export default function ProfilePage() {
                   </div>
                 )}
               </motion.div>
+
+              {/* ── Preferências de Atendimento (somente profissionais) ── */}
+              {['orientador', 'gestor', 'administrador'].includes(userRole) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.38 }}
+                  className="lg:col-span-12 glass-panel rounded-2xl p-8"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      shield_person
+                    </span>
+                    <h3 className="text-xl font-medium text-on-surface">Preferências de Atendimento</h3>
+                  </div>
+                  <p className="text-sm text-on-surface-variant mb-8 max-w-2xl">
+                    Essa informação pode ser utilizada para permitir que alunos encontrem profissionais de acordo com
+                    sua preferência de atendimento. O campo é opcional e não afeta suas permissões ou acesso ao sistema.
+                  </p>
+
+                  {/* Lembrete discreto para quem ainda não preencheu */}
+                  <AnimatePresence>
+                    {!userGender && !genderReminderDismissed && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        className="mb-6 p-4 bg-secondary/5 border border-secondary/20 rounded-xl flex items-start gap-3"
+                      >
+                        <span className="material-symbols-outlined text-secondary text-base flex-shrink-0 mt-0.5">info</span>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-on-surface mb-1">Atualize seu perfil de atendimento</p>
+                          <p className="text-xs text-on-surface-variant leading-relaxed">
+                            Você pode informar seu gênero para permitir que os alunos encontrem profissionais com quem
+                            se sintam mais confortáveis para conversar.
+                          </p>
+                          <div className="flex gap-2 mt-3">
+                            <span className="text-xs text-secondary">↓ Informar abaixo</span>
+                            <button
+                              onClick={() => setGenderReminderDismissed(true)}
+                              className="text-xs text-on-surface-variant hover:text-on-surface transition-colors underline underline-offset-2"
+                            >
+                              Lembrar depois
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Seleção de gênero */}
+                  <div className="space-y-3">
+                    <p className="text-xs uppercase tracking-[0.1em] font-semibold text-on-surface-variant">Gênero</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {[
+                        { value: 'woman', label: 'Mulher' },
+                        { value: 'man', label: 'Homem' },
+                        { value: 'other', label: 'Outro' },
+                        { value: 'prefer_not_to_say', label: 'Prefiro não informar' },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => handleSaveGender(userGender === opt.value ? null : opt.value)}
+                          disabled={savingGender}
+                          className={`py-3 px-4 rounded-xl text-xs font-semibold transition-all text-left border disabled:opacity-50 ${
+                            userGender === opt.value
+                              ? 'bg-secondary/10 text-secondary border-secondary/30 shadow-[inset_0_0_10px_rgba(159,207,213,0.08)]'
+                              : 'bg-white/5 text-on-surface-variant border-transparent hover:bg-white/10 hover:border-white/10'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-1">
+                      {!userGender && (
+                        <span className="text-xs text-on-surface-variant/60">Nenhuma opção selecionada</span>
+                      )}
+                      {userGender && (
+                        <button
+                          onClick={() => handleSaveGender(null)}
+                          disabled={savingGender}
+                          className="text-xs text-on-surface-variant hover:text-on-surface transition-colors disabled:opacity-50"
+                        >
+                          Limpar seleção
+                        </button>
+                      )}
+                      {genderMsg && (
+                        <p className={`text-xs ${genderMsg.includes('sucesso') ? 'text-secondary' : 'text-red-400'}`}>
+                          {savingGender ? 'Salvando...' : genderMsg}
+                        </p>
+                      )}
+                      {savingGender && (
+                        <span className="material-symbols-outlined text-secondary text-sm animate-spin">sync</span>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Account Settings: Password, Role & Notifications */}
               <motion.div

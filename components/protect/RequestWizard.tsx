@@ -38,15 +38,22 @@ export default function RequestWizard({ onComplete, onCancel }: RequestWizardPro
   const [orientadores, setOrientadores] = useState<any[]>([]);
   const [loadingOrientadores, setLoadingOrientadores] = useState(false);
 
+  // Filtro de gênero — padrão 'all' (sem filtro)
+  const [genderFilter, setGenderFilter] = useState<string>('all');
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [pendingFilter, setPendingFilter] = useState<string>('all');
+
+  const loadOrientadores = async (filter: string = 'all') => {
+    setLoadingOrientadores(true);
+    const res = await getAvailableOrientadores(filter === 'all' ? null : filter);
+    if (res.data) setOrientadores(res.data);
+    setLoadingOrientadores(false);
+  };
+
   useEffect(() => {
-    async function loadOrientadores() {
-      setLoadingOrientadores(true);
-      const res = await getAvailableOrientadores();
-      if (res.data) setOrientadores(res.data);
-      setLoadingOrientadores(false);
-    }
-    loadOrientadores();
+    loadOrientadores('all');
   }, []);
+
 
   const handleKindSelect = (kind: ProtectRequestKind) => {
     setSelectedKind(kind);
@@ -218,33 +225,184 @@ export default function RequestWizard({ onComplete, onCancel }: RequestWizardPro
               </p>
             </div>
 
+            {/* ── Filtro de preferência de atendimento ── */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => {
+                    setPendingFilter(genderFilter);
+                    setShowFilterPanel(p => !p);
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-medium transition-all ${
+                    genderFilter !== 'all'
+                      ? 'bg-secondary/10 border-secondary/30 text-secondary'
+                      : 'bg-white/5 border-white/10 text-on-surface-variant hover:border-white/20 hover:text-on-surface'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-sm">tune</span>
+                  Preferência de atendimento
+                </button>
+
+                {/* Badge de filtro ativo */}
+                {genderFilter !== 'all' && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/10 border border-secondary/20">
+                    <span className="text-xs text-secondary">
+                      Filtro: {genderFilter === 'woman' ? 'Mulheres' : genderFilter === 'man' ? 'Homens' : 'Outro'}
+                    </span>
+                    <button
+                      onClick={() => {
+                        setGenderFilter('all');
+                        setShowFilterPanel(false);
+                        loadOrientadores('all');
+                      }}
+                      className="text-secondary hover:text-secondary/70 transition-colors"
+                      aria-label="Limpar filtro"
+                    >
+                      <span className="material-symbols-outlined text-xs">close</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Painel do filtro */}
+              <AnimatePresence>
+                {showFilterPanel && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="rounded-2xl bg-surface-container/50 border border-white/8 p-4 space-y-4">
+                      <p className="text-xs uppercase tracking-wider text-on-surface-variant">Gênero</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { value: 'all', label: 'Todos' },
+                          { value: 'woman', label: 'Mulheres' },
+                          { value: 'man', label: 'Homens' },
+                          { value: 'other', label: 'Outro' },
+                        ].map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setPendingFilter(opt.value)}
+                            className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-sm transition-all text-left ${
+                              pendingFilter === opt.value
+                                ? 'bg-secondary/10 border-secondary/30 text-secondary'
+                                : 'bg-white/5 border-white/5 text-on-surface-variant hover:border-white/15 hover:text-on-surface'
+                            }`}
+                          >
+                            <span className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center ${
+                              pendingFilter === opt.value
+                                ? 'border-secondary bg-secondary/20'
+                                : 'border-white/20'
+                            }`}>
+                              {pendingFilter === opt.value && (
+                                <span className="w-2 h-2 rounded-full bg-secondary block" />
+                              )}
+                            </span>
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={() => {
+                            setGenderFilter(pendingFilter);
+                            setShowFilterPanel(false);
+                            loadOrientadores(pendingFilter);
+                          }}
+                          className="flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-full bg-secondary/20 border border-secondary/30 text-secondary hover:bg-secondary/30 transition-colors"
+                        >
+                          Aplicar filtro
+                        </button>
+                        {pendingFilter !== 'all' && (
+                          <button
+                            onClick={() => {
+                              setPendingFilter('all');
+                              setGenderFilter('all');
+                              setShowFilterPanel(false);
+                              loadOrientadores('all');
+                            }}
+                            className="px-4 py-2.5 text-xs rounded-full bg-white/5 border border-white/10 text-on-surface-variant hover:bg-white/10 transition-colors"
+                          >
+                            Limpar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {loadingOrientadores ? (
               <div className="flex justify-center p-8">
                 <span className="material-symbols-outlined animate-spin text-secondary">progress_activity</span>
               </div>
             ) : (
               <div className="grid gap-3">
-                {orientadores.map((or) => (
-                  <button
-                    key={or.id}
-                    onClick={() => handleSubmit(or.id)}
-                    className="flex items-center justify-between p-4 rounded-2xl bg-surface-container/50 border border-white/5 hover:border-secondary/30 transition-all text-left group"
+                {/* Lista de profissionais filtrada */}
+                {orientadores.length === 0 && genderFilter !== 'all' ? (
+                  /* ── Estado vazio com filtro ativo ── */
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-2xl bg-white/5 border border-white/8 p-6 text-center space-y-4"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center border border-secondary/20">
-                        <span className="text-xs text-secondary font-bold">{or.full_name.substring(0,2).toUpperCase()}</span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-on-surface">{or.full_name}</p>
-                        <p className="text-xs text-on-surface-variant capitalize">{or.role}</p>
-                      </div>
+                    <span className="material-symbols-outlined text-on-surface-variant text-3xl">person_search</span>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-on-surface">
+                        Nenhum profissional disponível com esse filtro.
+                      </p>
+                      <p className="text-xs text-on-surface-variant leading-relaxed">
+                        Você pode remover o filtro ou escolher qualquer profissional disponível.
+                      </p>
                     </div>
-                    <span className="material-symbols-outlined text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
-                      check_circle
-                    </span>
-                  </button>
-                ))}
+                    <div className="flex gap-2 justify-center flex-wrap">
+                      <button
+                        onClick={() => {
+                          setGenderFilter('all');
+                          setPendingFilter('all');
+                          setShowFilterPanel(false);
+                          loadOrientadores('all');
+                        }}
+                        className="px-4 py-2 text-xs font-semibold rounded-full bg-secondary/20 border border-secondary/30 text-secondary hover:bg-secondary/30 transition-colors"
+                      >
+                        Remover filtro
+                      </button>
+                      <button
+                        onClick={() => handleSubmit()}
+                        className="px-4 py-2 text-xs font-semibold rounded-full bg-white/5 border border-white/10 text-on-surface-variant hover:bg-white/10 transition-colors"
+                      >
+                        Qualquer profissional
+                      </button>
+                    </div>
+                  </motion.div>
+                ) : (
+                  orientadores.map((or) => (
+                    <button
+                      key={or.id}
+                      onClick={() => handleSubmit(or.id)}
+                      className="flex items-center justify-between p-4 rounded-2xl bg-surface-container/50 border border-white/5 hover:border-secondary/30 transition-all text-left group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center border border-secondary/20">
+                          <span className="text-xs text-secondary font-bold">{or.full_name.substring(0,2).toUpperCase()}</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-on-surface">{or.full_name}</p>
+                          <p className="text-xs text-on-surface-variant capitalize">{or.role}</p>
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
+                        check_circle
+                      </span>
+                    </button>
+                  ))
+                )}
 
+                {/* Qualquer profissional — sempre visível */}
                 <button
                   onClick={() => handleSubmit()}
                   className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-left"

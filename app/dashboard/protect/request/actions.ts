@@ -379,8 +379,18 @@ export async function updateProtectRequestStatus({
 
 /**
  * Retorna os orientadores disponíveis na instituição do aluno.
+ *
+ * @param genderFilter - Filtro de gênero opcional:
+ *   - null ou 'all': retorna todos os profissionais elegíveis (padrão)
+ *   - 'woman' | 'man' | 'other': retorna apenas profissionais com esse gênero informado
+ *
+ * REGRA: O filtro de gênero é aplicado DEPOIS da verificação de elegibilidade.
+ * Gênero NUNCA determina permissão — apenas filtra a lista já autorizada.
+ * Profissionais com gender = NULL aparecem apenas quando genderFilter = 'all'.
  */
-export async function getAvailableOrientadores(): Promise<{
+export async function getAvailableOrientadores(
+  genderFilter?: string | null,
+): Promise<{
   data?: any[];
   error?: string;
 }> {
@@ -398,12 +408,21 @@ export async function getAvailableOrientadores(): Promise<{
 
   if (!profile?.institution_id) return { error: 'Instituição não encontrada' };
 
-  const { data, error } = await supabase
+  // Base query: profissionais autorizados da instituição
+  let query = supabase
     .from('profiles')
-    .select('id, full_name, role')
+    .select('id, full_name, role, gender')
     .eq('institution_id', profile.institution_id)
     .in('role', ['orientador', 'gestor'])
     .order('full_name');
+
+  // Aplica filtro de gênero apenas quando selecionado (não 'all' e não nulo)
+  const shouldFilter = genderFilter && genderFilter !== 'all';
+  if (shouldFilter) {
+    query = query.eq('gender', genderFilter);
+  }
+
+  const { data, error } = await query;
 
   if (error) return { error: error.message };
   return { data: data ?? [] };
