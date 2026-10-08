@@ -9,6 +9,7 @@ import { AlertCircle, Sparkles } from 'lucide-react';
 import { createClient } from '../../../utils/supabase/client';
 import { LibrasCapture } from '../../../components/libras';
 import { useAccessibility } from '@/components/AccessibilityProvider';
+import ProximoPasso from '../../../components/ProximoPasso';
 
 
 const states = [
@@ -170,7 +171,7 @@ export default function CheckinPage() {
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: 0.6, duration: 1 }}
-                      className="text-3xl md:text-4xl font-light leading-relaxed text-on-surface mb-12 tracking-tight"
+                      className="text-3xl md:text-4xl font-light leading-relaxed text-on-surface mb-10 tracking-tight"
                     >
                       &ldquo;{aiInsight}&rdquo;
                     </motion.p>
@@ -180,24 +181,28 @@ export default function CheckinPage() {
                     initial={{ y: 10, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.5 }}
-                    className="text-base text-on-surface-variant opacity-60 mb-12 max-w-md"
+                    className="text-base text-on-surface-variant opacity-60 mb-10 max-w-md"
                   >
                     Seu registro foi salvo. A análise da IA está sendo processada em segundo plano.
                   </motion.p>
                 )}
 
-                <motion.button 
+                {/* Próximo Passo após check-in */}
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 1.5, duration: 1 }}
-                  onClick={resetForm}
-                  className="text-xs uppercase tracking-[0.2em] font-semibold text-on-surface-variant hover:text-secondary transition-colors"
+                  transition={{ delay: aiInsight ? 1.2 : 0.8 }}
+                  className="w-full text-left"
                 >
-                  Novo Check-in
-                </motion.button>
+                  <ProximoPasso
+                    contextMessage="Seu registro foi salvo. O que você gostaria de fazer agora?"
+                    onDismiss={resetForm}
+                  />
+                </motion.div>
               </motion.div>
             ) : (
               /* Check-in Form View */
+
               <motion.div 
                 key="form"
                 initial={{ opacity: 0 }}

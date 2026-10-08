@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../utils/supabase/client';
+import ProximoPasso from './ProximoPasso';
 
 interface AnaliseEmocional {
   emocao_principal: string;
@@ -398,7 +399,7 @@ export default function EmotionAnalyzer() {
                   </span>
                 </div>
                 <p className="text-sm text-on-surface leading-relaxed mb-4">{analise.summary || analise.resumo}</p>
-                
+
                 {analise.indicators && analise.indicators.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-white/10">
                     <span className="text-xs font-semibold uppercase tracking-[0.1em] text-on-surface-variant mb-2 block">Indicadores</span>
@@ -428,63 +429,24 @@ export default function EmotionAnalyzer() {
                     Recomendação
                   </span>
                 </div>
-                <p className="text-sm text-on-surface leading-relaxed mb-6">{analise.recommendation || analise.recomendacao}</p>
-                
-                {analise.action && analise.action === 'request_session' && (
-                  <div className="flex flex-col gap-3">
-                    <button
-                      onClick={handleActionClick}
-                      disabled={isRequestingSession || sessionStatus === 'success'}
-                      className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-on-surface text-xs font-semibold uppercase tracking-[0.15em] hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                    >
-                      {isRequestingSession ? (
-                        <>
-                          <span className="material-symbols-outlined text-[18px] animate-spin">sync</span>
-                          Enviando solicitação...
-                        </>
-                      ) : sessionStatus === 'success' ? (
-                        <>
-                          <span className="material-symbols-outlined text-[18px] text-secondary">check_circle</span>
-                          Solicitação Encaminhada
-                        </>
-                      ) : (
-                        <>
-                          <span className="material-symbols-outlined text-[18px]">forum</span>
-                          {analise.action_label || 'Solicitar uma sessão'}
-                        </>
-                      )}
-                    </button>
-
-                    <AnimatePresence>
-                      {sessionStatusMsg && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          className={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
-                            sessionStatus === 'success'
-                              ? 'bg-secondary/10 border-secondary/30 text-secondary'
-                              : 'bg-error/10 border-error/30 text-error'
-                          }`}
-                        >
-                          <span className="material-symbols-outlined text-sm mt-0.5 flex-shrink-0">
-                            {sessionStatus === 'success' ? 'verified' : 'error'}
-                          </span>
-                          <span className="leading-relaxed">{sessionStatusMsg}</span>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
+                <p className="text-sm text-on-surface leading-relaxed">{analise.recommendation || analise.recomendacao}</p>
               </motion.div>
             </div>
+
+            {/* ── Próximo Passo ── */}
+            <ProximoPasso
+              recommendationType={(analise.recommendation_type as 'general_support' | 'self_care' | 'talk_to_someone' | 'request_session' | 'urgent_human_support' | null) ?? null}
+              contextMessage="Com base no que você compartilhou, há alguns caminhos disponíveis. O que você gostaria de fazer?"
+              sessionAlreadyRequested={sessionStatus === 'success'}
+              onDismiss={reset}
+            />
 
             {/* Reset */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="flex justify-center mt-4"
+              transition={{ delay: 0.9 }}
+              className="flex justify-center mt-2"
             >
               <button
                 onClick={reset}
