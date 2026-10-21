@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -190,7 +190,7 @@ export default function LoginPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: isLoading ? 0 : 1 }}
         transition={{ duration: 1, delay: 0.2 }}
-        className="relative z-10 w-full max-w-[400px] mx-auto min-h-[100dvh] flex flex-col items-center justify-center px-6 py-12"
+        className="relative z-10 w-full max-w-[420px] mx-auto min-h-[100dvh] flex flex-col items-center justify-center px-4 sm:px-6 py-8 sm:py-12"
       >
         <header className="text-center mb-8 mt-12">
           <motion.div
@@ -227,7 +227,7 @@ export default function LoginPage() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 2.6, duration: 0.8 }}
-          className="w-full rounded-2xl p-8 sm:p-10 relative overflow-hidden bg-surface-container-low/40 backdrop-blur-3xl border border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.4),0_0_40px_rgba(91,124,255,0.03)]"
+          className="w-full rounded-2xl p-6 sm:p-10 relative overflow-hidden bg-surface-container-low/40 backdrop-blur-3xl border border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.4),0_0_40px_rgba(91,124,255,0.03)]"
         >
           <AnimatePresence mode="popLayout">
             {errorMsg && (

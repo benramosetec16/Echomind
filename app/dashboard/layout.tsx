@@ -6,7 +6,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen relative flex flex-col md:flex-row">
       <AethericBackground />
       <Sidebar />
-      <div className="flex-1 md:ml-20 w-full relative pb-20 md:pb-0">
+      <div className="flex-1 md:ml-20 w-full relative pb-24 md:pb-0">
         {children}
       </div>
     </div>

@@ -62,6 +62,40 @@ const navByRole: Record<UserRole, { icon: string; label: string; href: string }[
   ],
 };
 
+// Mobile bottom nav: show first 4 role items + profile (always 5 max)
+const mobileNavByRole: Record<UserRole, { icon: string; label: string; href: string }[]> = {
+  aluno: [
+    { icon: 'waves', label: 'Início', href: '/dashboard' },
+    { icon: 'auto_awesome', label: 'Check-in', href: '/dashboard/checkin' },
+    { icon: 'chat', label: 'Mensagens', href: '/dashboard/messages' },
+    { icon: 'psychology', label: 'Análise', href: '/dashboard/analyze' },
+  ],
+  professor: [
+    { icon: 'waves', label: 'Painel', href: '/dashboard/professor' },
+    { icon: 'groups', label: 'Turmas', href: '/dashboard/professor' },
+    { icon: 'chat', label: 'Mensagens', href: '/dashboard/messages' },
+    { icon: 'auto_awesome', label: 'Check-in', href: '/dashboard/checkin' },
+  ],
+  orientador: [
+    { icon: 'waves', label: 'Painel', href: '/dashboard/orientador' },
+    { icon: 'shield_person', label: 'Protect', href: '/dashboard/orientador/protect' },
+    { icon: 'chat', label: 'Mensagens', href: '/dashboard/messages' },
+    { icon: 'auto_awesome', label: 'Check-in', href: '/dashboard/checkin' },
+  ],
+  gestor: [
+    { icon: 'corporate_fare', label: 'Gestão', href: '/dashboard/institution' },
+    { icon: 'chat', label: 'Mensagens', href: '/dashboard/messages' },
+    { icon: 'vpn_key', label: 'Códigos', href: '/dashboard/institution' },
+    { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
+  ],
+  administrador: [
+    { icon: 'waves', label: 'Controle', href: '/dashboard/admin' },
+    { icon: 'group', label: 'Usuários', href: '/dashboard/admin' },
+    { icon: 'auto_awesome', label: 'Check-in', href: '/dashboard/checkin' },
+    { icon: 'database', label: 'Sistema', href: '/dashboard/admin' },
+  ],
+};
+
 export default function Sidebar() {
   const pathname = usePathname();
   const [userName, setUserName] = useState<string | null>(null);
@@ -86,6 +120,9 @@ export default function Sidebar() {
     fetchRole();
   }, [supabase]);
 
+  const isActive = (href: string) =>
+    pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+
   return (
     <>
       {/* Desktop: Side nav */}
@@ -98,18 +135,18 @@ export default function Sidebar() {
 
         <div className="flex flex-col gap-4 w-full px-4 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
           {[...(navByRole[userRole] || navByRole.aluno), ...sharedItems].map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+            const active = isActive(item.href);
             return (
               <Link
                 key={`${item.href}-${item.label}`}
                 href={item.href}
                 className={`flex items-center gap-4 py-3 px-3 transition-all duration-300 rounded-full active:scale-95 ${
-                  isActive
+                  active
                     ? 'text-secondary bg-secondary-container/20'
                     : 'text-on-surface-variant opacity-60 hover:text-primary'
                 }`}
               >
-                <span className="material-symbols-outlined text-2xl flex-shrink-0" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
+                <span className="material-symbols-outlined text-2xl flex-shrink-0" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>
                   {item.icon}
                 </span>
                 <span className="font-sans text-sm tracking-wide opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
@@ -134,36 +171,61 @@ export default function Sidebar() {
       </nav>
 
       {/* Mobile: Bottom nav bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-t border-white/5 flex items-center justify-around px-2 py-2 safe-area-pb">
-        {(navByRole[userRole] || navByRole.aluno).slice(0, 5).map((item) => {
-          const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-          return (
-            <Link
-              key={`mob-${item.href}-${item.label}`}
-              href={item.href}
-              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl transition-all active:scale-95 ${
-                isActive ? 'text-secondary' : 'text-on-surface-variant opacity-50'
-              }`}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-white/[0.06]"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
+        <div className="flex items-stretch justify-around px-1 h-16">
+          {(mobileNavByRole[userRole] || mobileNavByRole.aluno).map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={`mob-${item.href}-${item.label}`}
+                href={item.href}
+                className={`flex flex-col items-center justify-center gap-0.5 min-w-[56px] px-2 py-2 rounded-2xl transition-all active:scale-90 ${
+                  active ? 'text-secondary' : 'text-on-surface-variant/50'
+                }`}
+                aria-label={item.label}
+                aria-current={active ? 'page' : undefined}
+              >
+                <span
+                  className={`material-symbols-outlined transition-all ${active ? 'text-[22px]' : 'text-[20px]'}`}
+                  style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}
+                >
+                  {item.icon}
+                </span>
+                <span className={`text-[10px] leading-tight tracking-wide font-medium ${active ? 'opacity-100' : 'opacity-60'}`}>
+                  {item.label}
+                </span>
+                {active && (
+                  <span className="w-1 h-1 rounded-full bg-secondary mt-0.5" />
+                )}
+              </Link>
+            );
+          })}
+          {/* Profile icon always visible */}
+          <Link
+            href="/dashboard/profile"
+            className={`flex flex-col items-center justify-center gap-0.5 min-w-[56px] px-2 py-2 rounded-2xl transition-all active:scale-90 ${
+              pathname === '/dashboard/profile' ? 'text-secondary' : 'text-on-surface-variant/50'
+            }`}
+            aria-label="Perfil"
+            aria-current={pathname === '/dashboard/profile' ? 'page' : undefined}
+          >
+            <span
+              className={`material-symbols-outlined transition-all ${pathname === '/dashboard/profile' ? 'text-[22px]' : 'text-[20px]'}`}
+              style={{ fontVariationSettings: pathname === '/dashboard/profile' ? "'FILL' 1" : "'FILL' 0" }}
             >
-              <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
-                {item.icon}
-              </span>
-              <span className="text-[9px] tracking-wide">{item.label}</span>
-            </Link>
-          );
-        })}
-        {/* Profile icon always visible */}
-        <Link
-          href="/dashboard/profile"
-          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl transition-all active:scale-95 ${
-            pathname === '/dashboard/profile' ? 'text-secondary' : 'text-on-surface-variant opacity-50'
-          }`}
-        >
-          <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: pathname === '/dashboard/profile' ? "'FILL' 1" : "'FILL' 0" }}>
-            nightlight
-          </span>
-          <span className="text-[9px] tracking-wide">Perfil</span>
-        </Link>
+              person
+            </span>
+            <span className={`text-[10px] leading-tight tracking-wide font-medium ${pathname === '/dashboard/profile' ? 'opacity-100' : 'opacity-60'}`}>
+              Perfil
+            </span>
+            {pathname === '/dashboard/profile' && (
+              <span className="w-1 h-1 rounded-full bg-secondary mt-0.5" />
+            )}
+          </Link>
+        </div>
       </nav>
     </>
   );

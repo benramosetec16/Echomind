@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -165,7 +165,7 @@ export default function CalendarPage() {
   return (
     <>
       <TopBar title="Agenda" />
-      <main className="pt-32 px-16 pb-24 relative min-h-screen">
+      <main className="pt-20 md:pt-32 px-4 md:px-16 pb-28 md:pb-24 relative min-h-screen">
         <PageTransition>
           <header className="max-w-[1200px] mx-auto mb-12">
             <motion.div

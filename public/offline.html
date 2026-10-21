@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#080B12">
+  <title>Offline | EchoMind</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #080B12;
+      color: #F5F7FF;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .container {
+      max-width: 420px;
+      width: 100%;
+      background: rgba(23, 34, 49, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 28px;
+      padding: 36px 24px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .icon-wrapper {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      background: rgba(56, 214, 197, 0.1);
+      border: 1px solid rgba(56, 214, 197, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .icon-wrapper svg {
+      width: 34px;
+      height: 34px;
+      stroke: #38D6C5;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: #38D6C5;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+      color: #FFFFFF;
+    }
+    p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #AAB4C5;
+      margin-bottom: 28px;
+    }
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, #5B7CFF, #8A6CFF);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      min-height: 48px;
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+    .notice {
+      margin-top: 24px;
+      font-size: 12px;
+      color: #718096;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon-wrapper">
+      <svg viewBox="0 0 24 24">
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+      </svg>
+    </div>
+    <span class="tag">Conexão Interrompida</span>
+    <h1>Você está offline</h1>
+    <p>
+      O EchoMind precisa de conexão para sincronizar seus dados emocionais com segurança. Seus dados salvos localmente continuam protegidos.
+    </p>
+    <div class="button-group">
+      <button class="btn-primary" onclick="window.location.reload()">
+        Tentar Novamente
+      </button>
+    </div>
+    <p class="notice">
+      Assim que a rede for reestabelecida, suas ações e check-ins serão processados normalmente.
+    </p>
+  </div>
+</body>
+</html>

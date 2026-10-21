@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -160,7 +160,7 @@ export default function AlertsPage() {
   return (
     <>
       <TopBar title="Harmonia" />
-      <main className="pt-32 px-16 pb-24 relative min-h-screen flex flex-col">
+      <main className="pt-20 md:pt-32 px-4 md:px-16 pb-28 md:pb-24 relative min-h-screen flex flex-col">
         <PageTransition>
           {/* Header Section */}
           <header className="max-w-[1200px] mx-auto w-full mb-16">
