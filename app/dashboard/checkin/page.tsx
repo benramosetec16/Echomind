@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -112,15 +112,15 @@ export default function CheckinPage() {
         <div ref={glow2Ref} className="absolute bottom-[0%] -right-[5%] w-[50%] h-[50%] rounded-full bg-tertiary opacity-[0.08] blur-[64px] transition-transform duration-300" />
       </div>
 
-      <main className="pt-32 px-16 pb-24 relative min-h-screen flex flex-col items-center">
+      <main className="pt-20 md:pt-32 px-4 md:px-16 pb-28 md:pb-24 relative min-h-screen flex flex-col items-center">
         <PageTransition>
           {/* Header */}
-          <header className="w-full max-w-[1200px] flex justify-between items-center mb-16 mx-auto">
+          <header className="w-full max-w-[1200px] flex justify-between items-center mb-8 md:mb-16 mx-auto">
             <div className="flex flex-col">
               <motion.h1 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-5xl font-extralight text-on-background tracking-tighter"
+                className="text-3xl md:text-5xl font-extralight text-on-background tracking-tighter"
               >
                 Check-in
               </motion.h1>
@@ -261,7 +261,7 @@ export default function CheckinPage() {
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.3 }}
-                      className="w-full glass-panel rounded-full p-8 mb-4 relative"
+                      className="w-full glass-panel rounded-2xl md:rounded-full p-5 md:p-8 mb-4 relative"
                     >
                       <div className="flex justify-between items-center mb-6 px-2">
                         <span className="text-xs font-semibold text-on-surface-variant opacity-50 uppercase tracking-[0.15em]">INFELIZ</span>
@@ -300,7 +300,7 @@ export default function CheckinPage() {
                     <div className="w-12 h-[1px] bg-secondary opacity-30"></div>
                   </motion.div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
                     {textures.map((texture, index) => {
                       const isSelected = selectedTexture === texture.id;
                       return (
@@ -421,7 +421,7 @@ export default function CheckinPage() {
                   <button 
                     onClick={() => handleSubmit()}
                     disabled={isSubmitting || !selectedTexture}
-                    className="group relative px-12 py-4 border border-secondary/30 rounded-full overflow-hidden transition-all hover:border-secondary hover:shadow-[0_0_30px_rgba(159,207,213,0.2)] disabled:opacity-50 disabled:hover:border-secondary/30 disabled:hover:shadow-none"
+                    className="group relative w-full sm:w-auto px-8 md:px-12 py-4 min-h-[48px] border border-secondary/30 rounded-full overflow-hidden transition-all hover:border-secondary hover:shadow-[0_0_30px_rgba(159,207,213,0.2)] disabled:opacity-50 disabled:hover:border-secondary/30 disabled:hover:shadow-none"
                   >
                     <span className="relative z-10 text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
                       {isSubmitting ? 'TRANSMITINDO...' : 'TRANSMITIR AURA'}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import TopBar from '../../components/TopBar';
 import PageTransition from '../../components/PageTransition';
@@ -9,7 +9,7 @@ export default function AnalyzePage() {
   return (
     <>
       <TopBar title="Analisar" />
-      <main className="pt-32 px-16 pb-24 relative min-h-screen">
+      <main className="pt-20 md:pt-32 px-4 md:px-16 pb-28 md:pb-24 relative min-h-screen">
         <PageTransition>
           {/* Header */}
           <header className="max-w-[1200px] mx-auto mb-12">
@@ -26,7 +26,7 @@ export default function AnalyzePage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-5xl font-extralight tracking-tighter text-on-background mb-3"
+              className="text-3xl md:text-5xl font-extralight tracking-tighter text-on-background mb-3"
             >
               Análise Emocional
             </motion.h1>

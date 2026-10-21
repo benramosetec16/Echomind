@@ -44,7 +44,6 @@ export default function DashboardPage() {
     ]);
 
     const checkins = checkinRes.data || [];
-    const latestValence = checkins.length > 0 ? checkins[0].valence_value : 75;
 
     setMetrics({
       latestValence: checkins.length > 0 ? checkins[0].valence_value : null,
@@ -108,7 +107,6 @@ export default function DashboardPage() {
         .eq('id', user.id)
         .maybeSingle();
 
-      // If missing, let fetchUser handle creation. We just don't crash here.
       if (profile) {
         setUserRole(profile.role);
         
@@ -137,7 +135,7 @@ export default function DashboardPage() {
   return (
     <>
       <TopBar title="Atmosfera" />
-      <main className="pt-24 md:pt-32 px-4 md:px-16 pb-24 relative min-h-screen">
+      <main className="pt-20 md:pt-32 px-4 md:px-16 pb-28 md:pb-24 relative min-h-screen">
         <PageTransition>
           {/* Guardian Contact Banner */}
           {showGuardianBanner && !guardianBannerDismissed && userId && (
@@ -151,13 +149,13 @@ export default function DashboardPage() {
           )}
 
           {/* Hero Section */}
-          <section className="max-w-[1200px] mx-auto mb-16">
+          <section className="max-w-[1200px] mx-auto mb-10 md:mb-16">
             <div className="flex flex-col gap-2">
               <motion.span 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="text-xs font-semibold text-secondary uppercase tracking-[0.3em]"
+                className="text-[10px] md:text-xs font-semibold text-secondary uppercase tracking-[0.25em]"
               >
                 Sistema Inicializado
               </motion.span>
@@ -165,7 +163,7 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="text-5xl font-light leading-[1.1] text-on-surface tracking-tight"
+                className="text-3xl sm:text-4xl md:text-5xl font-light leading-tight text-on-surface tracking-tight"
               >
                 Bem-vindo, {userName || '...'}.
               </motion.h2>
@@ -173,7 +171,7 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-base text-on-surface-variant max-w-xl"
+                className="text-sm md:text-base text-on-surface-variant max-w-xl leading-relaxed"
               >
                 Seu ecossistema emocional está ressoando em frequências ideais. Prioridade de hoje: manter foco profundo durante janelas cognitivas de alta intensidade.
               </motion.p>
@@ -182,7 +180,7 @@ export default function DashboardPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="mt-3 flex items-center gap-2"
+                  className="mt-2 flex items-center gap-2 flex-wrap"
                 >
                   <span className="material-symbols-outlined text-secondary text-base">domain</span>
                   <span className="text-xs font-semibold text-secondary uppercase tracking-[0.15em]">
@@ -194,31 +192,31 @@ export default function DashboardPage() {
           </section>
 
           {/* Metrics Bento Grid */}
-          <section className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 mb-16">
+          <section className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 mb-12 md:mb-16">
             {/* Vibe Pulse */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="md:col-span-4 aetheric-glass rounded-[32px] p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
+              className="md:col-span-4 aetheric-glass rounded-2xl md:rounded-[32px] p-6 md:p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
             >
               <div>
-                <div className="flex justify-between items-start mb-6">
-                  <span className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant">Pulso da Vibe</span>
+                <div className="flex justify-between items-start mb-4 md:mb-6">
+                  <span className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant">Pulso da Vibe</span>
                   <span className="material-symbols-outlined text-secondary opacity-50 group-hover:opacity-100 transition-opacity">vital_signs</span>
                 </div>
                 <div className="flex items-baseline gap-2">
                   {metrics.latestValence !== null ? (
                     <>
-                      <span className="text-5xl font-extralight text-on-surface">{metrics.latestValence}</span>
-                      <span className="text-sm text-on-surface-variant opacity-40">/100</span>
+                      <span className="text-4xl md:text-5xl font-extralight text-on-surface">{metrics.latestValence}</span>
+                      <span className="text-xs md:text-sm text-on-surface-variant opacity-40">/100</span>
                     </>
                   ) : (
-                    <span className="text-lg text-on-surface-variant opacity-30">Nenhum registro ainda</span>
+                    <span className="text-base text-on-surface-variant opacity-40">Nenhum registro ainda</span>
                   )}
                 </div>
               </div>
-              <div className="mt-8 h-20 flex items-end gap-1">
+              <div className="mt-6 md:mt-8 h-16 md:h-20 flex items-end gap-1">
                 <div className="flex-1 bg-secondary/10 h-1/2 rounded-t-sm group-hover:h-3/4 transition-all duration-1000 ease-in-out"></div>
                 <div className="flex-1 bg-secondary/10 h-2/3 rounded-t-sm group-hover:h-1/2 transition-all duration-1000 ease-in-out delay-100"></div>
                 <div className="flex-1 bg-secondary/20 h-3/4 rounded-t-sm group-hover:h-full transition-all duration-1000 ease-in-out delay-200"></div>
@@ -232,23 +230,23 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="md:col-span-4 aetheric-glass rounded-[32px] p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
+              className="md:col-span-4 aetheric-glass rounded-2xl md:rounded-[32px] p-6 md:p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
             >
               <div>
-                <div className="flex justify-between items-start mb-6">
-                  <span className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant">Check-ins Realizados</span>
+                <div className="flex justify-between items-start mb-4 md:mb-6">
+                  <span className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant">Check-ins Realizados</span>
                   <span className="material-symbols-outlined text-secondary opacity-50 group-hover:opacity-100 transition-opacity">auto_awesome</span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extralight text-on-surface">{metrics.checkinsCount}</span>
-                  <span className="text-sm text-on-surface-variant opacity-40">Registros</span>
+                  <span className="text-4xl md:text-5xl font-extralight text-on-surface">{metrics.checkinsCount}</span>
+                  <span className="text-xs md:text-sm text-on-surface-variant opacity-40">Registros</span>
                 </div>
               </div>
-              <div className="mt-8 relative h-20 flex items-center justify-center">
+              <div className="mt-6 md:mt-8 relative h-16 md:h-20 flex items-center justify-center">
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-16 border-2 border-dashed border-secondary/20 rounded-full animate-[spin_20s_linear_infinite]"></div>
+                  <div className="w-14 h-14 md:w-16 md:h-16 border-2 border-dashed border-secondary/20 rounded-full animate-[spin_20s_linear_infinite]"></div>
                 </div>
-                <div className="w-12 h-12 rounded-full border border-secondary/30 flex items-center justify-center">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-secondary/30 flex items-center justify-center">
                   <div className="w-1.5 h-1.5 bg-secondary rounded-full shadow-[0_0_8px_rgba(159,207,213,0.6)]"></div>
                 </div>
               </div>
@@ -259,19 +257,19 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="md:col-span-4 aetheric-glass rounded-[32px] p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
+              className="md:col-span-4 aetheric-glass rounded-2xl md:rounded-[32px] p-6 md:p-8 flex flex-col justify-between group hover:border-secondary/20 transition-all duration-700"
             >
               <div>
-                <div className="flex justify-between items-start mb-6">
-                  <span className="text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant">Entradas no Journal</span>
+                <div className="flex justify-between items-start mb-4 md:mb-6">
+                  <span className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant">Entradas no Journal</span>
                   <span className="material-symbols-outlined text-secondary opacity-50 group-hover:opacity-100 transition-opacity">book</span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extralight text-on-surface">{metrics.journalCount}</span>
-                  <span className="text-sm text-on-surface-variant opacity-40">Páginas</span>
+                  <span className="text-4xl md:text-5xl font-extralight text-on-surface">{metrics.journalCount}</span>
+                  <span className="text-xs md:text-sm text-on-surface-variant opacity-40">Páginas</span>
                 </div>
               </div>
-              <div className="mt-8">
+              <div className="mt-6 md:mt-8">
                 <div className="w-full h-[1px] bg-white/10 relative">
                   <div className="absolute top-0 left-0 h-full w-4/5 bg-secondary aether-glow"></div>
                 </div>
@@ -289,48 +287,50 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
-              className="flex justify-between items-end mb-10"
+              className="flex justify-between items-center mb-6 md:mb-10"
             >
               <div>
-                <span className="text-xs font-semibold text-secondary/60 uppercase tracking-[0.2em] mb-2 block">Inteligência em Andamento</span>
-                <h3 className="text-3xl font-normal text-on-surface">Protocolos Ativos</h3>
+                <span className="text-[10px] md:text-xs font-semibold text-secondary/70 uppercase tracking-[0.2em] mb-1 block">Inteligência em Andamento</span>
+                <h3 className="text-2xl md:text-3xl font-normal text-on-surface">Protocolos Ativos</h3>
               </div>
               <button
                 onClick={() => router.push('/dashboard/profile')}
-                className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant hover:text-primary transition-colors"
+                className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant hover:text-primary transition-colors p-2 -mr-2 min-h-[44px]"
               >
                 CONFIGURAR <span className="material-symbols-outlined text-[16px]">settings</span>
               </button>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {/* Card 1 — Check-in rápido */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
-                className="group cursor-pointer"
+                className="group cursor-pointer active:scale-[0.99] transition-transform"
                 onClick={() => router.push('/dashboard/checkin')}
                 role="button"
                 aria-label="Ir para o check-in emocional"
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && router.push('/dashboard/checkin')}
               >
-                <div className="aetheric-glass rounded-[32px] p-8 flex gap-8 items-center transition-all duration-500 group-hover:bg-white/[0.04] group-hover:border-secondary/20">
-                  <div className="w-32 h-32 rounded-2xl overflow-hidden bg-surface-container flex-shrink-0 border border-white/5 relative">
+                <div className="aetheric-glass rounded-2xl md:rounded-[32px] p-5 md:p-8 flex flex-col sm:flex-row gap-4 sm:gap-6 md:gap-8 items-start sm:items-center transition-all duration-500 group-hover:bg-white/[0.04] group-hover:border-secondary/20">
+                  <div className="w-full h-32 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-xl md:rounded-2xl overflow-hidden bg-surface-container flex-shrink-0 border border-white/5 relative">
                     <img src="/protocol_synapse.png" alt="" aria-hidden="true" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-br from-secondary/20 to-transparent" />
                   </div>
 
-                  <div className="flex flex-col flex-1">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-xl font-medium text-on-surface">Check-in Emocional</h4>
-                      <span className="px-3 py-1 bg-secondary/10 text-secondary text-[10px] font-semibold uppercase tracking-[0.15em] rounded-full border border-secondary/20">
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <div className="flex justify-between items-start gap-2 mb-2">
+                      <h4 className="text-lg md:text-xl font-medium text-on-surface truncate">Check-in Emocional</h4>
+                      <span className="px-2.5 py-0.5 bg-secondary/10 text-secondary text-[10px] font-semibold uppercase tracking-[0.12em] rounded-full border border-secondary/20 flex-shrink-0">
                         {metrics.checkinsCount > 0 ? `${metrics.checkinsCount} feitos` : 'INICIAR'}
                       </span>
                     </div>
-                    <p className="text-sm text-on-surface-variant opacity-70 mb-4">Registre como você está agora. Leva menos de 1 minuto e alimenta sua análise de bem-estar.</p>
-                    <span className="text-xs font-semibold uppercase tracking-[0.15em] text-secondary opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    <p className="text-xs md:text-sm text-on-surface-variant opacity-70 mb-3 md:mb-4 leading-relaxed">
+                      Registre como você está agora. Leva menos de 1 minuto e alimenta sua análise de bem-estar.
+                    </p>
+                    <span className="text-xs font-semibold uppercase tracking-[0.12em] text-secondary opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center gap-1">
                       Fazer check-in <span className="material-symbols-outlined text-sm">arrow_forward</span>
                     </span>
                   </div>
@@ -342,25 +342,29 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.9 }}
-                className="group cursor-pointer"
+                className="group cursor-pointer active:scale-[0.99] transition-transform"
                 onClick={() => router.push('/dashboard/analyze')}
                 role="button"
                 aria-label="Ir para análise emocional"
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && router.push('/dashboard/analyze')}
               >
-                <div className="aetheric-glass rounded-[32px] p-8 flex gap-8 items-center transition-all duration-500 group-hover:bg-white/[0.04] group-hover:border-tertiary/20">
-                  <div className="w-32 h-32 rounded-2xl overflow-hidden bg-surface-container flex-shrink-0 border border-white/5 relative">
+                <div className="aetheric-glass rounded-2xl md:rounded-[32px] p-5 md:p-8 flex flex-col sm:flex-row gap-4 sm:gap-6 md:gap-8 items-start sm:items-center transition-all duration-500 group-hover:bg-white/[0.04] group-hover:border-tertiary/20">
+                  <div className="w-full h-32 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-xl md:rounded-2xl overflow-hidden bg-surface-container flex-shrink-0 border border-white/5 relative">
                     <img src="/protocol_resonance.png" alt="" aria-hidden="true" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-br from-tertiary/20 to-transparent" />
                   </div>
-                  <div className="flex flex-col flex-1">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-xl font-medium text-on-surface">Análise com IA</h4>
-                      <span className="px-3 py-1 bg-surface-variant text-on-surface-variant text-[10px] font-semibold uppercase tracking-[0.15em] rounded-full border border-white/10">DISPONÍVEL</span>
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <div className="flex justify-between items-start gap-2 mb-2">
+                      <h4 className="text-lg md:text-xl font-medium text-on-surface truncate">Análise com IA</h4>
+                      <span className="px-2.5 py-0.5 bg-surface-variant text-on-surface-variant text-[10px] font-semibold uppercase tracking-[0.12em] rounded-full border border-white/10 flex-shrink-0">
+                        DISPONÍVEL
+                      </span>
                     </div>
-                    <p className="text-sm text-on-surface-variant opacity-70 mb-4">Descreva como está se sentindo em texto livre. A IA identifica padrões e sugere apoio contextualizado.</p>
-                    <span className="text-xs font-semibold uppercase tracking-[0.15em] text-tertiary opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    <p className="text-xs md:text-sm text-on-surface-variant opacity-70 mb-3 md:mb-4 leading-relaxed">
+                      Descreva como está se sentindo em texto livre. A IA identifica padrões e sugere apoio contextualizado.
+                    </p>
+                    <span className="text-xs font-semibold uppercase tracking-[0.12em] text-tertiary opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center gap-1">
                       Iniciar análise <span className="material-symbols-outlined text-sm">arrow_forward</span>
                     </span>
                   </div>

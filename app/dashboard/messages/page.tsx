@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState, useCallback } from 'react';
@@ -223,14 +223,14 @@ export default function MessagesPage() {
   return (
     <>
       <TopBar title="Mensagens Aethericas" />
-      <main className="pt-20 md:pt-32 px-4 md:px-8 md:px-16 pb-24 relative min-h-screen flex flex-col">
+      <main className="pt-16 md:pt-32 px-3 sm:px-4 md:px-8 pb-28 md:pb-24 relative min-h-screen flex flex-col">
         <PageTransition>
           <section className="max-w-[900px] mx-auto w-full flex flex-col gap-8">
 
             {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="flex justify-between items-end"
+              className="flex flex-col sm:flex-row gap-3 sm:items-end justify-between"
             >
               <div>
                 <span className="text-xs font-semibold text-secondary uppercase tracking-[0.3em]">Comunicação Neural</span>
@@ -402,8 +402,8 @@ export default function MessagesPage() {
             <motion.div
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="aetheric-glass rounded-[32px] p-6 flex flex-col overflow-hidden relative"
-              style={{ minHeight: '50vh' }}
+              className="aetheric-glass rounded-2xl md:rounded-[32px] p-4 md:p-6 flex flex-col overflow-hidden relative"
+              style={{ minHeight: '60vh' }}
             >
               {loading ? (
                 <div className="flex-1 flex items-center justify-center text-sm text-on-surface-variant opacity-60">
@@ -419,7 +419,7 @@ export default function MessagesPage() {
                     chatMessages.map(msg => {
                       const isMe = msg.sender_id === userId;
                       return (
-                        <div key={msg.id} className={`flex flex-col max-w-[80%] ${isMe ? 'self-end items-end' : 'self-start items-start'}`}>
+                        <div key={msg.id} className={`flex flex-col max-w-[90%] sm:max-w-[80%] ${isMe ? 'self-end items-end' : 'self-start items-start'}`}>
                           {!isMe && msg.sender_name && (
                             <span className="text-[10px] text-on-surface-variant font-medium mb-1 pl-1">
                               {msg.sender_name} {msg.sender_classroom ? `• Sala: ${msg.sender_classroom}` : ''}
