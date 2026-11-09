@@ -58,7 +58,7 @@ export default function StudyPage() {
   return (
     <>
       <TopBar title="Apoio Aos Estudos" />
-      <main className="pt-32 px-4 md:px-16 pb-24 relative min-h-screen">
+      <main className="pt-20 md:pt-32 px-4 md:px-16 pb-28 md:pb-24 relative min-h-screen">
         <PageTransition>
           <div className="max-w-[1000px] mx-auto w-full">
             <div className="mb-10">
@@ -69,12 +69,12 @@ export default function StudyPage() {
             </div>
 
             {/* Mode Selector */}
-            <div className="flex flex-wrap gap-4 mb-8">
+            <div className="flex flex-wrap gap-2 sm:gap-4 mb-8">
               {STUDY_MODES.map((mode) => (
                 <button
                   key={mode.id}
                   onClick={() => setActiveMode(mode.id as StudyMode)}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-full text-xs uppercase tracking-widest font-semibold transition-all duration-300 ${
+                  className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full text-[11px] sm:text-xs uppercase tracking-wider sm:tracking-widest font-semibold transition-all duration-300 ${
                     activeMode === mode.id
                       ? 'bg-secondary/10 text-secondary border border-secondary/30 shadow-[0_0_15px_rgba(var(--color-secondary),0.1)]'
                       : 'bg-surface-container text-on-surface-variant opacity-60 hover:opacity-100 hover:bg-white/5 border border-transparent'

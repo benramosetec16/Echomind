@@ -59,7 +59,7 @@ export default function GuardianBanner({ userId, onComplete }: Props) {
         {/* Accent bar */}
         <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-400/50 rounded-l-xl" />
 
-        <div className="px-6 py-4 flex items-center justify-between gap-4 pl-8">
+        <div className="p-4 sm:px-6 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pl-6 sm:pl-8">
           <div className="flex items-center gap-3 flex-1">
             <span className="material-symbols-outlined text-yellow-400 text-xl flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>
               contact_phone
@@ -74,7 +74,7 @@ export default function GuardianBanner({ userId, onComplete }: Props) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center justify-end gap-2 w-full sm:w-auto mt-1 sm:mt-0 flex-shrink-0">
             <button
               onClick={() => setExpanded(v => !v)}
               className="px-4 py-2 rounded-full bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 text-xs font-semibold uppercase tracking-wider hover:bg-yellow-400/20 transition-colors"

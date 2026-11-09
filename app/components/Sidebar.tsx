@@ -101,7 +101,7 @@ const mobileNavSecondary: Record<UserRole, { icon: string; label: string; href: 
   aluno: [
     { icon: 'school', label: 'Estudos', href: '/study' },
     { icon: 'health_metrics', label: 'Biometria', href: '/biometrics' },
-    { icon: 'shield_person', label: 'EchoMind Protect', href: '/dashboard/protect' },
+    { icon: 'shield_person', label: 'Protect', href: '/dashboard/protect' },
     { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
     { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
     { icon: 'chat', label: 'Mensagens', href: '/dashboard/messages' },

@@ -67,7 +67,7 @@ export default function BiometricsHistory() {
   return (
     <>
       <TopBar title="Histórico Biométrico" />
-      <main className="pt-32 px-16 pb-24 relative min-h-screen flex flex-col">
+      <main className="pt-20 md:pt-32 px-4 md:px-16 pb-28 md:pb-24 relative min-h-screen flex flex-col">
         <PageTransition>
           <div className="max-w-[1200px] mx-auto w-full mb-10 flex justify-start">
              <Link href="/biometrics" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant hover:text-primary transition-colors">
