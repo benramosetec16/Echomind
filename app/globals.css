@@ -31,6 +31,7 @@
 
 html {
   color-scheme: dark;
+  height: 100%;
 }
 
 body {
@@ -39,6 +40,7 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100%;
 }
 
 /* Material Symbols */
@@ -189,16 +191,14 @@ input[type="range"]::-webkit-slider-thumb {
 html {
   -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
-  /* Permitir rolagem vertical nativa */
-  overflow-y: auto;
 }
 
 body {
   overflow-x: hidden;
-  /* overscroll-behavior-y: none causava bloqueio de scroll em Safari iOS.
-     Mantemos 'contain' para evitar pull-to-refresh sem bloquear rolagem normal. */
+  /* 'none' bloqueava scroll em Safari iOS; 'contain' evita pull-to-refresh
+     excessivo mas nao bloqueia scroll normal (Android + iOS) */
   overscroll-behavior-y: contain;
-  min-height: 100%;
+  /* Garantir que eventos de toque verticais scrollam normalmente (Android Chrome) */
   touch-action: pan-y;
 }
 
