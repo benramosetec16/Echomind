@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '../../utils/supabase/client';
 import { getUserRole, type UserRole, ROLE_LABELS } from '../../utils/roles';
 
@@ -62,13 +62,13 @@ const navByRole: Record<UserRole, { icon: string; label: string; href: string }[
   ],
 };
 
-// Mobile bottom nav: show first 4 role items + profile (always 5 max)
-const mobileNavByRole: Record<UserRole, { icon: string; label: string; href: string }[]> = {
+// Mobile bottom bar: 4 primary items per role (always visible)
+const mobileNavPrimary: Record<UserRole, { icon: string; label: string; href: string }[]> = {
   aluno: [
-    { icon: 'waves', label: 'Início', href: '/dashboard' },
+    { icon: 'waves', label: 'Atmosfera', href: '/dashboard' },
     { icon: 'auto_awesome', label: 'Check-in', href: '/dashboard/checkin' },
-    { icon: 'chat', label: 'Mensagens', href: '/dashboard/messages' },
     { icon: 'psychology', label: 'Análise', href: '/dashboard/analyze' },
+    { icon: 'edit_note', label: 'Diário', href: '/dashboard/history' },
   ],
   professor: [
     { icon: 'waves', label: 'Painel', href: '/dashboard/professor' },
@@ -96,11 +96,44 @@ const mobileNavByRole: Record<UserRole, { icon: string; label: string; href: str
   ],
 };
 
+// Mobile "Mais" drawer: secondary modules per role (not in primary bar)
+const mobileNavSecondary: Record<UserRole, { icon: string; label: string; href: string }[]> = {
+  aluno: [
+    { icon: 'school', label: 'Estudos', href: '/study' },
+    { icon: 'health_metrics', label: 'Biometria', href: '/biometrics' },
+    { icon: 'shield_person', label: 'EchoMind Protect', href: '/dashboard/protect' },
+    { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
+    { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
+    { icon: 'chat', label: 'Mensagens', href: '/dashboard/messages' },
+    { icon: 'handshake', label: 'Parceiros', href: '/dashboard/parceiros' },
+  ],
+  professor: [
+    { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
+    { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
+    { icon: 'corporate_fare', label: 'Institucional', href: '/dashboard/institution' },
+  ],
+  orientador: [
+    { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
+    { icon: 'event_note', label: 'Agenda', href: '/dashboard/calendar' },
+    { icon: 'handshake', label: 'Parceiros', href: '/dashboard/parceiros' },
+    { icon: 'corporate_fare', label: 'Institucional', href: '/dashboard/institution' },
+  ],
+  gestor: [
+    { icon: 'meeting_room', label: 'Salas', href: '/dashboard/institution' },
+  ],
+  administrador: [
+    { icon: 'spa', label: 'Harmonia', href: '/dashboard/alerts' },
+    { icon: 'corporate_fare', label: 'Institucional', href: '/dashboard/institution' },
+  ],
+};
+
 export default function Sidebar() {
   const pathname = usePathname();
   const [userName, setUserName] = useState<string | null>(null);
   const [userInitials, setUserInitials] = useState<string>('UU');
   const [userRole, setUserRole] = useState<UserRole>('aluno');
+  const [moreOpen, setMoreOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -120,8 +153,32 @@ export default function Sidebar() {
     fetchRole();
   }, [supabase]);
 
+  // Close "Mais" drawer when navigating
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [pathname]);
+
+  // Close drawer on outside click
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handleOutside = (e: MouseEvent | TouchEvent) => {
+      if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('touchstart', handleOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('touchstart', handleOutside);
+    };
+  }, [moreOpen]);
+
   const isActive = (href: string) =>
     pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+
+  const primaryItems = mobileNavPrimary[userRole] || mobileNavPrimary.aluno;
+  const secondaryItems = mobileNavSecondary[userRole] || mobileNavSecondary.aluno;
 
   return (
     <>
@@ -170,13 +227,89 @@ export default function Sidebar() {
         </div>
       </nav>
 
+      {/* Mobile: "Mais" drawer overlay */}
+      {moreOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile: "Mais" drawer panel */}
+      <div
+        ref={drawerRef}
+        className={`md:hidden fixed bottom-16 left-0 right-0 z-50 bg-background/98 backdrop-blur-xl border-t border-white/[0.08] rounded-t-3xl transition-transform duration-300 ease-out ${
+          moreOpen ? 'translate-y-0' : 'translate-y-full pointer-events-none'
+        }`}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        aria-label="Menu de módulos"
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+
+        <div className="px-4 pb-2 pt-1">
+          <p className="text-[11px] text-on-surface-variant/50 uppercase tracking-widest font-medium">Mais módulos</p>
+        </div>
+
+        <div className="grid grid-cols-4 gap-1 px-3 pb-4">
+          {secondaryItems.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={`more-${item.href}-${item.label}`}
+                href={item.href}
+                className={`flex flex-col items-center justify-center gap-1 p-3 rounded-2xl transition-all active:scale-90 ${
+                  active
+                    ? 'bg-secondary/10 text-secondary'
+                    : 'text-on-surface-variant/70 hover:bg-white/5'
+                }`}
+                aria-label={item.label}
+              >
+                <span
+                  className="material-symbols-outlined text-[22px]"
+                  style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}
+                >
+                  {item.icon}
+                </span>
+                <span className="text-[9px] leading-tight tracking-wide font-medium text-center">
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+
+          {/* Profile link in drawer */}
+          <Link
+            href="/dashboard/profile"
+            className={`flex flex-col items-center justify-center gap-1 p-3 rounded-2xl transition-all active:scale-90 ${
+              pathname === '/dashboard/profile'
+                ? 'bg-secondary/10 text-secondary'
+                : 'text-on-surface-variant/70 hover:bg-white/5'
+            }`}
+            aria-label="Perfil"
+          >
+            <span
+              className="material-symbols-outlined text-[22px]"
+              style={{ fontVariationSettings: pathname === '/dashboard/profile' ? "'FILL' 1" : "'FILL' 0" }}
+            >
+              person
+            </span>
+            <span className="text-[9px] leading-tight tracking-wide font-medium text-center">Perfil</span>
+          </Link>
+        </div>
+      </div>
+
       {/* Mobile: Bottom nav bar */}
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-white/[0.06]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="flex items-stretch justify-around px-1 h-16">
-          {(mobileNavByRole[userRole] || mobileNavByRole.aluno).map((item) => {
+          {primaryItems.map((item) => {
             const active = isActive(item.href);
             return (
               <Link
@@ -203,28 +336,28 @@ export default function Sidebar() {
               </Link>
             );
           })}
-          {/* Profile icon always visible */}
-          <Link
-            href="/dashboard/profile"
+
+          {/* "Mais" button — always visible, opens drawer */}
+          <button
+            type="button"
+            onClick={() => setMoreOpen((prev) => !prev)}
             className={`flex flex-col items-center justify-center gap-0.5 min-w-[56px] px-2 py-2 rounded-2xl transition-all active:scale-90 ${
-              pathname === '/dashboard/profile' ? 'text-secondary' : 'text-on-surface-variant/50'
+              moreOpen ? 'text-secondary' : 'text-on-surface-variant/50'
             }`}
-            aria-label="Perfil"
-            aria-current={pathname === '/dashboard/profile' ? 'page' : undefined}
+            aria-label="Mais módulos"
+            aria-expanded={moreOpen}
+            aria-haspopup="dialog"
           >
             <span
-              className={`material-symbols-outlined transition-all ${pathname === '/dashboard/profile' ? 'text-[22px]' : 'text-[20px]'}`}
-              style={{ fontVariationSettings: pathname === '/dashboard/profile' ? "'FILL' 1" : "'FILL' 0" }}
+              className={`material-symbols-outlined transition-all ${moreOpen ? 'text-[22px]' : 'text-[20px]'}`}
+              style={{ fontVariationSettings: moreOpen ? "'FILL' 1" : "'FILL' 0" }}
             >
-              person
+              {moreOpen ? 'close' : 'more_horiz'}
             </span>
-            <span className={`text-[10px] leading-tight tracking-wide font-medium ${pathname === '/dashboard/profile' ? 'opacity-100' : 'opacity-60'}`}>
-              Perfil
+            <span className={`text-[10px] leading-tight tracking-wide font-medium ${moreOpen ? 'opacity-100' : 'opacity-60'}`}>
+              Mais
             </span>
-            {pathname === '/dashboard/profile' && (
-              <span className="w-1 h-1 rounded-full bg-secondary mt-0.5" />
-            )}
-          </Link>
+          </button>
         </div>
       </nav>
     </>

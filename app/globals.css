@@ -189,11 +189,17 @@ input[type="range"]::-webkit-slider-thumb {
 html {
   -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
+  /* Permitir rolagem vertical nativa */
+  overflow-y: auto;
 }
 
 body {
   overflow-x: hidden;
-  overscroll-behavior-y: none;
+  /* overscroll-behavior-y: none causava bloqueio de scroll em Safari iOS.
+     Mantemos 'contain' para evitar pull-to-refresh sem bloquear rolagem normal. */
+  overscroll-behavior-y: contain;
+  min-height: 100%;
+  touch-action: pan-y;
 }
 
 .safe-area-pt {
@@ -205,12 +211,9 @@ body {
 }
 
 @media (display-mode: standalone) {
-  /* Otimizações quando o app está instalado */
-  body {
-    user-select: none;
-    -webkit-user-select: none;
-  }
-  input, textarea {
+  /* PWA instalado: NÃO aplicar user-select: none no body pois bloqueia
+     gestos de scroll em Safari iOS standalone. */
+  input, textarea, [contenteditable] {
     user-select: text;
     -webkit-user-select: text;
   }
